@@ -43,9 +43,9 @@ enum APIError: LocalizedError {
 
 final class APIClient {
     let baseURL: String
-    let token: String
     let accountHeader: String
     let accountId: String
+    private let tokenProvider: () async throws -> String
 
     private let session = URLSession.shared
     private let decoder: JSONDecoder = {
@@ -56,9 +56,16 @@ final class APIClient {
 
     init(baseURL: String, token: String, accountHeader: String, accountId: String) {
         self.baseURL = baseURL
-        self.token = token
         self.accountHeader = accountHeader
         self.accountId = accountId
+        self.tokenProvider = { token }
+    }
+
+    init(baseURL: String, tokenProvider: @escaping () async throws -> String, accountHeader: String, accountId: String) {
+        self.baseURL = baseURL
+        self.accountHeader = accountHeader
+        self.accountId = accountId
+        self.tokenProvider = tokenProvider
     }
 
     func request<T: Decodable>(
@@ -66,6 +73,17 @@ final class APIClient {
         method: String = "GET",
         queryItems: [URLQueryItem]? = nil,
         body: [String: Any]? = nil
+    ) async throws -> T {
+        let token = try await tokenProvider()
+        return try await performRequest(endpoint, method: method, queryItems: queryItems, body: body, token: token)
+    }
+
+    private func performRequest<T: Decodable>(
+        _ endpoint: String,
+        method: String,
+        queryItems: [URLQueryItem]?,
+        body: [String: Any]?,
+        token: String
     ) async throws -> T {
         var components = URLComponents(string: baseURL + endpoint)!
         components.queryItems = queryItems

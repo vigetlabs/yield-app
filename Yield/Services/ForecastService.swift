@@ -12,6 +12,15 @@ final class ForecastService {
         )
     }
 
+    init(tokenProvider: @escaping () async throws -> String, accountId: String) {
+        self.client = APIClient(
+            baseURL: "https://api.forecastapp.com",
+            tokenProvider: tokenProvider,
+            accountHeader: "Forecast-Account-Id",
+            accountId: accountId
+        )
+    }
+
     func getCurrentPerson() async throws -> ForecastCurrentUser {
         let response: ForecastWhoAmIResponse = try await client.request("/whoami")
         return response.currentUser

@@ -1,15 +1,94 @@
 import SwiftUI
 
 struct SettingsView: View {
+    let oAuthService: OAuthService
+
     @AppStorage("harvestToken") private var harvestToken = ""
     @AppStorage("harvestAccountId") private var harvestAccountId = ""
     @AppStorage("forecastAccountId") private var forecastAccountId = ""
 
     @State private var testStatus: String? = nil
     @State private var isTesting = false
+    @State private var showAdvanced = false
 
     var body: some View {
         Form {
+            if oAuthService.isAuthenticated {
+                oauthConnectedSection
+            } else {
+                oauthSignInSection
+            }
+
+            DisclosureGroup("Advanced: Personal Access Token", isExpanded: $showAdvanced) {
+                patSection
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: 400, height: oAuthService.isAuthenticated ? 320 : 380)
+        .navigationTitle("Yield Settings")
+    }
+
+    // MARK: - OAuth Connected
+
+    private var oauthConnectedSection: some View {
+        Section {
+            if let name = oAuthService.userName {
+                LabeledContent("Signed in as", value: name)
+            }
+            if let harvestId = oAuthService.harvestAccountId {
+                LabeledContent("Harvest Account", value: harvestId)
+            }
+            if let forecastId = oAuthService.forecastAccountId {
+                LabeledContent("Forecast Account", value: forecastId)
+            }
+
+            Button("Sign Out") {
+                oAuthService.signOut()
+                Task {
+                    await AppState.shared.viewModel.refresh()
+                }
+            }
+        } header: {
+            Text("Harvest Account")
+        }
+    }
+
+    // MARK: - OAuth Sign In
+
+    private var oauthSignInSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Sign in with your Harvest account to get started. This will also connect your Forecast data automatically.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button(action: {
+                    oAuthService.startOAuthFlow()
+                }) {
+                    if oAuthService.isAuthenticating {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text("Sign in with Harvest")
+                    }
+                }
+                .disabled(oAuthService.isAuthenticating)
+
+                if let error = oAuthService.authError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+        } header: {
+            Text("Harvest Account")
+        }
+    }
+
+    // MARK: - PAT Section
+
+    private var patSection: some View {
+        Group {
             Section {
                 Text("Generate a personal access token at:")
                 Link("id.getharvest.com/developers",
@@ -45,9 +124,6 @@ struct SettingsView: View {
                 }
             }
         }
-        .formStyle(.grouped)
-        .frame(width: 400, height: 320)
-        .navigationTitle("Yield Settings")
     }
 
     private func testConnection() {

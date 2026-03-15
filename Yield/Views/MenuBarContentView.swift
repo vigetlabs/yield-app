@@ -86,15 +86,19 @@ struct MenuBarContentView: View {
 
     private var notConfiguredView: some View {
         VStack(spacing: 8) {
-            Image(systemName: "gear")
+            Image(systemName: "person.crop.circle.badge.questionmark")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
-            Text("Set up your API credentials to get started.")
+            Text("Sign in to connect your Harvest and Forecast accounts.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            SettingsLink {
-                Text("Open Settings")
+            Button("Sign in with Harvest") {
+                AppState.shared.oAuthService.startOAuthFlow()
             }
+            SettingsLink {
+                Text("Other options...")
+            }
+            .font(.caption)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)

@@ -6,6 +6,7 @@ import UserNotifications
 final class AppState {
     static let shared = AppState()
     let viewModel = TimeComparisonViewModel()
+    let oAuthService = OAuthService()
 
     func start() {
         viewModel.startAutoRefresh()
@@ -43,7 +44,7 @@ struct YieldApp: App {
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView()
+            SettingsView(oAuthService: AppState.shared.oAuthService)
         }
     }
 

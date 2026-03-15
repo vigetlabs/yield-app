@@ -12,6 +12,15 @@ final class HarvestService {
         )
     }
 
+    init(tokenProvider: @escaping () async throws -> String, accountId: String) {
+        self.client = APIClient(
+            baseURL: "https://api.harvestapp.com/v2",
+            tokenProvider: tokenProvider,
+            accountHeader: "Harvest-Account-Id",
+            accountId: accountId
+        )
+    }
+
     func getCurrentUser() async throws -> HarvestUserResponse {
         try await client.request("/users/me")
     }

@@ -17,11 +17,29 @@ final class TimeComparisonViewModel {
     private var elapsedTimer: Timer?
     private var notifiedProjectIds: Set<Int> = []
 
-    var isConfigured: Bool {
+    enum AuthMode {
+        case oauth, pat, none
+    }
+
+    var authMode: AuthMode {
+        // OAuth takes priority
+        if KeychainHelper.load(key: "accessToken") != nil,
+           let hId = UserDefaults.standard.string(forKey: "oauthHarvestAccountId"), !hId.isEmpty,
+           let fId = UserDefaults.standard.string(forKey: "oauthForecastAccountId"), !fId.isEmpty {
+            return .oauth
+        }
+        // Fall back to PAT
         let token = UserDefaults.standard.string(forKey: "harvestToken") ?? ""
         let harvestId = UserDefaults.standard.string(forKey: "harvestAccountId") ?? ""
         let forecastId = UserDefaults.standard.string(forKey: "forecastAccountId") ?? ""
-        return !token.isEmpty && !harvestId.isEmpty && !forecastId.isEmpty
+        if !token.isEmpty && !harvestId.isEmpty && !forecastId.isEmpty {
+            return .pat
+        }
+        return .none
+    }
+
+    var isConfigured: Bool {
+        authMode != .none
     }
 
     var menuBarLabel: String {
@@ -51,11 +69,28 @@ final class TimeComparisonViewModel {
         return String(format: "%d:%02d left", h, m)
     }
 
-    private var harvestService: HarvestService? {
-        guard let token = UserDefaults.standard.string(forKey: "harvestToken"),
-              let accountId = UserDefaults.standard.string(forKey: "harvestAccountId"),
-              !token.isEmpty, !accountId.isEmpty else { return nil }
-        return HarvestService(token: token, accountId: accountId)
+    private func makeServices() -> (HarvestService, ForecastService)? {
+        switch authMode {
+        case .oauth:
+            let oAuth = AppState.shared.oAuthService
+            let harvestId = UserDefaults.standard.string(forKey: "oauthHarvestAccountId")!
+            let forecastId = UserDefaults.standard.string(forKey: "oauthForecastAccountId")!
+            let tokenProvider: () async throws -> String = { try await oAuth.getAccessToken() }
+            return (
+                HarvestService(tokenProvider: tokenProvider, accountId: harvestId),
+                ForecastService(tokenProvider: tokenProvider, accountId: forecastId)
+            )
+        case .pat:
+            let token = UserDefaults.standard.string(forKey: "harvestToken")!
+            let harvestId = UserDefaults.standard.string(forKey: "harvestAccountId")!
+            let forecastId = UserDefaults.standard.string(forKey: "forecastAccountId")!
+            return (
+                HarvestService(token: token, accountId: harvestId),
+                ForecastService(token: token, accountId: forecastId)
+            )
+        case .none:
+            return nil
+        }
     }
 
     func startAutoRefresh() {
@@ -127,7 +162,8 @@ final class TimeComparisonViewModel {
 
     @MainActor
     func toggleTimer(for project: ProjectStatus) async {
-        guard let service = harvestService else { return }
+        guard let (harvestService, _) = makeServices() else { return }
+        let service = harvestService
         guard let harvestProjectId = project.harvestProjectId else { return }
 
         do {
@@ -173,12 +209,11 @@ final class TimeComparisonViewModel {
         isLoading = true
         errorMessage = nil
 
-        let token = UserDefaults.standard.string(forKey: "harvestToken")!
-        let harvestAccountId = UserDefaults.standard.string(forKey: "harvestAccountId")!
-        let forecastAccountId = UserDefaults.standard.string(forKey: "forecastAccountId")!
-
-        let harvestService = HarvestService(token: token, accountId: harvestAccountId)
-        let forecastService = ForecastService(token: token, accountId: forecastAccountId)
+        guard let (harvestService, forecastService) = makeServices() else {
+            errorMessage = "API credentials not configured."
+            isLoading = false
+            return
+        }
 
         let weekDates = DateHelpers.weekDateStrings()
         let weekBounds = DateHelpers.currentWeekBounds()
