@@ -1,0 +1,378 @@
+import Foundation
+import SwiftUI
+import UserNotifications
+
+@Observable
+final class TimeComparisonViewModel {
+    var projectStatuses: [ProjectStatus] = []
+    var totalLogged: Double = 0
+    var totalBooked: Double = 0
+    var weekLabel: String = ""
+    var lastUpdated: Date? = nil
+    var isLoading: Bool = false
+    var errorMessage: String? = nil
+    var elapsedOffset: Double = 0  // hours elapsed locally since last API refresh
+
+    private var refreshTimer: Timer?
+    private var elapsedTimer: Timer?
+    private var notifiedProjectIds: Set<Int> = []
+
+    var isConfigured: Bool {
+        let token = UserDefaults.standard.string(forKey: "harvestToken") ?? ""
+        let harvestId = UserDefaults.standard.string(forKey: "harvestAccountId") ?? ""
+        let forecastId = UserDefaults.standard.string(forKey: "forecastAccountId") ?? ""
+        return !token.isEmpty && !harvestId.isEmpty && !forecastId.isEmpty
+    }
+
+    var menuBarLabel: String {
+        guard lastUpdated != nil else { return "" }
+        guard let tracking = projectStatuses.first(where: { $0.isTracking }) else {
+            let remaining = totalBooked - totalLogged
+            return formatRemaining(remaining)
+        }
+        let effectiveLogged = tracking.loggedHours + elapsedOffset
+        let remaining = tracking.bookedHours - effectiveLogged
+        let name = tracking.projectName
+        let truncated = name.count > 20 ? String(name.prefix(18)) + "…" : name
+        return "\(formatRemaining(remaining))  \(truncated)"
+    }
+
+    func effectiveLoggedHours(for project: ProjectStatus) -> Double {
+        project.loggedHours + (project.isTracking ? elapsedOffset : 0)
+    }
+
+    private func formatRemaining(_ hours: Double) -> String {
+        let abs = Swift.abs(hours)
+        let h = Int(abs)
+        let m = Int((abs - Double(h)) * 60)
+        if hours < 0 {
+            return String(format: "%d:%02d over", h, m)
+        }
+        return String(format: "%d:%02d left", h, m)
+    }
+
+    private var harvestService: HarvestService? {
+        guard let token = UserDefaults.standard.string(forKey: "harvestToken"),
+              let accountId = UserDefaults.standard.string(forKey: "harvestAccountId"),
+              !token.isEmpty, !accountId.isEmpty else { return nil }
+        return HarvestService(token: token, accountId: accountId)
+    }
+
+    func startAutoRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                await self.refresh()
+            }
+        }
+        Task { @MainActor in
+            await refresh()
+        }
+    }
+
+    func stopAutoRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+        stopElapsedTimer()
+    }
+
+    private func startElapsedTimer() {
+        elapsedTimer?.invalidate()
+        elapsedOffset = 0
+        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.elapsedOffset += 1.0 / 60.0  // add 1 minute in hours
+                self.checkBookedHoursReached()
+            }
+        }
+    }
+
+    private func checkBookedHoursReached() {
+        for project in projectStatuses where project.isTracking {
+            let effective = effectiveLoggedHours(for: project)
+            if project.bookedHours > 0,
+               effective >= project.bookedHours,
+               !notifiedProjectIds.contains(project.id) {
+                notifiedProjectIds.insert(project.id)
+                sendBookedHoursNotification(for: project)
+            }
+        }
+    }
+
+    private func sendBookedHoursNotification(for project: ProjectStatus) {
+        let content = UNMutableNotificationContent()
+        content.title = "Time's up!"
+        let hours = project.bookedHours == project.bookedHours.rounded()
+            ? String(format: "%.0f", project.bookedHours)
+            : String(format: "%.1f", project.bookedHours)
+        let name = [project.clientName, project.projectName].compactMap { $0 }.joined(separator: " — ")
+        content.body = "\(name): You've reached your booked hours (\(hours)h)"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "booked-hours-\(project.id)",
+            content: content,
+            trigger: nil  // deliver immediately
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func stopElapsedTimer() {
+        elapsedTimer?.invalidate()
+        elapsedTimer = nil
+        elapsedOffset = 0
+    }
+
+    @MainActor
+    func toggleTimer(for project: ProjectStatus) async {
+        guard let service = harvestService else { return }
+        guard let harvestProjectId = project.harvestProjectId else { return }
+
+        do {
+            // Stop any currently running timer first
+            if let running = projectStatuses.first(where: { $0.isTracking }),
+               let runningEntryId = running.todayEntryId {
+                _ = try await service.stopTimer(entryId: runningEntryId)
+            }
+
+            if project.isTracking {
+                // We just stopped it above — done
+            } else if let todayEntryId = project.todayEntryId {
+                // There's already an entry for today — restart it
+                _ = try await service.restartTimer(entryId: todayEntryId)
+            } else {
+                // No entry for today — create a new one (timer starts automatically)
+                // Use known task ID, or fetch the first active task for this project
+                var taskId = project.lastTaskId
+                if taskId == nil {
+                    let tasks = try await service.getTaskAssignments(projectId: harvestProjectId)
+                    taskId = tasks.first?.task.id
+                }
+                guard let resolvedTaskId = taskId else {
+                    errorMessage = "No tasks assigned to this project in Harvest."
+                    return
+                }
+                _ = try await service.createTimeEntry(projectId: harvestProjectId, taskId: resolvedTaskId)
+            }
+
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func refresh() async {
+        guard isConfigured else {
+            errorMessage = "Open Settings to configure your API credentials."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        let token = UserDefaults.standard.string(forKey: "harvestToken")!
+        let harvestAccountId = UserDefaults.standard.string(forKey: "harvestAccountId")!
+        let forecastAccountId = UserDefaults.standard.string(forKey: "forecastAccountId")!
+
+        let harvestService = HarvestService(token: token, accountId: harvestAccountId)
+        let forecastService = ForecastService(token: token, accountId: forecastAccountId)
+
+        let weekDates = DateHelpers.weekDateStrings()
+        let weekBounds = DateHelpers.currentWeekBounds()
+        let todayString = DateHelpers.dateFormatter.string(from: Date())
+
+        do {
+            // Fetch current user IDs in parallel
+            async let harvestUser = harvestService.getCurrentUser()
+            async let forecastPerson = forecastService.getCurrentPerson()
+            async let forecastProjects = forecastService.getProjects()
+            async let forecastClients = forecastService.getClients()
+
+            let user = try await harvestUser
+            let person = try await forecastPerson
+            let projects = try await forecastProjects
+            let clients = try await forecastClients
+
+            // Build lookups
+            let projectMap = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
+            let clientMap = Dictionary(uniqueKeysWithValues: clients.map { ($0.id, $0) })
+            // Fetch time data in parallel
+            async let timeEntries = harvestService.getTimeEntries(
+                userId: user.id,
+                from: weekDates.start,
+                to: weekDates.end
+            )
+            async let assignments = forecastService.getAssignments(
+                personId: person.id,
+                startDate: weekDates.start,
+                endDate: weekDates.end
+            )
+
+            let entries = try await timeEntries
+            let allAssignments = try await assignments
+
+            // Aggregate logged hours by Harvest project ID and track timers
+            var loggedByHarvestProject: [Int: Double] = [:]
+            var todayByHarvestProject: [Int: Double] = [:]
+            var harvestProjectNames: [Int: String] = [:]
+            var harvestClientNames: [Int: String] = [:]
+            var runningHarvestProjectIds: Set<Int> = []
+            var todayEntryByProject: [Int: HarvestTimeEntry] = [:]  // today's entry per project
+            var latestEntryByProject: [Int: HarvestTimeEntry] = [:]  // any entry (for task ID)
+            var latestUpdatedAt: [Int: String] = [:]  // most recent updatedAt per project
+
+            for entry in entries {
+                loggedByHarvestProject[entry.project.id, default: 0] += entry.hours
+                if entry.spentDate == todayString {
+                    todayByHarvestProject[entry.project.id, default: 0] += entry.hours
+                }
+                harvestProjectNames[entry.project.id] = entry.project.name
+                if let client = entry.client {
+                    harvestClientNames[entry.project.id] = client.name
+                }
+                if entry.isRunning {
+                    runningHarvestProjectIds.insert(entry.project.id)
+                    todayEntryByProject[entry.project.id] = entry
+                }
+                // Track today's entry (prefer running, then most recent for today)
+                if entry.spentDate == todayString && todayEntryByProject[entry.project.id] == nil {
+                    todayEntryByProject[entry.project.id] = entry
+                }
+                // Track latest entry overall (for task ID when creating new entries)
+                if latestEntryByProject[entry.project.id] == nil {
+                    latestEntryByProject[entry.project.id] = entry
+                }
+                // Track most recent updatedAt per project
+                if let existing = latestUpdatedAt[entry.project.id] {
+                    if entry.updatedAt > existing {
+                        latestUpdatedAt[entry.project.id] = entry.updatedAt
+                    }
+                } else {
+                    latestUpdatedAt[entry.project.id] = entry.updatedAt
+                }
+            }
+
+            // Aggregate booked hours by Forecast project ID
+            var bookedByForecastProject: [Int: Double] = [:]
+            for assignment in allAssignments {
+                guard let projectId = assignment.projectId else { continue }
+                let weekdays = DateHelpers.countOverlappingWeekdays(
+                    assignmentStart: assignment.startDate,
+                    assignmentEnd: assignment.endDate,
+                    weekStart: weekBounds.start,
+                    weekEnd: weekBounds.end
+                )
+                let hoursPerDay = Double(assignment.allocation ?? 0) / 3600.0
+                bookedByForecastProject[projectId, default: 0] += hoursPerDay * Double(weekdays)
+            }
+
+            // Merge into ProjectStatus list
+            var statuses: [ProjectStatus] = []
+            var processedHarvestIds: Set<Int> = []
+
+            // Start with Forecast projects (booked)
+            for (forecastProjectId, bookedHours) in bookedByForecastProject {
+                let project = projectMap[forecastProjectId]
+                let projectName = project?.name ?? "Unknown Project"
+                let clientName = project?.clientId.flatMap { clientMap[$0]?.name }
+                var logged: Double = 0
+                var tracking = false
+                var harvestId: Int? = nil
+                var todayEntry: HarvestTimeEntry? = nil
+                var latestEntry: HarvestTimeEntry? = nil
+
+                var today: Double = 0
+
+                if let hId = project?.harvestId {
+                    harvestId = hId
+                    logged = loggedByHarvestProject[hId] ?? 0
+                    today = todayByHarvestProject[hId] ?? 0
+                    tracking = runningHarvestProjectIds.contains(hId)
+                    todayEntry = todayEntryByProject[hId]
+                    latestEntry = latestEntryByProject[hId]
+                    processedHarvestIds.insert(hId)
+                }
+
+                statuses.append(ProjectStatus(
+                    id: forecastProjectId,
+                    clientName: clientName,
+                    projectName: projectName,
+                    bookedHours: bookedHours,
+                    loggedHours: logged,
+                    todayHours: today,
+                    isTracking: tracking,
+                    harvestProjectId: harvestId,
+                    todayEntryId: todayEntry?.id,
+                    lastTaskId: (latestEntry ?? todayEntry)?.taskAssignment?.task?.id,
+                    lastTrackedAt: harvestId.flatMap { latestUpdatedAt[$0] }
+                ))
+            }
+
+            // Add Harvest-only projects (logged but not booked)
+            for (harvestProjectId, loggedHours) in loggedByHarvestProject {
+                if processedHarvestIds.contains(harvestProjectId) { continue }
+                let projectName = harvestProjectNames[harvestProjectId] ?? "Unknown Project"
+                let clientName = harvestClientNames[harvestProjectId]
+                let todayEntry = todayEntryByProject[harvestProjectId]
+                let latestEntry = latestEntryByProject[harvestProjectId]
+                statuses.append(ProjectStatus(
+                    id: harvestProjectId + 1_000_000,
+                    clientName: clientName,
+                    projectName: projectName,
+                    bookedHours: 0,
+                    loggedHours: loggedHours,
+                    todayHours: todayByHarvestProject[harvestProjectId] ?? 0,
+                    isTracking: runningHarvestProjectIds.contains(harvestProjectId),
+                    harvestProjectId: harvestProjectId,
+                    todayEntryId: todayEntry?.id,
+                    lastTaskId: (latestEntry ?? todayEntry)?.taskAssignment?.task?.id,
+                    lastTrackedAt: latestUpdatedAt[harvestProjectId]
+                ))
+            }
+
+            // Sort: currently tracking first, then by most recently tracked, then untracked by name
+            statuses.sort { a, b in
+                // Currently tracking always comes first
+                if a.isTracking != b.isTracking {
+                    return a.isTracking
+                }
+                // Both have been tracked — sort by most recent activity
+                if let aTime = a.lastTrackedAt, let bTime = b.lastTrackedAt {
+                    return aTime > bTime
+                }
+                // Tracked before untracked
+                if (a.lastTrackedAt != nil) != (b.lastTrackedAt != nil) {
+                    return a.lastTrackedAt != nil
+                }
+                // Neither tracked — sort by project name
+                return a.projectName.localizedCaseInsensitiveCompare(b.projectName) == .orderedAscending
+            }
+
+            projectStatuses = statuses
+            totalLogged = statuses.reduce(0) { $0 + $1.loggedHours }
+            totalBooked = statuses.reduce(0) { $0 + $1.bookedHours }
+            weekLabel = DateHelpers.formattedWeekRange()
+            lastUpdated = Date()
+
+            // Reset elapsed counter — API data is fresh
+            // Remove notifications only for projects no longer being tracked
+            notifiedProjectIds = notifiedProjectIds.filter { id in
+                statuses.contains { $0.id == id && $0.isTracking }
+            }
+            if statuses.contains(where: { $0.isTracking }) {
+                startElapsedTimer()
+                checkBookedHoursReached()
+            } else {
+                stopElapsedTimer()
+            }
+
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+}
