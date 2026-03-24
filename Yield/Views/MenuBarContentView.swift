@@ -20,7 +20,7 @@ struct MenuBarContentView: View {
             footerView
         }
         .padding(12)
-        .frame(width: 460)
+        .frame(width: 480)
     }
 
     // MARK: - Content
@@ -33,7 +33,7 @@ struct MenuBarContentView: View {
 
             // Total summary
             HStack {
-                Text("Total")
+                Text("Today: \(formatDecimalHours(viewModel.totalTodayLogged))")
                     .fontWeight(.medium)
                 Spacer()
                 Text(totalLabel)
@@ -61,6 +61,9 @@ struct MenuBarContentView: View {
                         totalWeeklyBookedHours: viewModel.totalBooked,
                         onToggleTimer: {
                             Task { await viewModel.toggleTimer(for: project) }
+                        },
+                        onToggleEntryTimer: { entryId, isRunning in
+                            Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: isRunning) }
                         }
                     )
                 }
@@ -71,15 +74,18 @@ struct MenuBarContentView: View {
     private var totalLabel: String {
         let logged = formatDecimalHours(viewModel.totalLogged)
         let booked = formatDecimalHours(viewModel.totalBooked)
-        return "\(logged) / \(booked)"
+        let base = "\(logged) / \(booked)"
+        if viewModel.totalUnbookedLogged > 0 {
+            let unbooked = formatDecimalHours(viewModel.totalUnbookedLogged)
+            return "\(base) (+ \(unbooked) unbooked)"
+        }
+        return base
     }
 
     private func formatDecimalHours(_ hours: Double) -> String {
-        if hours == 0 { return "0h" }
-        if hours == hours.rounded() {
-            return String(format: "%.0fh", hours)
-        }
-        return String(format: "%.1fh", hours)
+        let h = Int(hours)
+        let m = Int((hours - Double(h)) * 60)
+        return String(format: "%d:%02d", h, m)
     }
 
     // MARK: - States
@@ -131,32 +137,49 @@ struct MenuBarContentView: View {
     // MARK: - Footer
 
     private var footerView: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        HStack {
             if let lastUpdated = viewModel.lastUpdated {
                 Text("Updated \(lastUpdated, style: .relative) ago")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
 
-            HStack {
+            Spacer()
+
+            Menu {
                 Button("Refresh") {
                     Task { await viewModel.refresh() }
                 }
                 .disabled(viewModel.isLoading)
 
-                Spacer()
-
                 SettingsLink {
                     Text("Settings...")
                 }
 
-                Spacer()
+                Divider()
 
-                Button("Quit") {
+                Text(appVersion)
+
+                Divider()
+
+                Button("Quit Yield") {
                     NSApplication.shared.terminate(nil)
                 }
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
             }
-            .controlSize(.small)
+            .menuStyle(.borderlessButton)
+            .fixedSize()
         }
+    }
+
+    // MARK: - About
+
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "v\(version) (\(build))"
     }
 }

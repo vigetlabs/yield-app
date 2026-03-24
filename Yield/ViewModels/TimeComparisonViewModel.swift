@@ -7,6 +7,8 @@ final class TimeComparisonViewModel {
     var projectStatuses: [ProjectStatus] = []
     var totalLogged: Double = 0
     var totalBooked: Double = 0
+    var totalUnbookedLogged: Double = 0
+    var totalTodayLogged: Double = 0
     var weekLabel: String = ""
     var lastUpdated: Date? = nil
     var isLoading: Bool = false
@@ -154,6 +156,24 @@ final class TimeComparisonViewModel {
         UNUserNotificationCenter.current().add(request)
     }
 
+    private static func makeEntryInfos(from entries: [HarvestTimeEntry]) -> [TimeEntryInfo] {
+        entries.map { entry in
+            TimeEntryInfo(
+                id: entry.id,
+                taskName: entry.task?.name ?? entry.taskAssignment?.task?.name ?? "Unknown Task",
+                hours: entry.hours,
+                date: entry.spentDate,
+                isRunning: entry.isRunning,
+                notes: entry.notes
+            )
+        }.sorted { a, b in
+            // Running first, then by date descending, then by hours descending
+            if a.isRunning != b.isRunning { return a.isRunning }
+            if a.date != b.date { return a.date > b.date }
+            return a.hours > b.hours
+        }
+    }
+
     private func stopElapsedTimer() {
         elapsedTimer?.invalidate()
         elapsedTimer = nil
@@ -193,6 +213,27 @@ final class TimeComparisonViewModel {
                 _ = try await service.createTimeEntry(projectId: harvestProjectId, taskId: resolvedTaskId)
             }
 
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func toggleEntryTimer(entryId: Int, isRunning: Bool) async {
+        guard let (harvestService, _) = makeServices() else { return }
+
+        do {
+            if isRunning {
+                _ = try await harvestService.stopTimer(entryId: entryId)
+            } else {
+                // Stop any currently running timer first
+                if let running = projectStatuses.first(where: { $0.isTracking }),
+                   let runningEntryId = running.todayEntryId {
+                    _ = try await harvestService.stopTimer(entryId: runningEntryId)
+                }
+                _ = try await harvestService.restartTimer(entryId: entryId)
+            }
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
@@ -258,8 +299,10 @@ final class TimeComparisonViewModel {
             var todayEntryByProject: [Int: HarvestTimeEntry] = [:]  // today's entry per project
             var latestEntryByProject: [Int: HarvestTimeEntry] = [:]  // any entry (for task ID)
             var latestUpdatedAt: [Int: String] = [:]  // most recent updatedAt per project
+            var entriesByHarvestProject: [Int: [HarvestTimeEntry]] = [:]
 
             for entry in entries {
+                entriesByHarvestProject[entry.project.id, default: []].append(entry)
                 loggedByHarvestProject[entry.project.id, default: 0] += entry.hours
                 if entry.spentDate == todayString {
                     todayByHarvestProject[entry.project.id, default: 0] += entry.hours
@@ -342,7 +385,8 @@ final class TimeComparisonViewModel {
                     harvestProjectId: harvestId,
                     todayEntryId: todayEntry?.id,
                     lastTaskId: (latestEntry ?? todayEntry)?.taskAssignment?.task?.id,
-                    lastTrackedAt: harvestId.flatMap { latestUpdatedAt[$0] }
+                    lastTrackedAt: harvestId.flatMap { latestUpdatedAt[$0] },
+                    timeEntries: Self.makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? [])
                 ))
             }
 
@@ -364,7 +408,8 @@ final class TimeComparisonViewModel {
                     harvestProjectId: harvestProjectId,
                     todayEntryId: todayEntry?.id,
                     lastTaskId: (latestEntry ?? todayEntry)?.taskAssignment?.task?.id,
-                    lastTrackedAt: latestUpdatedAt[harvestProjectId]
+                    lastTrackedAt: latestUpdatedAt[harvestProjectId],
+                    timeEntries: Self.makeEntryInfos(from: entriesByHarvestProject[harvestProjectId] ?? [])
                 ))
             }
 
@@ -387,8 +432,12 @@ final class TimeComparisonViewModel {
             }
 
             projectStatuses = statuses
-            totalLogged = statuses.reduce(0) { $0 + $1.loggedHours }
-            totalBooked = statuses.reduce(0) { $0 + $1.bookedHours }
+            let booked = statuses.filter { $0.bookedHours > 0 }
+            let unbooked = statuses.filter { $0.bookedHours == 0 }
+            totalLogged = booked.reduce(0) { $0 + $1.loggedHours }
+            totalBooked = booked.reduce(0) { $0 + $1.bookedHours }
+            totalUnbookedLogged = unbooked.reduce(0) { $0 + $1.loggedHours }
+            totalTodayLogged = statuses.reduce(0) { $0 + $1.todayHours }
             weekLabel = DateHelpers.formattedWeekRange()
             lastUpdated = Date()
 

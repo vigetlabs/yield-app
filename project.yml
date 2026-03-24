@@ -27,8 +27,8 @@ targets:
         SWIFT_VERSION: "5.9"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         PRODUCT_NAME: "Yield"
-        MARKETING_VERSION: "1.0.0"
+        MARKETING_VERSION: "0.9.0"
         CURRENT_PROJECT_VERSION: "1"
         ENABLE_HARDENED_RUNTIME: true
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "Apple Development: jeremyfields@me.com (64R6HQKBHY)"
+        CODE_SIGN_STYLE: Manual

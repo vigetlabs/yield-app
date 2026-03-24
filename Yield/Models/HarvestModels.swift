@@ -29,8 +29,10 @@ struct HarvestTimeEntry: Codable, Identifiable {
     let spentDate: String
     let isRunning: Bool
     let updatedAt: String
+    let notes: String?
     let project: HarvestProjectRef
     let client: HarvestClientRef?
+    let task: HarvestTaskRef?
     let taskAssignment: HarvestTaskAssignmentRef?
 }
 

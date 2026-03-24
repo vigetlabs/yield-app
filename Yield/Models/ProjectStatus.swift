@@ -1,5 +1,14 @@
 import Foundation
 
+struct TimeEntryInfo: Identifiable {
+    let id: Int
+    let taskName: String
+    let hours: Double
+    let date: String
+    let isRunning: Bool
+    let notes: String?
+}
+
 struct ProjectStatus: Identifiable {
     let id: Int
     let clientName: String?
@@ -12,6 +21,7 @@ struct ProjectStatus: Identifiable {
     let todayEntryId: Int?      // today's time entry (restart this if it exists)
     let lastTaskId: Int?        // task ID from most recent entry (for creating new entries)
     let lastTrackedAt: String?  // ISO 8601 timestamp of most recent entry update
+    let timeEntries: [TimeEntryInfo]
 
     var delta: Double { loggedHours - bookedHours }
 

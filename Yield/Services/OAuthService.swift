@@ -34,16 +34,17 @@ final class OAuthService {
     func startOAuthFlow() {
         isAuthenticating = true
         authError = nil
-        startLocalServer()
-
-        var components = URLComponents(string: "https://id.getharvest.com/oauth2/authorize")!
-        components.queryItems = [
-            URLQueryItem(name: "client_id", value: clientId),
-            URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "redirect_uri", value: redirectURI),
-        ]
-        if let url = components.url {
-            NSWorkspace.shared.open(url)
+        startLocalServer { [weak self] in
+            guard let self else { return }
+            var components = URLComponents(string: "https://id.getharvest.com/oauth2/authorize")!
+            components.queryItems = [
+                URLQueryItem(name: "client_id", value: self.clientId),
+                URLQueryItem(name: "response_type", value: "code"),
+                URLQueryItem(name: "redirect_uri", value: self.redirectURI),
+            ]
+            if let url = components.url {
+                NSWorkspace.shared.open(url)
+            }
         }
     }
 
@@ -51,7 +52,7 @@ final class OAuthService {
 
     private var listener: NWListener?
 
-    private func startLocalServer() {
+    private func startLocalServer(onReady: @escaping () -> Void) {
         stopLocalServer()
 
         do {
@@ -65,6 +66,23 @@ final class OAuthService {
 
         listener?.newConnectionHandler = { [weak self] connection in
             self?.handleConnection(connection)
+        }
+
+        var didCallReady = false
+        listener?.stateUpdateHandler = { [weak self] state in
+            switch state {
+            case .ready:
+                if !didCallReady {
+                    didCallReady = true
+                    onReady()
+                }
+            case .failed(let error):
+                self?.authError = "OAuth server failed: \(error.localizedDescription)"
+                self?.isAuthenticating = false
+                self?.stopLocalServer()
+            default:
+                break
+            }
         }
         listener?.start(queue: .main)
 
