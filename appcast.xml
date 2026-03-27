@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.2</title>
+      <sparkle:version>3</sparkle:version>
+      <sparkle:shortVersionString>0.9.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix Keychain prompt on app updates — no more password dialog after updating</li>
+          <li>Version number now correctly displayed in gear menu</li>
+          <li>Daily automatic update checks via Sparkle</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.2/Yield-0.9.2.zip"
+        sparkle:edSignature="obma3LjRZUyYZePszK2eUZkugxgh3gRO3+WwU26UOI6MPMciAGCK6Q52gqyofjYQI6csvhUQfWbe5fwUfYI0Dw=="
+        length="1560149"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.1</title>
       <sparkle:version>2</sparkle:version>
       <sparkle:shortVersionString>0.9.1</sparkle:shortVersionString>
