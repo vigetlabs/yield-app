@@ -3,6 +3,27 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.1</title>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>0.9.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fixed OAuth "server not found" error on sign-in</li>
+          <li>Settings now display inline in the menu bar panel</li>
+          <li>Refresh, Settings, Updates, and Quit in gear dropdown</li>
+          <li>Today's total hours shown in top bar</li>
+          <li>Times shown as h:mm format</li>
+          <li>Signed and notarized by Apple</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.1/Yield-0.9.1.zip"
+        sparkle:edSignature="eUP3mB9ucjbRBcNGRUIxfx12ZRO8+TtFW4oYDomtt3dVdQKwquMIxpg0V7mG6aZyOX7O0O9OpsHwGvQ22EM2DQ=="
+        length="1559480"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.0</title>
       <sparkle:version>1</sparkle:version>
       <sparkle:shortVersionString>0.9.0</sparkle:shortVersionString>
