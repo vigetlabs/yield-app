@@ -12,6 +12,12 @@ A macOS menu bar app that compares **logged hours** (Harvest) against **booked h
 - **Notifications** — Alerts when you reach your booked hours on a project
 - **Unbooked tracking** — Hours logged to projects without Forecast bookings are shown separately
 
+## Download
+
+**[Download the latest release](https://github.com/vigetlabs/yield-app/releases/latest)**
+
+Unzip, drag Yield to Applications, and launch. The app lives in your menu bar.
+
 ## Requirements
 
 - macOS 14.0 (Sonoma) or later

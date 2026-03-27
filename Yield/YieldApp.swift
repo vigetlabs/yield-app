@@ -54,6 +54,9 @@ struct YieldApp: App {
 
         Settings {
             SettingsView(oAuthService: AppState.shared.oAuthService)
+                .onAppear {
+                    NSApp.activate(ignoringOtherApps: true)
+                }
         }
     }
 
