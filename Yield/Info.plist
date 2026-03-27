@@ -32,7 +32,7 @@
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/jeremyfields/yield-app/main/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/vigetlabs/yield-app/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>qf90v1Zbq7OTVAfWHnhjzHEkvnW4juPWIgjbm/3U/P8=</string>
 </dict>

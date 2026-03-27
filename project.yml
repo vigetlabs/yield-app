@@ -29,7 +29,7 @@ targets:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
           NSAllowsLocalNetworking: true
-        SUFeedURL: "https://raw.githubusercontent.com/jeremyfields/yield-app/main/appcast.xml"
+        SUFeedURL: "https://raw.githubusercontent.com/vigetlabs/yield-app/main/appcast.xml"
         SUPublicEDKey: "qf90v1Zbq7OTVAfWHnhjzHEkvnW4juPWIgjbm/3U/P8="
         SUEnableAutomaticChecks: true
     settings:
