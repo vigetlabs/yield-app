@@ -23,6 +23,8 @@ targets:
     info:
       path: Yield/Info.plist
       properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSUIElement: true
         CFBundleDisplayName: "Yield"
         CFBundleName: Yield
@@ -39,8 +41,8 @@ targets:
         SWIFT_VERSION: "5.9"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         PRODUCT_NAME: "Yield"
-        MARKETING_VERSION: "0.9.2"
-        CURRENT_PROJECT_VERSION: "3"
+        MARKETING_VERSION: "0.9.3"
+        CURRENT_PROJECT_VERSION: "4"
         ENABLE_HARDENED_RUNTIME: true
         CODE_SIGN_IDENTITY: "Developer ID Application: Jeremy Fields (7G49Y875S8)"
         DEVELOPMENT_TEAM: 7G49Y875S8

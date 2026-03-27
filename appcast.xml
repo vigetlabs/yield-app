@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.3</title>
+      <sparkle:version>4</sparkle:version>
+      <sparkle:shortVersionString>0.9.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix version number display in gear menu (was showing v1.0 instead of actual version)</li>
+          <li>Info.plist now uses build setting variables for version — single source of truth in project.yml</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.3/Yield-0.9.3.zip"
+        sparkle:edSignature="YgSm6BbAgDp8xNp5q/xzsynee7Wsx3+EAs91s0U0unT5o6jdpQ7EJhfGCcsGGvOJlWnXJzCpROagZFxXbZiFBg=="
+        length="1560101"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.2</title>
       <sparkle:version>3</sparkle:version>
       <sparkle:shortVersionString>0.9.2</sparkle:shortVersionString>
