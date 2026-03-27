@@ -1,5 +1,33 @@
 import SwiftUI
 
+enum AppearanceMode: String, CaseIterable {
+    case system, light, dark
+
+    var label: String {
+        switch self {
+        case .system: return "System"
+        case .light:  return "Light"
+        case .dark:   return "Dark"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light:  return .light
+        case .dark:   return .dark
+        }
+    }
+
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: return nil
+        case .light:  return NSAppearance(named: .aqua)
+        case .dark:   return NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
 struct MenuBarContentView: View {
     let viewModel: TimeComparisonViewModel
 
@@ -21,6 +49,7 @@ struct MenuBarContentView: View {
         }
         .padding(12)
         .frame(width: 480)
+        .background(OpaqueMenuBarPanel())
     }
 
     // MARK: - Content
@@ -188,4 +217,27 @@ struct MenuBarContentView: View {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         return "v\(version)"
     }
+}
+
+// MARK: - Opaque Panel Background
+
+private struct OpaqueMenuBarPanel: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            guard let window = view.window else { return }
+            window.isOpaque = true
+            window.backgroundColor = .windowBackgroundColor
+            // Remove the visual effect (vibrancy) view if present
+            if let contentView = window.contentView {
+                for subview in contentView.subviews where subview is NSVisualEffectView {
+                    (subview as! NSVisualEffectView).state = .inactive
+                    (subview as! NSVisualEffectView).material = .windowBackground
+                }
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }

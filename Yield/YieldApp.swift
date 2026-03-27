@@ -26,6 +26,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         AppState.shared.updaterController = updaterController
         AppState.shared.start()
+
+        // Force dark mode until light/system modes are designed
+        NSApp.appearance = NSAppearance(named: .darkAqua)
     }
 
     // MARK: - SPUStandardUserDriverDelegate (Gentle Reminders)
