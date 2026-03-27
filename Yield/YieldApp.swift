@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 import SwiftUI
 import UserNotifications
 
@@ -7,6 +8,7 @@ final class AppState {
     static let shared = AppState()
     let viewModel = TimeComparisonViewModel()
     let oAuthService = OAuthService()
+    var updaterController: SPUStandardUpdaterController?
 
     func start() {
         viewModel.startAutoRefresh()
@@ -14,8 +16,15 @@ final class AppState {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        AppState.shared.updaterController = updaterController
         AppState.shared.start()
     }
 }

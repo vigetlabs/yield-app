@@ -6,12 +6,20 @@ options:
   xcodeVersion: "15.0"
   minimumXcodeGenVersion: "2.38"
 
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
+
 targets:
   Yield:
     type: application
     platform: macOS
     sources:
       - Yield
+    dependencies:
+      - package: Sparkle
+        product: Sparkle
     info:
       path: Yield/Info.plist
       properties:
@@ -21,6 +29,9 @@ targets:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
           NSAllowsLocalNetworking: true
+        SUFeedURL: "https://raw.githubusercontent.com/jeremyfields/yield-app/main/appcast.xml"
+        SUPublicEDKey: "qf90v1Zbq7OTVAfWHnhjzHEkvnW4juPWIgjbm/3U/P8="
+        SUEnableAutomaticChecks: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.yield
@@ -32,3 +43,4 @@ targets:
         ENABLE_HARDENED_RUNTIME: true
         CODE_SIGN_IDENTITY: "Apple Development: jeremyfields@me.com (64R6HQKBHY)"
         CODE_SIGN_STYLE: Manual
+        CODE_SIGN_ENTITLEMENTS: Yield/Yield.entitlements

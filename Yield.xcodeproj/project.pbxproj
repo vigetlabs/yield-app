@@ -10,6 +10,7 @@
 		0A4CD72A293DB291F4C6F20D /* ProjectRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */; };
 		1581C711C6C01278186D9AD1 /* YieldApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 138C505A4936EA5B2A5B16FD /* YieldApp.swift */; };
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
+		5B4B7C7E70A2D03365410F96 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA30B681B3132D09F66457E /* Sparkle */; };
 		6D46A5BB044C89897B4AB4D9 /* OAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C069FFB775F69282E721C8 /* OAuthService.swift */; };
 		7C1545B79A40F59B462C2BE3 /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */; };
 		8324AA3F5CF8FBC4782301B1 /* HarvestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE70177FE259AB1C37908F0 /* HarvestModels.swift */; };
@@ -40,11 +41,23 @@
 		C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		C54F1249B6E2997187DDBD28 /* HarvestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestService.swift; sourceTree = "<group>"; };
 		DB799247D52776862953EA20 /* Yield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yield.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6AE4314E6BA70459850E000 /* Yield.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Yield.entitlements; sourceTree = "<group>"; };
 		EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastService.swift; sourceTree = "<group>"; };
 		ECA417D28206A2DBE49C1D74 /* ProjectStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStatus.swift; sourceTree = "<group>"; };
 		F160FBF429C939C04135CD72 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		FF707BC7919EFF060031F5B9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		00B855C0BDFE258F80A41B52 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5B4B7C7E70A2D03365410F96 /* Sparkle in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		3033EBE91A451B730FFD84ED = {
@@ -94,6 +107,7 @@
 			children = (
 				77C42827589B10C29C0772BF /* Assets.xcassets */,
 				F160FBF429C939C04135CD72 /* Info.plist */,
+				E6AE4314E6BA70459850E000 /* Yield.entitlements */,
 				138C505A4936EA5B2A5B16FD /* YieldApp.swift */,
 				6BB3D5EF89C68D9AF3EBB7EB /* Models */,
 				71FFAF9716A1EF04B6484132 /* Services */,
@@ -128,6 +142,7 @@
 			buildPhases = (
 				B6360F9D34C5E980EEA58535 /* Sources */,
 				75822A2C9F2A4BA0368EC487 /* Resources */,
+				00B855C0BDFE258F80A41B52 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -135,6 +150,7 @@
 			);
 			name = Yield;
 			packageProductDependencies = (
+				9DA30B681B3132D09F66457E /* Sparkle */,
 			);
 			productName = Yield;
 			productReference = DB799247D52776862953EA20 /* Yield.app */;
@@ -163,6 +179,9 @@
 			);
 			mainGroup = 3033EBE91A451B730FFD84ED;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F3170BB7129450C759BEFA27 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DA617D7850417F3DE5B5E450 /* Products */;
 			projectDirPath = "";
@@ -333,6 +352,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Yield/Yield.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development: jeremyfields@me.com (64R6HQKBHY)";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -356,6 +376,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Yield/Yield.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development: jeremyfields@me.com (64R6HQKBHY)";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -397,6 +418,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F3170BB7129450C759BEFA27 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9DA30B681B3132D09F66457E /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F3170BB7129450C759BEFA27 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F0F44E4E104DD0DED0299017 /* Project object */;
 }

@@ -156,6 +156,10 @@ struct MenuBarContentView: View {
                     Text("Settings...")
                 }
 
+                Button("Check for Updates...") {
+                    AppState.shared.updaterController?.checkForUpdates(nil)
+                }
+
                 Divider()
 
                 Text(appVersion)
