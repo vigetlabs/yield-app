@@ -72,12 +72,14 @@ struct MenuBarContentView: View {
     }
 
     private var totalLabel: String {
-        let logged = formatDecimalHours(viewModel.totalLogged)
-        let booked = formatDecimalHours(viewModel.totalBooked)
-        let base = "\(logged) / \(booked)"
+        let totalLogged = viewModel.totalLogged + viewModel.totalUnbookedLogged
+        let target = max(viewModel.totalBooked, 40.0)
+        let logged = formatDecimalHours(totalLogged)
+        let targetStr = formatDecimalHours(target)
+        let base = "\(logged) / \(targetStr)"
         if viewModel.totalUnbookedLogged > 0 {
             let unbooked = formatDecimalHours(viewModel.totalUnbookedLogged)
-            return "\(base) (+ \(unbooked) unbooked)"
+            return "\(base) (\(unbooked) unbooked)"
         }
         return base
     }

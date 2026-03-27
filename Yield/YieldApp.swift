@@ -15,17 +15,31 @@ final class AppState {
     }
 }
 
-class AppDelegate: NSObject, NSApplicationDelegate {
-    let updaterController = SPUStandardUpdaterController(
+class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate {
+    lazy var updaterController = SPUStandardUpdaterController(
         startingUpdater: true,
         updaterDelegate: nil,
-        userDriverDelegate: nil
+        userDriverDelegate: self
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         AppState.shared.updaterController = updaterController
         AppState.shared.start()
+    }
+
+    // MARK: - SPUStandardUserDriverDelegate (Gentle Reminders)
+
+    var supportsGentleScheduledUpdateReminders: Bool { true }
+
+    func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
+        if state.userInitiated {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+
+    func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
+        // No-op: Sparkle handles dismissing the reminder
     }
 }
 
