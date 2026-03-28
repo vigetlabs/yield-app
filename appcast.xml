@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.4</title>
+      <sparkle:version>5</sparkle:version>
+      <sparkle:shortVersionString>0.9.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Force dark mode for consistent appearance</li>
+          <li>Add appearance picker in Settings (coming soon: light and system modes)</li>
+          <li>Remove legacy personal access token authentication — OAuth only</li>
+          <li>Fix opaque menu bar panel background</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.4/Yield-0.9.4.zip"
+        sparkle:edSignature="Z+AIxDVUCBbBaoAAJcdm2ReLPhDbmlJ0+2gQ6GJ9H1t0ACJvfE+EVUveOx1K6NeYNf3NZwIJ+dmmXbSzTv7OBQ=="
+        length="1566520"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.3</title>
       <sparkle:version>4</sparkle:version>
       <sparkle:shortVersionString>0.9.3</sparkle:shortVersionString>
