@@ -332,7 +332,10 @@ final class OAuthService {
               let accountId = harvestAccountId else { return }
         let service = HarvestService(token: token, accountId: accountId)
         if let user = try? await service.getCurrentUser() {
-            UserDefaults.standard.set("\(user.firstName) \(user.lastName)", forKey: "oauthUserName")
+            let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
+            if !name.isEmpty {
+                UserDefaults.standard.set(name, forKey: "oauthUserName")
+            }
         }
     }
 }

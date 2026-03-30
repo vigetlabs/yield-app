@@ -270,6 +270,14 @@ final class TimeComparisonViewModel {
             let user = try await harvestUser
             let person = try await forecastPerson
             let projects = try await forecastProjects
+
+            // Backfill user name if missing (e.g. after cache clear)
+            if AppState.shared.oAuthService.userName == nil {
+                let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
+                if !name.isEmpty {
+                    UserDefaults.standard.set(name, forKey: "oauthUserName")
+                }
+            }
             let clients = try await forecastClients
 
             // Build lookups
