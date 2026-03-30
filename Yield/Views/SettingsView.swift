@@ -1,9 +1,11 @@
+import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
     let oAuthService: OAuthService
 
     @AppStorage("appearanceMode") private var appearanceMode: String = AppearanceMode.system.rawValue
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
         Form {
@@ -14,6 +16,20 @@ struct SettingsView: View {
             }
 
             Section {
+                Toggle("Launch at Login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, newValue in
+                        do {
+                            if newValue {
+                                try SMAppService.mainApp.register()
+                            } else {
+                                try SMAppService.mainApp.unregister()
+                            }
+                        } catch {
+                            // Revert toggle if registration fails
+                            launchAtLogin = SMAppService.mainApp.status == .enabled
+                        }
+                    }
+
                 Picker("Appearance", selection: .constant(AppearanceMode.dark.rawValue)) {
                     ForEach(AppearanceMode.allCases, id: \.rawValue) { mode in
                         Text(mode.label).tag(mode.rawValue)
