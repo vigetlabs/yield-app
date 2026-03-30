@@ -132,10 +132,6 @@ struct MenuBarContentView: View {
             Button("Sign in with Harvest") {
                 AppState.shared.oAuthService.startOAuthFlow()
             }
-            SettingsLink {
-                Text("Other options...")
-            }
-            .font(.caption)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)

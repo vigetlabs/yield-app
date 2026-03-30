@@ -51,6 +51,16 @@ Yield/
 - **Status thresholds**: ±10% of booked hours (min 0.5h) determines on-track/under/over
 - **Credentials**: stored in UserDefaults (`harvestToken`, `harvestAccountId`, `forecastAccountId`); single Harvest PAT is shared with Forecast API
 
+## Release Process
+
+When creating release zips, **always** use `COPYFILE_DISABLE=1` and `--norsrc` to strip macOS AppleDouble `._` resource fork files:
+
+```bash
+COPYFILE_DISABLE=1 ditto -c -k --norsrc --keepParent Yield.app Yield-X.Y.Z.zip
+```
+
+Without this, `._` files inside the Sparkle framework cause Gatekeeper to reject the app with "unsealed contents present in the root directory of an embedded framework" — even if notarization passes.
+
 ## APIs
 
 - **Harvest** (`https://api.harvestapp.com/v2`): header `Harvest-Account-Id`
