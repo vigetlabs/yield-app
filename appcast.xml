@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.4.1</title>
+      <sparkle:version>6</sparkle:version>
+      <sparkle:shortVersionString>0.9.4.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix OAuth sign-in not completing after fresh install</li>
+          <li>Fetch Harvest and Forecast account IDs from API when not included in OAuth scope</li>
+          <li>Fix Keychain storage to fall back to legacy keychain when Data Protection is unavailable</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.4.1/Yield-0.9.4.1.zip"
+        sparkle:edSignature="QKutzmod8nSsnXKmxQb4R+3FG7/Zym+6Lqq3H9bzv6iLtk1Qa67zZBAGyFXT363ICCH+Uk+uKAyFqcubdNKjBA=="
+        length="1527821"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.4</title>
       <sparkle:version>5</sparkle:version>
       <sparkle:shortVersionString>0.9.4</sparkle:shortVersionString>

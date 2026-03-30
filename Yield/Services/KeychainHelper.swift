@@ -8,12 +8,11 @@ enum KeychainHelper {
     static func save(key: String, value: String) throws {
         guard let data = value.data(using: .utf8) else { return }
 
-        // Delete from both legacy and Data Protection keychains
-        deleteLegacy(key: key)
-        deleteDataProtection(key: key)
+        // Delete any existing item first
+        delete(key: key)
 
-        // Save to Data Protection Keychain (no per-app ACLs, uses team ID)
-        let addQuery: [String: Any] = [
+        // Try Data Protection Keychain first (no per-app ACLs, uses team ID)
+        let dpQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
@@ -22,7 +21,20 @@ enum KeychainHelper {
             kSecUseDataProtectionKeychain as String: true,
         ]
 
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        var status = SecItemAdd(dpQuery as CFDictionary, nil)
+
+        if status != errSecSuccess {
+            // Fall back to legacy keychain
+            let legacyQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: key,
+                kSecValueData as String: data,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+            ]
+            status = SecItemAdd(legacyQuery as CFDictionary, nil)
+        }
+
         guard status == errSecSuccess else {
             throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
         }
@@ -36,16 +48,14 @@ enum KeychainHelper {
         }
 
         // Try Data Protection Keychain first
-        if let value = loadDataProtection(key: key) {
+        if let value = loadFromKeychain(key: key, dataProtection: true) {
             cache[key] = value
             return value
         }
 
-        // Fall back to legacy keychain (migrates on next save)
-        if let value = loadLegacy(key: key) {
+        // Fall back to legacy keychain
+        if let value = loadFromKeychain(key: key, dataProtection: false) {
             cache[key] = value
-            // Migrate to Data Protection Keychain
-            try? save(key: key, value: value)
             return value
         }
 
@@ -54,21 +64,23 @@ enum KeychainHelper {
 
     static func delete(key: String) {
         cache.removeValue(forKey: key)
-        deleteLegacy(key: key)
-        deleteDataProtection(key: key)
+        deleteFromKeychain(key: key, dataProtection: true)
+        deleteFromKeychain(key: key, dataProtection: false)
     }
 
-    // MARK: - Data Protection Keychain
+    // MARK: - Private
 
-    private static func loadDataProtection(key: String) -> String? {
-        let query: [String: Any] = [
+    private static func loadFromKeychain(key: String, dataProtection: Bool) -> String? {
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecUseDataProtectionKeychain as String: true,
         ]
+        if dataProtection {
+            query[kSecUseDataProtectionKeychain as String] = true
+        }
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
@@ -81,44 +93,15 @@ enum KeychainHelper {
         return string
     }
 
-    private static func deleteDataProtection(key: String) {
-        let query: [String: Any] = [
+    private static func deleteFromKeychain(key: String, dataProtection: Bool) {
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
-            kSecUseDataProtectionKeychain as String: true,
         ]
-        SecItemDelete(query as CFDictionary)
-    }
-
-    // MARK: - Legacy Keychain (for migration)
-
-    private static func loadLegacy(key: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let string = String(data: data, encoding: .utf8) else {
-            return nil
+        if dataProtection {
+            query[kSecUseDataProtectionKeychain as String] = true
         }
-        return string
-    }
-
-    private static func deleteLegacy(key: String) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key,
-        ]
         SecItemDelete(query as CFDictionary)
     }
 }

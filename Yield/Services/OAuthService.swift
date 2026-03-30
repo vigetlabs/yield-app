@@ -129,11 +129,17 @@ final class OAuthService {
             self.sendResponse(connection: connection, body: "Signed in to Yield! You can close this tab.")
             self.stopLocalServer()
 
-            // Parse scope and exchange code
+            // Parse scope for account IDs (may or may not be present)
             self.parseAndStoreAccountIds(from: scope)
             Task { @MainActor in
                 do {
                     try await self.exchangeCodeForToken(code: code)
+
+                    // If scope didn't include account IDs, fetch them from the API
+                    if self.harvestAccountId == nil || self.forecastAccountId == nil {
+                        try await self.fetchAccountIds()
+                    }
+
                     await self.fetchUserName()
                 } catch {
                     self.authError = "Failed to exchange authorization code: \(error.localizedDescription)"
@@ -285,6 +291,41 @@ final class OAuthService {
         }
     }
 
+    private func fetchAccountIds() async throws {
+        guard let token = KeychainHelper.load(key: "accessToken") else {
+            throw APIError.notConfigured
+        }
+
+        var request = URLRequest(url: URL(string: "https://id.getharvest.com/api/v2/accounts")!)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Yield (menubar)", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            return
+        }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let accountsResponse = try decoder.decode(HarvestAccountsResponse.self, from: data)
+
+        let harvestAccount = accountsResponse.accounts.first(where: { $0.product == "harvest" })
+        let forecastAccount = accountsResponse.accounts.first(where: { $0.product == "forecast" })
+
+        if let harvest = harvestAccount {
+            UserDefaults.standard.set(String(harvest.id), forKey: "oauthHarvestAccountId")
+        }
+        if let forecast = forecastAccount {
+            UserDefaults.standard.set(String(forecast.id), forKey: "oauthForecastAccountId")
+        } else if let harvest = harvestAccount {
+            // Fallback if no separate Forecast account
+            UserDefaults.standard.set(String(harvest.id), forKey: "oauthForecastAccountId")
+        }
+    }
+
     @MainActor
     private func fetchUserName() async {
         guard let token = KeychainHelper.load(key: "accessToken"),
@@ -303,4 +344,14 @@ private struct OAuthTokenResponse: Codable {
     let refreshToken: String
     let tokenType: String
     let expiresIn: Int
+}
+
+private struct HarvestAccountsResponse: Codable {
+    let accounts: [HarvestAccountEntry]
+}
+
+private struct HarvestAccountEntry: Codable {
+    let id: Int
+    let name: String
+    let product: String?
 }
