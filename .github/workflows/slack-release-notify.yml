@@ -1,0 +1,25 @@
+name: Notify Slack on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          # Build release notes from the GitHub release body
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          RELEASE_URL="${{ github.event.release.html_url }}"
+          RELEASE_BODY=$(echo '${{ toJSON(github.event.release.body) }}' | jq -r '.')
+
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-type: application/json' \
+            --data "$(jq -n \
+              --arg text "*Yield ${RELEASE_TAG} released*\n\n${RELEASE_BODY}\n\n<${RELEASE_URL}|View release on GitHub>" \
+              '{text: $text}'
+            )"
