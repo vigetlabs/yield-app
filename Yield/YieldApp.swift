@@ -9,7 +9,6 @@ final class AppState {
     let viewModel = TimeComparisonViewModel()
     let oAuthService = OAuthService()
     var updaterController: SPUStandardUpdaterController?
-
     func start() {
         viewModel.startAutoRefresh()
     }
@@ -84,11 +83,7 @@ struct YieldApp: App {
     /// Draws into a single NSImage so MenuBarExtra renders it reliably.
     private func composedMenuBarImage(label: String, isTracking: Bool, progress: Double) -> NSImage {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-        // Use black text — the image is set to isTemplate=true for the text/icon portions,
-        // but since we need the green dot colored, we draw everything as non-template
-        // and use menuBar-appropriate text color.
-        let isDarkMenuBar = NSAppearance.currentDrawing().bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let textColor = isDarkMenuBar ? NSColor.white : NSColor.black
+        let textColor = NSColor.black
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
 
         // Gauge icon
@@ -117,11 +112,11 @@ struct YieldApp: App {
         let image = NSImage(size: NSSize(width: totalWidth, height: barHeight), flipped: false) { rect in
             var x: CGFloat = 0
 
-            // Green dot (always reserve space, only draw when tracking)
+            // Tracking dot (always reserve space, only draw when tracking)
             if isTracking {
                 let dotY = (barHeight - dotSize) / 2
                 let dotRect = CGRect(x: x, y: dotY, width: dotSize, height: dotSize)
-                NSColor(red: 0.082, green: 0.855, blue: 0.576, alpha: 1.0).setFill()
+                NSColor.black.setFill()
                 NSBezierPath(ovalIn: dotRect).fill()
             }
             x += dotSize + spacing
@@ -161,7 +156,7 @@ struct YieldApp: App {
 
             return true
         }
-        image.isTemplate = false
+        image.isTemplate = true
         return image
     }
 }

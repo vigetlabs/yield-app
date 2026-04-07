@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.5.1</title>
+      <sparkle:version>8</sparkle:version>
+      <sparkle:shortVersionString>0.9.5.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Menu bar icon now adapts to wallpaper and system appearance (template image)</li>
+          <li>Updated app icon</li>
+          <li>"Today" label for current day time entries</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.5.1/Yield-0.9.5.1.zip"
+        sparkle:edSignature="JHq6S4XjV823RiegO2oKIZ5c70tNtALBB6RUndnENwqQjNEbEmFzyCe+AtQHP0RYGIdlPlInKujEi0DC7OBkCg=="
+        length="1674249"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.5</title>
       <sparkle:version>7</sparkle:version>
       <sparkle:shortVersionString>0.9.5</sparkle:shortVersionString>
