@@ -67,6 +67,7 @@ struct TimerControlButtonStyle: ButtonStyle {
             .font(.system(size: 10))
             .foregroundStyle(foregroundColor)
             .frame(width: YieldDimensions.timerButtonSize, height: YieldDimensions.timerButtonSize)
+            .contentShape(Rectangle())
             .background(Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
             .overlay(

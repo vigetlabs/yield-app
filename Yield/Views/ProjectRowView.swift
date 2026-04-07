@@ -10,18 +10,22 @@ struct ProjectRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Project header row
-            Button { isExpanded.toggle() } label: {
-                projectHeader
-            }
-            .buttonStyle(.plain)
+            projectHeader
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                }
 
-            // Expanded time entries (Phase 3 will refine this)
+            // Expanded time entries
             if isExpanded {
                 ForEach(project.timeEntries) { entry in
                     TaskEntryRowView(entry: entry) {
                         onToggleEntryTimer?(entry.id, entry.isRunning)
                     }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .overlay(alignment: .bottom) {
@@ -173,26 +177,34 @@ struct ProgressBarView: View {
     }
 }
 
-// MARK: - Task Entry Row (basic, refined in Phase 3)
+// MARK: - Task Entry Row
 
 struct TaskEntryRowView: View {
     let entry: TimeEntryInfo
     var onToggleTimer: (() -> Void)? = nil
 
+    private var hasNotes: Bool {
+        if let notes = entry.notes, !notes.isEmpty { return true }
+        return false
+    }
+
     var body: some View {
         HStack {
             // Task details
-            VStack(alignment: .leading, spacing: 6) {
-                Text(entry.taskName ?? "No task")
+            VStack(alignment: .leading, spacing: hasNotes ? 6 : 0) {
+                Text(entry.taskName)
                     .font(YieldFonts.titleSmall)
                     .foregroundStyle(YieldColors.textPrimary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: 226, alignment: .leading)
 
-                if let notes = entry.notes, !notes.isEmpty {
-                    Text(notes)
+                if hasNotes {
+                    Text(entry.notes!)
                         .font(YieldFonts.labelNote)
                         .foregroundStyle(YieldColors.textSecondary)
                         .lineLimit(1)
+                        .truncationMode(.tail)
                         .tracking(0.36)
                 }
             }
@@ -235,8 +247,8 @@ struct TaskEntryRowView: View {
                         .font(.system(size: 10))
                 }
                 .buttonStyle(TimerControlButtonStyle(
-                    borderColor: entry.isRunning ? YieldColors.buttonBorder : YieldColors.buttonBorder,
-                    foregroundColor: entry.isRunning ? YieldColors.textSecondary : YieldColors.textSecondary
+                    borderColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.buttonBorder,
+                    foregroundColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.textSecondary
                 ))
             }
         }
