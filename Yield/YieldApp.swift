@@ -58,14 +58,11 @@ struct YieldApp: App {
             let tracking = viewModel.projectStatuses.first(where: { $0.isTracking })
             let label = viewModel.menuBarLabel
             let progress = trackingProgress(tracking)
-            if label.isEmpty {
-                Image(nsImage: menuBarIcon(tracking: nil, progress: 0))
-            } else {
-                HStack(spacing: 4) {
-                    Image(nsImage: menuBarIcon(tracking: tracking, progress: progress))
-                    Text(label)
-                }
-            }
+            Image(nsImage: composedMenuBarImage(
+                label: label,
+                isTracking: tracking != nil,
+                progress: progress
+            ))
         }
         .menuBarExtraStyle(.window)
 
@@ -80,46 +77,91 @@ struct YieldApp: App {
     private func trackingProgress(_ project: ProjectStatus?) -> Double {
         guard let project, project.bookedHours > 0 else { return 0 }
         let effective = viewModel.effectiveLoggedHours(for: project)
-        return effective / project.bookedHours
+        return min(effective / project.bookedHours, 1.0)
     }
 
-    private func gaugeSymbolName(progress: Double) -> String {
-        switch progress {
-        case ..<0.17: return "gauge.with.dots.needle.0percent"
-        case ..<0.42: return "gauge.with.dots.needle.33percent"
-        case ..<0.59: return "gauge.with.dots.needle.50percent"
-        case ..<0.84: return "gauge.with.dots.needle.67percent"
-        default:      return "gauge.with.dots.needle.100percent"
+    /// Compose the full menu bar image: [green dot] [time text] [gauge icon]
+    /// Draws into a single NSImage so MenuBarExtra renders it reliably.
+    private func composedMenuBarImage(label: String, isTracking: Bool, progress: Double) -> NSImage {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+        // Use black text — the image is set to isTemplate=true for the text/icon portions,
+        // but since we need the green dot colored, we draw everything as non-template
+        // and use menuBar-appropriate text color.
+        let isDarkMenuBar = NSAppearance.currentDrawing().bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let textColor = isDarkMenuBar ? NSColor.white : NSColor.black
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
+
+        // Gauge icon
+        let gaugeConfig = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+        let gaugeBase = NSImage(systemSymbolName: "gauge.with.needle", accessibilityDescription: "Yield")!
+            .withSymbolConfiguration(gaugeConfig)!
+
+        let gaugeSize = gaugeBase.size
+        let barHeight: CGFloat = max(gaugeSize.height, 18)
+        let spacing: CGFloat = 4
+        let dotSize: CGFloat = 6
+
+        // Fixed-width text area — measure widest possible string to prevent width jitter
+        let maxLabel = "88:88 over"
+        let fixedTextWidth: CGFloat = (maxLabel as NSString).size(withAttributes: attrs).width
+        let textSize: CGSize = label.isEmpty ? .zero : (label as NSString).size(withAttributes: attrs)
+
+        // Calculate total width (fixed regardless of label content)
+        var totalWidth: CGFloat = gaugeSize.width
+        if !label.isEmpty {
+            totalWidth += fixedTextWidth + spacing
         }
-    }
+        // Always reserve dot space so width doesn't shift when timer starts/stops
+        totalWidth += dotSize + spacing
 
-    private func statusColor(for project: ProjectStatus) -> NSColor {
-        let effective = viewModel.effectiveLoggedHours(for: project)
-        let threshold = max(project.bookedHours * 0.1, 0.5)
-        if effective > project.bookedHours + threshold { return NSColor(red: 0.80, green: 0.45, blue: 0.40, alpha: 1.0) }
-        if effective < project.bookedHours - threshold { return NSColor(red: 0.55, green: 0.75, blue: 0.50, alpha: 1.0) }
-        return NSColor(red: 0.85, green: 0.78, blue: 0.45, alpha: 1.0)
-    }
+        let image = NSImage(size: NSSize(width: totalWidth, height: barHeight), flipped: false) { rect in
+            var x: CGFloat = 0
 
-    private func menuBarIcon(tracking: ProjectStatus?, progress: Double) -> NSImage {
-        let symbolName = tracking != nil ? gaugeSymbolName(progress: progress) : "gauge.with.dots.needle.0percent"
-        let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Yield")!
-            .withSymbolConfiguration(config)!
-        if let tracking {
-            let tintColor = statusColor(for: tracking)
-            let size = image.size
-            let colored = NSImage(size: size, flipped: false) { rect in
-                guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
-                ctx.clip(to: rect, mask: image.cgImage(forProposedRect: nil, context: nil, hints: nil)!)
-                ctx.setFillColor(tintColor.cgColor)
-                ctx.fill(rect)
+            // Green dot (always reserve space, only draw when tracking)
+            if isTracking {
+                let dotY = (barHeight - dotSize) / 2
+                let dotRect = CGRect(x: x, y: dotY, width: dotSize, height: dotSize)
+                NSColor(red: 0.082, green: 0.855, blue: 0.576, alpha: 1.0).setFill()
+                NSBezierPath(ovalIn: dotRect).fill()
+            }
+            x += dotSize + spacing
+
+            // Time text — right-aligned within fixed-width area
+            if !label.isEmpty {
+                let textY = (barHeight - textSize.height) / 2
+                let textX = x + (fixedTextWidth - textSize.width)
+                (label as NSString).draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+                x += fixedTextWidth + spacing
+            }
+
+            // Gauge icon — tint and rotate based on progress
+            // Rotation: progress 0 → -90° (needle left), 0.5 → 0° (center), 1 → +90° (right)
+            let rotation = (progress - 0.5) * 180.0 * (.pi / 180.0)
+            let gaugeY = (barHeight - gaugeSize.height) / 2
+            let gaugeCenterX = x + gaugeSize.width / 2
+            let gaugeCenterY = gaugeY + gaugeSize.height / 2
+
+            // Tint the gauge to match text color
+            let tintedGauge = NSImage(size: gaugeSize, flipped: false) { gaugeRect in
+                guard let ctx = NSGraphicsContext.current?.cgContext,
+                      let cgImage = gaugeBase.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return false }
+                ctx.clip(to: gaugeRect, mask: cgImage)
+                ctx.setFillColor(textColor.cgColor)
+                ctx.fill(gaugeRect)
                 return true
             }
-            colored.isTemplate = false
-            return colored
+
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            ctx.saveGState()
+            ctx.translateBy(x: gaugeCenterX, y: gaugeCenterY)
+            ctx.rotate(by: rotation)
+            ctx.translateBy(x: -gaugeCenterX, y: -gaugeCenterY)
+            tintedGauge.draw(in: CGRect(x: x, y: gaugeY, width: gaugeSize.width, height: gaugeSize.height))
+            ctx.restoreGState()
+
+            return true
         }
-        image.isTemplate = true
+        image.isTemplate = false
         return image
     }
 }

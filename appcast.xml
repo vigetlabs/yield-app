@@ -3,6 +3,27 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.5</title>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>0.9.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>UI redesign: new header with Recent/Forecasted tabs, redesigned project rows with status lines and progress bars</li>
+          <li>Timer banner: pause/resume/stop active timers with live HH:MM:SS display</li>
+          <li>Paused timer state with yellow/amber visual indicator</li>
+          <li>Menu bar: new gauge icon with rotation based on progress, fixed-width layout</li>
+          <li>Expandable project rows with smooth animation and refined time entry list</li>
+          <li>Custom typography: Newsreader, DM Sans, JetBrains Mono</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.5/Yield-0.9.5.zip"
+        sparkle:edSignature="qlenLjjwQwj94jWJoiiHfgA/Fmm8lwczMFccgnlyZUrkyR9Zk5tzbuXOPERicH/UCnWsSWCB4KauOiQRGPZMAA=="
+        length="1687797"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.4.1</title>
       <sparkle:version>6</sparkle:version>
       <sparkle:shortVersionString>0.9.4.1</sparkle:shortVersionString>

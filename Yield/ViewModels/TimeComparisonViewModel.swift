@@ -15,9 +15,17 @@ final class TimeComparisonViewModel {
     var errorMessage: String? = nil
     var elapsedOffset: Double = 0  // hours elapsed locally since last API refresh
     var selectedTab: ProjectTab = .recent
+    var pausedState: PausedTimerState? = nil
 
     enum ProjectTab: String, CaseIterable {
         case recent, forecasted
+    }
+
+    struct PausedTimerState {
+        let projectName: String
+        let taskName: String
+        let entryId: Int
+        let frozenHours: Double
     }
 
     var filteredStatuses: [ProjectStatus] {
@@ -27,6 +35,26 @@ final class TimeComparisonViewModel {
         case .forecasted:
             return projectStatuses.filter { $0.bookedHours > 0 }
         }
+    }
+
+    /// The currently tracking project, if any
+    var trackingProject: ProjectStatus? {
+        projectStatuses.first(where: { $0.isTracking })
+    }
+
+    /// The running time entry from the tracking project
+    var trackingEntry: TimeEntryInfo? {
+        trackingProject?.timeEntries.first(where: { $0.isRunning })
+    }
+
+    /// Whether the timer banner should be visible
+    var isTimerBannerVisible: Bool {
+        trackingProject != nil || pausedState != nil
+    }
+
+    /// Whether the timer is currently paused (stopped but banner still showing)
+    var isTimerPaused: Bool {
+        pausedState != nil && trackingProject == nil
     }
 
     private var refreshTimer: Timer?
@@ -66,9 +94,7 @@ final class TimeComparisonViewModel {
         }
         let effectiveLogged = tracking.loggedHours + elapsedOffset
         let remaining = tracking.bookedHours - effectiveLogged
-        let name = tracking.projectName
-        let truncated = name.count > 20 ? String(name.prefix(18)) + "…" : name
-        return "\(formatRemaining(remaining))  \(truncated)"
+        return formatRemaining(remaining)
     }
 
     func effectiveLoggedHours(for project: ProjectStatus) -> Double {
@@ -199,6 +225,7 @@ final class TimeComparisonViewModel {
         guard let (harvestService, _) = makeServices() else { return }
         let service = harvestService
         guard let harvestProjectId = project.harvestProjectId else { return }
+        pausedState = nil
 
         do {
             // Stop any currently running timer first
@@ -234,8 +261,61 @@ final class TimeComparisonViewModel {
     }
 
     @MainActor
+    func pauseTimer() async {
+        guard let project = trackingProject,
+              let entry = trackingEntry,
+              let (harvestService, _) = makeServices() else { return }
+
+        // Save paused state before stopping
+        let effectiveHours = effectiveLoggedHours(for: project)
+        pausedState = PausedTimerState(
+            projectName: project.projectName,
+            taskName: entry.taskName,
+            entryId: entry.id,
+            frozenHours: effectiveHours
+        )
+
+        do {
+            _ = try await harvestService.stopTimer(entryId: entry.id)
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+            pausedState = nil
+        }
+    }
+
+    @MainActor
+    func resumeTimer() async {
+        guard let paused = pausedState,
+              let (harvestService, _) = makeServices() else { return }
+
+        do {
+            _ = try await harvestService.restartTimer(entryId: paused.entryId)
+            pausedState = nil
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func stopBannerTimer() async {
+        if let entry = trackingEntry,
+           let (harvestService, _) = makeServices() {
+            do {
+                _ = try await harvestService.stopTimer(entryId: entry.id)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+        pausedState = nil
+        await refresh()
+    }
+
+    @MainActor
     func toggleEntryTimer(entryId: Int, isRunning: Bool) async {
         guard let (harvestService, _) = makeServices() else { return }
+        if !isRunning { pausedState = nil }
 
         do {
             if isRunning {

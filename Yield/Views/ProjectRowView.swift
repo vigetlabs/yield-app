@@ -38,7 +38,7 @@ struct ProjectRowView: View {
     // MARK: - Project Header
 
     private var projectHeader: some View {
-        HStack(alignment: .center, spacing: 16) {
+        HStack(alignment: .center, spacing: 0) {
             // Left colored line
             statusLine
 
@@ -91,8 +91,9 @@ struct ProjectRowView: View {
                     }
                 }
             }
+            .padding(.leading, 16)
+            .padding(.trailing, 16)
         }
-        .padding(.vertical, project.isForecasted ? 0 : 0)
         .frame(height: project.isForecasted ? 74 : 56)
     }
 
@@ -272,6 +273,7 @@ struct TaskEntryRowView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         guard let date = formatter.date(from: dateString) else { return dateString }
+        if Calendar.current.isDateInToday(date) { return "Today" }
         let display = DateFormatter()
         display.dateFormat = "EEE"
         return display.string(from: date)

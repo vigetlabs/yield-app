@@ -9,6 +9,10 @@ enum YieldColors {
     static let greenSubtle = Color(red: 0.082, green: 0.855, blue: 0.576).opacity(0.15)
     static let greenFaint = Color(red: 0.082, green: 0.855, blue: 0.576).opacity(0.04)
 
+    static let yellowAccent = Color(red: 1.0, green: 0.831, blue: 0.286)            // #FFD449
+    static let yellowDim = Color(red: 1.0, green: 0.831, blue: 0.286).opacity(0.3)
+    static let yellowFaint = Color(red: 1.0, green: 0.831, blue: 0.286).opacity(0.1)
+
     static let border = Color.white.opacity(0.1)
     static let buttonBorder = Color.white.opacity(0.3)
     static let greenBorder = Color(red: 0.082, green: 0.855, blue: 0.576).opacity(0.15)

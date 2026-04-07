@@ -56,6 +56,10 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 0) {
             headerView
 
+            if viewModel.isTimerBannerVisible {
+                TimerBannerView(viewModel: viewModel)
+            }
+
             if let error = viewModel.errorMessage {
                 Text(error)
                     .font(.caption)
@@ -96,10 +100,7 @@ struct MenuBarContentView: View {
 
             Spacer()
 
-            HStack(spacing: 16) {
-                tabToggle
-                timerButton
-            }
+            tabToggle
         }
         .padding(16)
         .overlay(alignment: .bottom) {
@@ -158,6 +159,7 @@ struct MenuBarContentView: View {
                 Image(systemName: "plus")
                     .font(.system(size: 9, weight: .semibold))
                 Text("Timer")
+                    .font(YieldFonts.labelButton)
             }
         }
         .buttonStyle(.greenOutlined)
@@ -211,8 +213,8 @@ struct MenuBarContentView: View {
         HStack {
             if let lastUpdated = viewModel.lastUpdated {
                 Text("Updated \(lastUpdated, style: .relative) ago")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .font(YieldFonts.dmSans(9))
+                    .foregroundStyle(YieldColors.textSecondary.opacity(0.5))
             }
 
             Spacer()
@@ -243,8 +245,8 @@ struct MenuBarContentView: View {
                 }
             } label: {
                 Image(systemName: "gearshape")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .foregroundStyle(YieldColors.textSecondary)
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
