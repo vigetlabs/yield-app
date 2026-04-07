@@ -11,15 +11,24 @@ jobs:
       - name: Post to Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
         run: |
-          # Build release notes from the GitHub release body
-          RELEASE_TAG="${{ github.event.release.tag_name }}"
-          RELEASE_URL="${{ github.event.release.html_url }}"
-          RELEASE_BODY=$(echo '${{ toJSON(github.event.release.body) }}' | jq -r '.')
+          # Convert GitHub markdown to Slack mrkdwn:
+          #   **bold** → *bold*
+          #   ## headings → *headings*
+          #   - bullets stay as-is
+          SLACK_BODY=$(echo "$RELEASE_BODY" \
+            | sed 's/^## \(.*\)/*\1*/g' \
+            | sed 's/\*\*\([^*]*\)\*\*/\*\1\*/g')
 
-          curl -X POST "$SLACK_WEBHOOK_URL" \
-            -H 'Content-type: application/json' \
-            --data "$(jq -n \
-              --arg text "*Yield ${RELEASE_TAG} released*\n\n${RELEASE_BODY}\n\n<${RELEASE_URL}|View release on GitHub>" \
-              '{text: $text}'
-            )"
+          # Build the payload with proper newlines using jq
+          jq -n \
+            --arg title "*Yield ${RELEASE_TAG} released*" \
+            --arg body "$SLACK_BODY" \
+            --arg link "<${RELEASE_URL}|View release on GitHub>" \
+            '{text: ($title + "\n\n" + $body + "\n\n" + $link)}' \
+          | curl -X POST "$SLACK_WEBHOOK_URL" \
+              -H 'Content-type: application/json' \
+              -d @-
