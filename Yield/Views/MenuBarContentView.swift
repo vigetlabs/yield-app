@@ -48,7 +48,8 @@ struct MenuBarContentView: View {
             footerView
         }
         .padding(12)
-        .frame(width: 480)
+        .frame(width: YieldDimensions.panelWidth)
+        .background(YieldColors.background)
         .background(OpaqueMenuBarPanel())
     }
 
@@ -58,16 +59,18 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             // Week header
             Text(viewModel.weekLabel)
-                .font(.headline)
+                .font(YieldFonts.titleMedium)
+                .foregroundStyle(YieldColors.textPrimary)
 
             // Total summary
             HStack {
                 Text("Today: \(formatDecimalHours(viewModel.totalTodayLogged))")
-                    .fontWeight(.medium)
+                    .font(YieldFonts.dmSans(11, weight: .medium))
+                    .foregroundStyle(YieldColors.textSecondary)
                 Spacer()
                 Text(totalLabel)
-                    .font(.system(.body, design: .monospaced))
-                    .fontWeight(.medium)
+                    .font(YieldFonts.monoSmall)
+                    .foregroundStyle(YieldColors.textPrimary)
             }
 
             if let error = viewModel.errorMessage {
