@@ -14,6 +14,20 @@ final class TimeComparisonViewModel {
     var isLoading: Bool = false
     var errorMessage: String? = nil
     var elapsedOffset: Double = 0  // hours elapsed locally since last API refresh
+    var selectedTab: ProjectTab = .recent
+
+    enum ProjectTab: String, CaseIterable {
+        case recent, forecasted
+    }
+
+    var filteredStatuses: [ProjectStatus] {
+        switch selectedTab {
+        case .recent:
+            return projectStatuses
+        case .forecasted:
+            return projectStatuses.filter { $0.bookedHours > 0 }
+        }
+    }
 
     private var refreshTimer: Timer?
     private var elapsedTimer: Timer?

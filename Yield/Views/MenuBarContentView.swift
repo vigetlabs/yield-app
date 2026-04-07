@@ -32,7 +32,7 @@ struct MenuBarContentView: View {
     let viewModel: TimeComparisonViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             if !viewModel.isConfigured {
                 notConfiguredView
             } else if viewModel.isLoading && viewModel.projectStatuses.isEmpty {
@@ -43,11 +43,8 @@ struct MenuBarContentView: View {
                 contentView
             }
 
-            Divider()
-
             footerView
         }
-        .padding(12)
         .frame(width: YieldDimensions.panelWidth)
         .background(YieldColors.background)
         .background(OpaqueMenuBarPanel())
@@ -56,41 +53,27 @@ struct MenuBarContentView: View {
     // MARK: - Content
 
     private var contentView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Week header
-            Text(viewModel.weekLabel)
-                .font(YieldFonts.titleMedium)
-                .foregroundStyle(YieldColors.textPrimary)
-
-            // Total summary
-            HStack {
-                Text("Today: \(formatDecimalHours(viewModel.totalTodayLogged))")
-                    .font(YieldFonts.dmSans(11, weight: .medium))
-                    .foregroundStyle(YieldColors.textSecondary)
-                Spacer()
-                Text(totalLabel)
-                    .font(YieldFonts.monoSmall)
-                    .foregroundStyle(YieldColors.textPrimary)
-            }
+        VStack(alignment: .leading, spacing: 0) {
+            headerView
 
             if let error = viewModel.errorMessage {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
             }
 
-            Divider()
-
-            if viewModel.projectStatuses.isEmpty {
+            if viewModel.filteredStatuses.isEmpty {
                 Text("No projects found for this week.")
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .font(YieldFonts.dmSans(11))
+                    .padding(16)
             } else {
-                ForEach(viewModel.projectStatuses) { project in
+                ForEach(viewModel.filteredStatuses) { project in
                     ProjectRowView(
                         project: project,
                         effectiveLoggedHours: viewModel.effectiveLoggedHours(for: project),
-                        totalWeeklyBookedHours: viewModel.totalBooked,
                         onToggleTimer: {
                             Task { await viewModel.toggleTimer(for: project) }
                         },
@@ -103,23 +86,81 @@ struct MenuBarContentView: View {
         }
     }
 
-    private var totalLabel: String {
-        let totalLogged = viewModel.totalLogged + viewModel.totalUnbookedLogged
-        let target = max(viewModel.totalBooked, 40.0)
-        let logged = formatDecimalHours(totalLogged)
-        let targetStr = formatDecimalHours(target)
-        let base = "\(logged) / \(targetStr)"
-        if viewModel.totalUnbookedLogged > 0 {
-            let unbooked = formatDecimalHours(viewModel.totalUnbookedLogged)
-            return "\(base) (\(unbooked) unbooked)"
+    // MARK: - Header
+
+    private var headerView: some View {
+        HStack {
+            Text(viewModel.weekLabel)
+                .font(YieldFonts.titleMedium)
+                .foregroundStyle(YieldColors.textPrimary)
+
+            Spacer()
+
+            HStack(spacing: 16) {
+                tabToggle
+                timerButton
+            }
         }
-        return base
+        .padding(16)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+        }
     }
 
-    private func formatDecimalHours(_ hours: Double) -> String {
-        let h = Int(hours)
-        let m = Int((hours - Double(h)) * 60)
-        return String(format: "%d:%02d", h, m)
+    private var tabToggle: some View {
+        HStack(spacing: 2) {
+            ForEach(TimeComparisonViewModel.ProjectTab.allCases, id: \.self) { tab in
+                Button {
+                    viewModel.selectedTab = tab
+                } label: {
+                    Text(tab == .recent ? "Recent" : "Forecasted")
+                        .font(viewModel.selectedTab == tab
+                            ? YieldFonts.dmSans(10, weight: .semibold)
+                            : YieldFonts.dmSans(10, weight: .medium))
+                        .foregroundStyle(viewModel.selectedTab == tab
+                            ? YieldColors.textPrimary
+                            : YieldColors.textSecondary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .frame(height: 20)
+                        .background(viewModel.selectedTab == tab
+                            ? YieldColors.surfaceActive
+                            : YieldColors.surfaceDefault)
+                        .overlay(
+                            UnevenRoundedRectangle(
+                                topLeadingRadius: tab == .recent ? YieldRadius.button : 0,
+                                bottomLeadingRadius: tab == .recent ? YieldRadius.button : 0,
+                                bottomTrailingRadius: tab == .forecasted ? YieldRadius.button : 0,
+                                topTrailingRadius: tab == .forecasted ? YieldRadius.button : 0
+                            )
+                            .strokeBorder(YieldColors.border, lineWidth: 1)
+                        )
+                        .clipShape(UnevenRoundedRectangle(
+                            topLeadingRadius: tab == .recent ? YieldRadius.button : 0,
+                            bottomLeadingRadius: tab == .recent ? YieldRadius.button : 0,
+                            bottomTrailingRadius: tab == .forecasted ? YieldRadius.button : 0,
+                            topTrailingRadius: tab == .forecasted ? YieldRadius.button : 0
+                        ))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(height: 22)
+    }
+
+    private var timerButton: some View {
+        Button {
+            // TODO: Phase 5 — open new timer form
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "plus")
+                    .font(.system(size: 9, weight: .semibold))
+                Text("Timer")
+            }
+        }
+        .buttonStyle(.greenOutlined)
     }
 
     // MARK: - States
@@ -207,6 +248,13 @@ struct MenuBarContentView: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
         }
     }
 

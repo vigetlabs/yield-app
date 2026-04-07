@@ -41,4 +41,14 @@ struct ProjectStatus: Identifiable {
     var remainingHours: Double {
         max(bookedHours - loggedHours, 0)
     }
+
+    var remainingFormatted: String {
+        let h = Int(remainingHours)
+        let m = Int((remainingHours - Double(h)) * 60)
+        return "\(h)h \(String(format: "%02d", m))m remaining this week"
+    }
+
+    var isForecasted: Bool {
+        bookedHours > 0
+    }
 }
