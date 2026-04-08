@@ -168,45 +168,32 @@ struct MenuBarContentView: View {
     }
 
     private var tabToggle: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 0) {
             ForEach(TimeComparisonViewModel.ProjectTab.allCases, id: \.self) { tab in
+                let isSelected = viewModel.selectedTab == tab
                 Button {
                     withAnimation(.easeInOut(duration: 0.15)) {
                         viewModel.selectedTab = tab
                     }
                 } label: {
                     Text(tab == .recent ? "Recent" : "Forecasted")
-                        .font(viewModel.selectedTab == tab
+                        .font(isSelected
                             ? YieldFonts.dmSans(10, weight: .semibold)
                             : YieldFonts.dmSans(10, weight: .medium))
-                        .foregroundStyle(viewModel.selectedTab == tab
+                        .foregroundStyle(isSelected
                             ? YieldColors.textPrimary
                             : YieldColors.textSecondary)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 3)
                         .frame(height: 20)
-                        .background(viewModel.selectedTab == tab
-                            ? YieldColors.surfaceActive
-                            : YieldColors.surfaceDefault)
-                        .overlay(
-                            UnevenRoundedRectangle(
-                                topLeadingRadius: tab == .recent ? YieldRadius.button : 0,
-                                bottomLeadingRadius: tab == .recent ? YieldRadius.button : 0,
-                                bottomTrailingRadius: tab == .forecasted ? YieldRadius.button : 0,
-                                topTrailingRadius: tab == .forecasted ? YieldRadius.button : 0
-                            )
-                            .strokeBorder(YieldColors.border, lineWidth: 1)
-                        )
-                        .clipShape(UnevenRoundedRectangle(
-                            topLeadingRadius: tab == .recent ? YieldRadius.button : 0,
-                            bottomLeadingRadius: tab == .recent ? YieldRadius.button : 0,
-                            bottomTrailingRadius: tab == .forecasted ? YieldRadius.button : 0,
-                            topTrailingRadius: tab == .forecasted ? YieldRadius.button : 0
-                        ))
+                        .background(isSelected
+                            ? Color(red: 0.184, green: 0.188, blue: 0.200)
+                            : Color(red: 0.141, green: 0.145, blue: 0.149))
                 }
                 .buttonStyle(.plain)
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
         .frame(height: 22)
     }
 
