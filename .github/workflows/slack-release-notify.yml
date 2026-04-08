@@ -16,11 +16,13 @@ jobs:
           RELEASE_BODY: ${{ github.event.release.body }}
         run: |
           # Convert GitHub markdown to Slack mrkdwn:
+          #   ### headings → *bold* with blank line before
+          #   ## headings → *bold* with blank line before
           #   **bold** → *bold*
-          #   ## headings → *headings*
           #   - bullets stay as-is
           SLACK_BODY=$(echo "$RELEASE_BODY" \
-            | sed 's/^## \(.*\)/*\1*/g' \
+            | sed 's/^### \(.*\)/\n*\1*/g' \
+            | sed 's/^## \(.*\)/\n*\1*/g' \
             | sed 's/\*\*\([^*]*\)\*\*/\*\1\*/g')
 
           # Build the payload with proper newlines using jq
