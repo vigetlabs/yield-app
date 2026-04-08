@@ -65,3 +65,21 @@ struct HarvestProjectTaskAssignment: Codable, Identifiable {
     let isActive: Bool
     let task: HarvestTaskRef
 }
+
+// MARK: - Project Assignments (user-scoped)
+
+struct HarvestProjectAssignmentsResponse: Codable {
+    let projectAssignments: [HarvestProjectAssignment]
+    let perPage: Int
+    let totalPages: Int
+    let totalEntries: Int
+    let page: Int
+}
+
+struct HarvestProjectAssignment: Codable, Identifiable {
+    let id: Int
+    let isActive: Bool
+    let project: HarvestProjectRef
+    let client: HarvestClientRef?
+    let taskAssignments: [HarvestProjectTaskAssignment]
+}

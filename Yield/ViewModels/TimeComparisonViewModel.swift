@@ -267,7 +267,7 @@ final class TimeComparisonViewModel {
         do {
             // Stop current timer, adjust hours to remove idle time, restart
             _ = try await harvestService.stopTimer(entryId: alert.entryId)
-            _ = try await harvestService.updateTimeEntryHours(entryId: alert.entryId, hours: alert.adjustedHours)
+            _ = try await harvestService.updateTimeEntry(entryId: alert.entryId, hours: alert.adjustedHours, notes: nil)
             _ = try await harvestService.restartTimer(entryId: alert.entryId)
             idleAlertState = nil
             idleNotificationSent = false
@@ -285,7 +285,7 @@ final class TimeComparisonViewModel {
 
         do {
             _ = try await harvestService.stopTimer(entryId: alert.entryId)
-            _ = try await harvestService.updateTimeEntryHours(entryId: alert.entryId, hours: alert.adjustedHours)
+            _ = try await harvestService.updateTimeEntry(entryId: alert.entryId, hours: alert.adjustedHours, notes: nil)
             idleAlertState = nil
             pausedState = nil
             idleNotificationSent = false
@@ -336,6 +336,8 @@ final class TimeComparisonViewModel {
         entries.map { entry in
             TimeEntryInfo(
                 id: entry.id,
+                harvestProjectId: entry.project.id,
+                taskId: entry.task?.id ?? entry.taskAssignment?.task?.id ?? 0,
                 taskName: entry.task?.name ?? entry.taskAssignment?.task?.name ?? "Unknown Task",
                 hours: entry.hours,
                 date: entry.spentDate,
@@ -390,6 +392,107 @@ final class TimeComparisonViewModel {
                 _ = try await service.createTimeEntry(projectId: harvestProjectId, taskId: resolvedTaskId)
             }
 
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Fetch task assignments for a Harvest project (used by NewTimerFormView)
+    func fetchTaskAssignments(projectId: Int) async throws -> [HarvestProjectTaskAssignment] {
+        guard let (harvestService, _) = makeServices() else { return [] }
+        return try await harvestService.getTaskAssignments(projectId: projectId)
+    }
+
+    /// Fetch all active projects assigned to the current user (used by NewTimerFormView)
+    func fetchAllProjects() async throws -> [TimerProjectOption] {
+        guard let (harvestService, _) = makeServices() else { return [] }
+
+        let assignments = try await harvestService.getMyProjectAssignments()
+
+        return assignments
+            .filter { $0.isActive }
+            .map { assignment in
+                TimerProjectOption(
+                    harvestProjectId: assignment.project.id,
+                    projectName: assignment.project.name,
+                    clientName: assignment.client?.name
+                )
+            }
+            .sorted { a, b in
+                let aName = a.clientName ?? ""
+                let bName = b.clientName ?? ""
+                if aName != bName { return aName < bName }
+                return a.projectName < b.projectName
+            }
+    }
+
+    struct TimerProjectOption: Identifiable, Hashable {
+        var id: Int { harvestProjectId }
+        let harvestProjectId: Int
+        let projectName: String
+        let clientName: String?
+    }
+
+    /// Start a new timer for a specific project and task, stopping any running timer first
+    @MainActor
+    func startNewTimer(projectId: Int, taskId: Int, notes: String? = nil) async {
+        guard let (harvestService, _) = makeServices() else { return }
+        pausedState = nil
+
+        do {
+            // Stop any currently running timer
+            if let running = projectStatuses.first(where: { $0.isTracking }),
+               let runningEntryId = running.todayEntryId {
+                _ = try await harvestService.stopTimer(entryId: runningEntryId)
+            }
+
+            // Create new entry (starts timer automatically)
+            _ = try await harvestService.createTimeEntry(projectId: projectId, taskId: taskId, notes: notes)
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Log a time entry with specific hours (no running timer)
+    @MainActor
+    func logTimeEntry(projectId: Int, taskId: Int, hours: Double, notes: String? = nil) async {
+        guard let (harvestService, _) = makeServices() else { return }
+
+        do {
+            _ = try await harvestService.createTimeEntry(projectId: projectId, taskId: taskId, hours: hours, notes: notes)
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Delete a time entry
+    @MainActor
+    func deleteTimeEntry(entryId: Int) async {
+        guard let (harvestService, _) = makeServices() else { return }
+
+        do {
+            try await harvestService.deleteTimeEntry(entryId: entryId)
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Update an existing time entry's task, hours, and/or notes
+    @MainActor
+    func updateExistingEntry(entryId: Int, taskId: Int, hours: Double, notes: String) async {
+        guard let (harvestService, _) = makeServices() else { return }
+
+        do {
+            _ = try await harvestService.updateTimeEntry(
+                entryId: entryId,
+                hours: hours,
+                taskId: taskId,
+                notes: notes
+            )
             await refresh()
         } catch {
             errorMessage = error.localizedDescription

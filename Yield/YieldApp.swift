@@ -71,12 +71,6 @@ struct YieldApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Settings {
-            SettingsView(oAuthService: AppState.shared.oAuthService)
-                .onAppear {
-                    NSApp.activate(ignoringOtherApps: true)
-                }
-        }
     }
 
     private func trackingProgress(_ project: ProjectStatus?) -> Double {

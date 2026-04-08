@@ -2,6 +2,8 @@ import Foundation
 
 struct TimeEntryInfo: Identifiable {
     let id: Int
+    let harvestProjectId: Int
+    let taskId: Int
     let taskName: String
     let hours: Double
     let date: String

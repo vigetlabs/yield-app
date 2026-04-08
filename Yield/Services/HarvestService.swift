@@ -66,24 +66,65 @@ final class HarvestService {
         return response.taskAssignments
     }
 
-    func updateTimeEntryHours(entryId: Int, hours: Double) async throws -> HarvestTimeEntry {
-        try await client.request(
+    func getMyProjectAssignments() async throws -> [HarvestProjectAssignment] {
+        var allAssignments: [HarvestProjectAssignment] = []
+        var page = 1
+
+        while true {
+            let response: HarvestProjectAssignmentsResponse = try await client.request(
+                "/users/me/project_assignments",
+                queryItems: [URLQueryItem(name: "page", value: String(page))]
+            )
+            allAssignments.append(contentsOf: response.projectAssignments)
+
+            if page >= response.totalPages {
+                break
+            }
+            page += 1
+        }
+
+        return allAssignments
+    }
+
+    func deleteTimeEntry(entryId: Int) async throws {
+        // DELETE returns empty body — use HarvestTimeEntry but ignore result
+        // Harvest actually returns the deleted entry on DELETE
+        let _: HarvestTimeEntry = try await client.request(
             "/time_entries/\(entryId)",
-            method: "PATCH",
-            body: ["hours": hours]
+            method: "DELETE"
         )
     }
 
-    func createTimeEntry(projectId: Int, taskId: Int) async throws -> HarvestTimeEntry {
+    func updateTimeEntry(entryId: Int, hours: Double? = nil, taskId: Int? = nil, notes: String?) async throws -> HarvestTimeEntry {
+        var body: [String: Any] = [:]
+        if let hours { body["hours"] = hours }
+        if let taskId { body["task_id"] = taskId }
+        // Always send notes — empty string clears them, nil omits the field
+        if let notes { body["notes"] = notes }
+        return try await client.request(
+            "/time_entries/\(entryId)",
+            method: "PATCH",
+            body: body
+        )
+    }
+
+    func createTimeEntry(projectId: Int, taskId: Int, hours: Double? = nil, notes: String? = nil) async throws -> HarvestTimeEntry {
         let today = DateHelpers.dateFormatter.string(from: Date())
+        var body: [String: Any] = [
+            "project_id": projectId,
+            "task_id": taskId,
+            "spent_date": today,
+        ]
+        if let hours {
+            body["hours"] = hours
+        }
+        if let notes, !notes.isEmpty {
+            body["notes"] = notes
+        }
         return try await client.request(
             "/time_entries",
             method: "POST",
-            body: [
-                "project_id": projectId,
-                "task_id": taskId,
-                "spent_date": today,
-            ]
+            body: body
         )
     }
 }

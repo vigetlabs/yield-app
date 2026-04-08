@@ -30,10 +30,34 @@ enum AppearanceMode: String, CaseIterable {
 
 struct MenuBarContentView: View {
     let viewModel: TimeComparisonViewModel
+    @State private var showNewTimerForm = false
+    @State private var editingEntry: TimeEntryInfo? = nil
+    @State private var preselectedProjectId: Int? = nil
+    @State private var showSettings = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !viewModel.isConfigured {
+            if viewModel.idleAlertState != nil {
+                IdleAlertView(viewModel: viewModel)
+            } else if showSettings {
+                SettingsView(oAuthService: AppState.shared.oAuthService) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showSettings = false
+                    }
+                }
+            } else if showNewTimerForm || editingEntry != nil {
+                NewTimerFormView(
+                    viewModel: viewModel,
+                    editingEntry: editingEntry,
+                    preselectedProjectId: preselectedProjectId
+                ) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showNewTimerForm = false
+                        editingEntry = nil
+                        preselectedProjectId = nil
+                    }
+                }
+            } else if !viewModel.isConfigured {
                 notConfiguredView
             } else if viewModel.isLoading && viewModel.projectStatuses.isEmpty {
                 loadingView
@@ -43,7 +67,9 @@ struct MenuBarContentView: View {
                 contentView
             }
 
-            footerView
+            if viewModel.idleAlertState == nil && !showSettings && !showNewTimerForm && editingEntry == nil {
+                footerView
+            }
         }
         .frame(width: YieldDimensions.panelWidth)
         .background(YieldColors.background)
@@ -58,10 +84,6 @@ struct MenuBarContentView: View {
 
             if viewModel.isTimerBannerVisible {
                 TimerBannerView(viewModel: viewModel)
-            }
-
-            if viewModel.idleAlertState != nil {
-                IdleAlertView(viewModel: viewModel)
             }
 
             if let error = viewModel.errorMessage {
@@ -87,6 +109,20 @@ struct MenuBarContentView: View {
                         },
                         onToggleEntryTimer: { entryId, isRunning in
                             Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: isRunning) }
+                        },
+                        onEditEntry: { entry in
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                editingEntry = entry
+                            }
+                        },
+                        onDeleteEntry: { entry in
+                            Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
+                        },
+                        onStartTimerForProject: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                preselectedProjectId = project.harvestProjectId
+                                showNewTimerForm = true
+                            }
                         }
                     )
                 }
@@ -97,7 +133,7 @@ struct MenuBarContentView: View {
     // MARK: - Header
 
     private var headerView: some View {
-        HStack {
+        HStack(spacing: 8) {
             Text(viewModel.weekLabel)
                 .font(YieldFonts.titleMedium)
                 .foregroundStyle(YieldColors.textPrimary)
@@ -105,6 +141,8 @@ struct MenuBarContentView: View {
             Spacer()
 
             tabToggle
+
+            timerButton
         }
         .padding(16)
         .overlay(alignment: .bottom) {
@@ -157,7 +195,9 @@ struct MenuBarContentView: View {
 
     private var timerButton: some View {
         Button {
-            // TODO: Phase 5 — open new timer form
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showNewTimerForm.toggle()
+            }
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "plus")
@@ -229,18 +269,11 @@ struct MenuBarContentView: View {
                 }
                 .disabled(viewModel.isLoading)
 
-                SettingsLink {
-                    Text("Settings...")
+                Button("Settings...") {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showSettings = true
+                    }
                 }
-
-                Button("Check for Updates...") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    AppState.shared.updaterController?.checkForUpdates(nil)
-                }
-
-                Divider()
-
-                Text(appVersion)
 
                 Divider()
 
@@ -264,12 +297,6 @@ struct MenuBarContentView: View {
         }
     }
 
-    // MARK: - About
-
-    private var appVersion: String {
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-        return "v\(version)"
-    }
 }
 
 // MARK: - Opaque Panel Background

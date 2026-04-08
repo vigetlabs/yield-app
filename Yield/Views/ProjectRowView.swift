@@ -5,7 +5,12 @@ struct ProjectRowView: View {
     var effectiveLoggedHours: Double
     var onToggleTimer: (() -> Void)? = nil
     var onToggleEntryTimer: ((Int, Bool) -> Void)? = nil
+    var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
+    var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
+    var onStartTimerForProject: (() -> Void)? = nil
     @State private var isExpanded: Bool = false
+
+    private var hasEntries: Bool { !project.timeEntries.isEmpty }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -13,17 +18,29 @@ struct ProjectRowView: View {
             projectHeader
                 .contentShape(Rectangle())
                 .onTapGesture {
+                    guard hasEntries else { return }
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isExpanded.toggle()
+                    }
+                }
+                .contextMenu {
+                    Button {
+                        onStartTimerForProject?()
+                    } label: {
+                        Label("Start Timer", systemImage: "play.fill")
                     }
                 }
 
             // Expanded time entries
             if isExpanded {
                 ForEach(project.timeEntries) { entry in
-                    TaskEntryRowView(entry: entry) {
+                    TaskEntryRowView(entry: entry, onToggleTimer: {
                         onToggleEntryTimer?(entry.id, entry.isRunning)
-                    }
+                    }, onEditEntry: {
+                        onEditEntry?(entry)
+                    }, onDeleteEntry: {
+                        onDeleteEntry?(entry)
+                    })
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -61,11 +78,13 @@ struct ProjectRowView: View {
                             .foregroundStyle(YieldColors.textPrimary)
                             .lineLimit(1)
 
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(YieldColors.textPrimary)
-                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                            .animation(.easeInOut(duration: 0.15), value: isExpanded)
+                        if hasEntries {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(YieldColors.textPrimary)
+                                .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                                .animation(.easeInOut(duration: 0.15), value: isExpanded)
+                        }
                     }
 
                     // Remaining label (forecasted only)
@@ -101,19 +120,9 @@ struct ProjectRowView: View {
 
     private var statusLine: some View {
         Rectangle()
-            .fill(statusLineColor)
-            .frame(width: 3)
+            .fill(project.isForecasted ? Color.white.opacity(0.7) : Color.clear)
+            .frame(width: 1)
             .frame(maxHeight: .infinity)
-    }
-
-    private var statusLineColor: Color {
-        if project.isTracking { return YieldColors.greenAccent }
-        if !project.isForecasted { return YieldColors.textSecondary.opacity(0.3) }
-        switch project.status {
-        case .under: return YieldColors.greenAccent
-        case .onTrack: return YieldColors.greenAccent
-        case .over: return Color(red: 0.80, green: 0.45, blue: 0.40)
-        }
     }
 
     // MARK: - Time Label
@@ -183,38 +192,46 @@ struct ProgressBarView: View {
 struct TaskEntryRowView: View {
     let entry: TimeEntryInfo
     var onToggleTimer: (() -> Void)? = nil
+    var onEditEntry: (() -> Void)? = nil
+    var onDeleteEntry: (() -> Void)? = nil
 
     private var hasNotes: Bool {
         if let notes = entry.notes, !notes.isEmpty { return true }
         return false
     }
 
+    private var isToday: Bool {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: entry.date) else { return false }
+        return Calendar.current.isDateInToday(date)
+    }
+
     var body: some View {
         HStack {
-            // Task details
-            VStack(alignment: .leading, spacing: hasNotes ? 6 : 0) {
-                Text(entry.taskName)
-                    .font(YieldFonts.titleSmall)
-                    .foregroundStyle(YieldColors.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(width: 226, alignment: .leading)
-
-                if hasNotes {
-                    Text(entry.notes!)
-                        .font(YieldFonts.labelNote)
-                        .foregroundStyle(YieldColors.textSecondary)
+            // Task details + time info (double-click to edit)
+            HStack {
+                VStack(alignment: .leading, spacing: hasNotes ? 6 : 0) {
+                    Text(entry.taskName)
+                        .font(YieldFonts.titleSmall)
+                        .foregroundStyle(YieldColors.textPrimary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .tracking(0.36)
+                        .frame(width: 226, alignment: .leading)
+
+                    if hasNotes {
+                        Text(entry.notes!)
+                            .font(YieldFonts.labelNote)
+                            .foregroundStyle(YieldColors.textSecondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .tracking(0.36)
+                    }
                 }
-            }
-            .frame(width: 268, alignment: .leading)
+                .frame(width: 268, alignment: .leading)
 
-            Spacer()
+                Spacer()
 
-            // Time + day + play button
-            HStack(spacing: 24) {
                 HStack(spacing: 8) {
                     if entry.isRunning {
                         Image(systemName: "clock")
@@ -242,7 +259,11 @@ struct TaskEntryRowView: View {
                             .padding(.vertical, 2)
                     }
                 }
+            }
+            .contentShape(Rectangle())
 
+            // Play/stop button (only for today's entries)
+            if isToday {
                 Button(action: { onToggleTimer?() }) {
                     Image(systemName: entry.isRunning ? "stop.fill" : "play.fill")
                         .font(.system(size: 10))
@@ -256,6 +277,18 @@ struct TaskEntryRowView: View {
         .padding(.leading, 32)
         .padding(.trailing, 16)
         .padding(.vertical, 12)
+        .contextMenu {
+            Button {
+                onEditEntry?()
+            } label: {
+                Label("Edit Entry", systemImage: "pencil")
+            }
+            Button(role: .destructive) {
+                onDeleteEntry?()
+            } label: {
+                Label("Delete Entry", systemImage: "trash")
+            }
+        }
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(YieldColors.border)
