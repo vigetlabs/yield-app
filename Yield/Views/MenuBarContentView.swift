@@ -37,38 +37,52 @@ struct MenuBarContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if viewModel.idleAlertState != nil {
-                IdleAlertView(viewModel: viewModel)
-            } else if showSettings {
-                SettingsView(oAuthService: AppState.shared.oAuthService) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showSettings = false
+            Group {
+                if viewModel.idleAlertState != nil {
+                    IdleAlertView(viewModel: viewModel)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+                } else if showSettings {
+                    SettingsView(oAuthService: AppState.shared.oAuthService) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showSettings = false
+                        }
                     }
-                }
-            } else if showNewTimerForm || editingEntry != nil {
-                NewTimerFormView(
-                    viewModel: viewModel,
-                    editingEntry: editingEntry,
-                    preselectedProjectId: preselectedProjectId
-                ) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showNewTimerForm = false
-                        editingEntry = nil
-                        preselectedProjectId = nil
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                } else if showNewTimerForm || editingEntry != nil {
+                    NewTimerFormView(
+                        viewModel: viewModel,
+                        editingEntry: editingEntry,
+                        preselectedProjectId: preselectedProjectId
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showNewTimerForm = false
+                            editingEntry = nil
+                            preselectedProjectId = nil
+                        }
                     }
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                } else if !viewModel.isConfigured {
+                    notConfiguredView
+                        .transition(.opacity)
+                } else if viewModel.isLoading && viewModel.projectStatuses.isEmpty {
+                    loadingView
+                        .transition(.opacity)
+                } else if let error = viewModel.errorMessage, viewModel.projectStatuses.isEmpty {
+                    errorView(error)
+                        .transition(.opacity)
+                } else {
+                    contentView
+                        .transition(.opacity)
                 }
-            } else if !viewModel.isConfigured {
-                notConfiguredView
-            } else if viewModel.isLoading && viewModel.projectStatuses.isEmpty {
-                loadingView
-            } else if let error = viewModel.errorMessage, viewModel.projectStatuses.isEmpty {
-                errorView(error)
-            } else {
-                contentView
             }
+            .animation(.easeInOut(duration: 0.2), value: showSettings)
+            .animation(.easeInOut(duration: 0.2), value: showNewTimerForm)
+            .animation(.easeInOut(duration: 0.2), value: editingEntry?.id)
+            .animation(.easeInOut(duration: 0.2), value: viewModel.idleAlertState != nil)
 
             if viewModel.idleAlertState == nil && !showSettings && !showNewTimerForm && editingEntry == nil {
                 footerView
+                    .transition(.opacity)
             }
         }
         .frame(width: YieldDimensions.panelWidth)
@@ -84,6 +98,7 @@ struct MenuBarContentView: View {
 
             if viewModel.isTimerBannerVisible {
                 TimerBannerView(viewModel: viewModel)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             if let error = viewModel.errorMessage {
@@ -156,7 +171,9 @@ struct MenuBarContentView: View {
         HStack(spacing: 2) {
             ForEach(TimeComparisonViewModel.ProjectTab.allCases, id: \.self) { tab in
                 Button {
-                    viewModel.selectedTab = tab
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        viewModel.selectedTab = tab
+                    }
                 } label: {
                     Text(tab == .recent ? "Recent" : "Forecasted")
                         .font(viewModel.selectedTab == tab
@@ -215,13 +232,15 @@ struct MenuBarContentView: View {
         VStack(spacing: 8) {
             Image(systemName: "person.crop.circle.badge.questionmark")
                 .font(.largeTitle)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(YieldColors.textSecondary)
             Text("Sign in to connect your Harvest and Forecast accounts.")
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(YieldColors.textSecondary)
+                .font(YieldFonts.dmSans(11))
             Button("Sign in with Harvest") {
                 AppState.shared.oAuthService.startOAuthFlow()
             }
+            .buttonStyle(.greenOutlined)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
@@ -231,7 +250,8 @@ struct MenuBarContentView: View {
         VStack(spacing: 8) {
             ProgressView()
             Text("Loading...")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(YieldColors.textSecondary)
+                .font(YieldFonts.dmSans(11))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
@@ -241,11 +261,11 @@ struct MenuBarContentView: View {
         VStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
-                .foregroundStyle(.orange)
+                .foregroundStyle(YieldColors.yellowAccent)
             Text(message)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-                .font(.caption)
+                .foregroundStyle(YieldColors.textSecondary)
+                .font(YieldFonts.dmSans(11))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)

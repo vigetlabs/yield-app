@@ -22,6 +22,7 @@ struct DropdownPicker: View {
     var body: some View {
         if isLoading {
             loadingView
+                .transition(.opacity)
         } else {
             NativePopUpButton(
                 items: items,

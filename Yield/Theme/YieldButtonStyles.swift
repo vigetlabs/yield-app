@@ -3,6 +3,8 @@ import SwiftUI
 // MARK: - Green Filled Button (+ Timer, Start Timer)
 
 struct GreenFilledButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(YieldFonts.labelButton)
@@ -12,13 +14,18 @@ struct GreenFilledButtonStyle: ButtonStyle {
             .frame(height: 22)
             .background(YieldColors.greenAccent)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
-            .opacity(configuration.isPressed ? 0.6 : 0.8)
+            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+            }
     }
 }
 
 // MARK: - Green Outlined Button (Start Timer outline variant)
 
 struct GreenOutlinedButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(YieldFonts.labelButton)
@@ -26,19 +33,24 @@ struct GreenOutlinedButtonStyle: ButtonStyle {
             .padding(.horizontal, 11)
             .padding(.vertical, 4)
             .frame(height: 22)
-            .background(YieldColors.greenFaint)
+            .background(isHovered ? YieldColors.greenSubtle : YieldColors.greenFaint)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
             .overlay(
                 RoundedRectangle(cornerRadius: YieldRadius.button)
-                    .strokeBorder(YieldColors.greenBorder, lineWidth: 1)
+                    .strokeBorder(isHovered ? YieldColors.greenBorderActive : YieldColors.greenBorder, lineWidth: 1)
             )
-            .opacity(configuration.isPressed ? 0.6 : 0.8)
+            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+            }
     }
 }
 
 // MARK: - Bordered Button (Cancel, Log Time, Stop)
 
 struct BorderedButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(YieldFonts.labelButton)
@@ -46,13 +58,16 @@ struct BorderedButtonStyle: ButtonStyle {
             .padding(.horizontal, 11)
             .padding(.vertical, 4)
             .frame(height: 22)
-            .background(YieldColors.surfaceDefault)
+            .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
             .overlay(
                 RoundedRectangle(cornerRadius: YieldRadius.button)
                     .strokeBorder(YieldColors.buttonBorder, lineWidth: 1)
             )
-            .opacity(configuration.isPressed ? 0.6 : 0.8)
+            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+            }
     }
 }
 
@@ -61,6 +76,7 @@ struct BorderedButtonStyle: ButtonStyle {
 struct TimerControlButtonStyle: ButtonStyle {
     var borderColor: Color = YieldColors.buttonBorder
     var foregroundColor: Color = YieldColors.textSecondary
+    @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -68,13 +84,16 @@ struct TimerControlButtonStyle: ButtonStyle {
             .foregroundStyle(foregroundColor)
             .frame(width: YieldDimensions.timerButtonSize, height: YieldDimensions.timerButtonSize)
             .contentShape(Rectangle())
-            .background(Color.clear)
+            .background(isHovered ? YieldColors.surfaceActive : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
             .overlay(
                 RoundedRectangle(cornerRadius: YieldRadius.button)
                     .strokeBorder(borderColor, lineWidth: 1)
             )
-            .opacity(configuration.isPressed ? 0.6 : 0.8)
+            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+            }
     }
 }
 

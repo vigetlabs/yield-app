@@ -97,8 +97,18 @@ extension YieldFonts {
 
 // MARK: - Corner Radii
 
+// MARK: - Status Colors
+
+enum YieldStatusColors {
+    static let under = YieldColors.greenAccent
+    static let onTrack = Color(red: 0.85, green: 0.78, blue: 0.45)    // amber
+    static let over = Color(red: 0.80, green: 0.45, blue: 0.40)       // red
+    static let unbooked = Color.white.opacity(0.3)
+}
+
 enum YieldRadius {
     static let panel: CGFloat = 14
+    static let card: CGFloat = 8
     static let button: CGFloat = 4
     static let dropdown: CGFloat = 6
     static let dropdownOverlay: CGFloat = 8

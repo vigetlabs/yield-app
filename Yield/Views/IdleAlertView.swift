@@ -95,6 +95,25 @@ struct IdleAlertView: View {
         isSecondary: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
+        IdleActionButtonView(
+            title: title,
+            subtitle: subtitle,
+            icon: icon,
+            isSecondary: isSecondary,
+            action: action
+        )
+    }
+}
+
+private struct IdleActionButtonView: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    var isSecondary: Bool = false
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: icon)
@@ -116,8 +135,12 @@ struct IdleAlertView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
+            .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+        }
     }
 }

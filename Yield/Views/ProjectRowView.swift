@@ -9,6 +9,7 @@ struct ProjectRowView: View {
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
     var onStartTimerForProject: (() -> Void)? = nil
     @State private var isExpanded: Bool = false
+    @State private var isHovered: Bool = false
 
     private var hasEntries: Bool { !project.timeEntries.isEmpty }
 
@@ -16,7 +17,11 @@ struct ProjectRowView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Project header row
             projectHeader
+                .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
                 .contentShape(Rectangle())
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                }
                 .onTapGesture {
                     guard hasEntries else { return }
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -183,6 +188,7 @@ struct ProgressBarView: View {
                     width: YieldDimensions.progressBarWidth * progress,
                     height: YieldDimensions.progressBarHeight
                 )
+                .animation(.easeInOut(duration: 0.4), value: progress)
         }
     }
 }
@@ -194,6 +200,7 @@ struct TaskEntryRowView: View {
     var onToggleTimer: (() -> Void)? = nil
     var onEditEntry: (() -> Void)? = nil
     var onDeleteEntry: (() -> Void)? = nil
+    @State private var isHovered: Bool = false
 
     private var hasNotes: Bool {
         if let notes = entry.notes, !notes.isEmpty { return true }
@@ -277,6 +284,10 @@ struct TaskEntryRowView: View {
         .padding(.leading, 32)
         .padding(.trailing, 16)
         .padding(.vertical, 12)
+        .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+        }
         .contextMenu {
             Button {
                 onEditEntry?()

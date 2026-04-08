@@ -161,9 +161,9 @@ struct SettingsView: View {
             }
         }
         .background(YieldColors.surfaceDefault)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: YieldRadius.card)
                 .strokeBorder(YieldColors.border, lineWidth: 1)
         )
     }
@@ -241,9 +241,9 @@ struct SettingsView: View {
             .padding(.vertical, 8)
         }
         .background(YieldColors.surfaceDefault)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: YieldRadius.card)
                 .strokeBorder(YieldColors.border, lineWidth: 1)
         )
     }
@@ -300,9 +300,9 @@ struct SettingsView: View {
             .buttonStyle(.plain)
         }
         .background(YieldColors.surfaceDefault)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: YieldRadius.card)
                 .strokeBorder(YieldColors.border, lineWidth: 1)
         )
     }
