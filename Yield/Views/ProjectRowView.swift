@@ -121,7 +121,7 @@ struct ProjectRowView: View {
     private var statusLine: some View {
         Rectangle()
             .fill(project.isForecasted ? Color.white.opacity(0.7) : Color.clear)
-            .frame(width: 1)
+            .frame(width: 2)
             .frame(maxHeight: .infinity)
     }
 

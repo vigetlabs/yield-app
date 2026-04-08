@@ -309,6 +309,8 @@ private struct TimeInputView: View {
 
     @State private var hoursText: String = "0"
     @State private var minutesText: String = "00"
+    @FocusState private var hoursFocused: Bool
+    @FocusState private var minutesFocused: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -319,10 +321,17 @@ private struct TimeInputView: View {
                 .textFieldStyle(.plain)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 24)
+                .focused($hoursFocused)
                 .onChange(of: hoursText) { _, newValue in
                     let filtered = String(newValue.filter { $0.isNumber }.prefix(2))
                     if filtered != newValue { hoursText = filtered }
                     hours = min(Int(filtered) ?? 0, 99)
+                }
+                .onChange(of: hoursFocused) { _, focused in
+                    if !focused {
+                        // Format on blur: strip leading zeros but keep at least "0"
+                        hoursText = "\(hours)"
+                    }
                 }
 
             Text(":")
@@ -336,15 +345,18 @@ private struct TimeInputView: View {
                 .textFieldStyle(.plain)
                 .multilineTextAlignment(.leading)
                 .frame(width: 24)
+                .focused($minutesFocused)
                 .onChange(of: minutesText) { _, newValue in
                     let filtered = String(newValue.filter { $0.isNumber }.prefix(2))
                     if filtered != newValue { minutesText = filtered }
                     let val = Int(filtered) ?? 0
                     minutes = min(val, 59)
                 }
-                .onSubmit {
-                    // Reformat to 2 digits on commit
-                    minutesText = String(format: "%02d", minutes)
+                .onChange(of: minutesFocused) { _, focused in
+                    if !focused {
+                        // Pad to 2 digits on blur
+                        minutesText = String(format: "%02d", minutes)
+                    }
                 }
         }
         .padding(.horizontal, 12)
@@ -362,12 +374,14 @@ private struct TimeInputView: View {
             minutesText = String(format: "%02d", minutes)
         }
         .onChange(of: hours) { _, newValue in
-            let text = "\(newValue)"
-            if hoursText != text { hoursText = text }
+            if !hoursFocused {
+                hoursText = "\(newValue)"
+            }
         }
         .onChange(of: minutes) { _, newValue in
-            let text = String(format: "%02d", newValue)
-            if minutesText != text { minutesText = text }
+            if !minutesFocused {
+                minutesText = String(format: "%02d", newValue)
+            }
         }
     }
 }
