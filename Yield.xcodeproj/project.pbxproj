@@ -15,6 +15,7 @@
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
 		428D5AEC2E6086C0999F9F7E /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */; };
 		539A827FDCADF80CA5457BFD /* DMSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */; };
+		544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F394448517841A11132011C /* IdleAlertView.swift */; };
 		5B4B7C7E70A2D03365410F96 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA30B681B3132D09F66457E /* Sparkle */; };
 		6D46A5BB044C89897B4AB4D9 /* OAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C069FFB775F69282E721C8 /* OAuthService.swift */; };
 		71D374DDC966198A7F70D9CF /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C0FD7AEC1C89E1F04B5509F7 /* JetBrainsMono-Regular.ttf */; };
@@ -52,6 +53,7 @@
 		7AC15EED42FBAABA8E309340 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusIndicator.swift; sourceTree = "<group>"; };
 		863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Regular.ttf"; sourceTree = "<group>"; };
+		9F394448517841A11132011C /* IdleAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertView.swift; sourceTree = "<group>"; };
 		9FE70177FE259AB1C37908F0 /* HarvestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestModels.swift; sourceTree = "<group>"; };
 		ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Italic.ttf"; sourceTree = "<group>"; };
 		B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastModels.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 		7717F3661F43978AF12A68F8 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				9F394448517841A11132011C /* IdleAlertView.swift */,
 				C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */,
 				78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */,
 				FF707BC7919EFF060031F5B9 /* SettingsView.swift */,
@@ -273,6 +276,7 @@
 				8F8396A0AC2F4F6920926C37 /* ForecastService.swift in Sources */,
 				8324AA3F5CF8FBC4782301B1 /* HarvestModels.swift in Sources */,
 				C4E96F0745CED0E60BA91284 /* HarvestService.swift in Sources */,
+				544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */,
 				DAC3301F5AA18C5088CC521C /* KeychainHelper.swift in Sources */,
 				7C1545B79A40F59B462C2BE3 /* MenuBarContentView.swift in Sources */,
 				6D46A5BB044C89897B4AB4D9 /* OAuthService.swift in Sources */,

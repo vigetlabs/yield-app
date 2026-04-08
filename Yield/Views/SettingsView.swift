@@ -5,6 +5,8 @@ struct SettingsView: View {
     let oAuthService: OAuthService
 
     @AppStorage("appearanceMode") private var appearanceMode: String = AppearanceMode.system.rawValue
+    @AppStorage("idleDetectionEnabled") private var idleDetectionEnabled = true
+    @AppStorage("idleMinutes") private var idleMinutes = 10
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -37,11 +39,21 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 .disabled(true)
+
+                HStack {
+                    Toggle("Detect idle time after", isOn: $idleDetectionEnabled)
+                    TextField("", value: $idleMinutes, format: .number)
+                        .frame(width: 40)
+                        .multilineTextAlignment(.center)
+                        .disabled(!idleDetectionEnabled)
+                    Text("minutes of inactivity")
+                        .foregroundStyle(idleDetectionEnabled ? .primary : .secondary)
+                }
             }
 
         }
         .formStyle(.grouped)
-        .frame(width: 400, height: oAuthService.isAuthenticated ? 280 : 320)
+        .frame(width: 400, height: oAuthService.isAuthenticated ? 320 : 350)
         .navigationTitle("Yield Settings")
     }
 

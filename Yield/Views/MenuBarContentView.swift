@@ -60,6 +60,10 @@ struct MenuBarContentView: View {
                 TimerBannerView(viewModel: viewModel)
             }
 
+            if viewModel.idleAlertState != nil {
+                IdleAlertView(viewModel: viewModel)
+            }
+
             if let error = viewModel.errorMessage {
                 Text(error)
                     .font(.caption)

@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import SwiftUI
 import UserNotifications
@@ -27,6 +28,25 @@ final class TimeComparisonViewModel {
         let entryId: Int
         let frozenHours: Double
     }
+
+    struct IdleAlertState {
+        let idleStartDate: Date       // when idle was first detected
+        let entryId: Int
+        let projectName: String
+        let hoursAtIdleStart: Double   // entry hours of real work (before idle began)
+
+        /// Current idle duration in minutes, updating live
+        var currentIdleMinutes: Int {
+            max(1, Int(Date().timeIntervalSince(idleStartDate) / 60))
+        }
+
+        /// Hours to set the entry to if removing idle time
+        var adjustedHours: Double {
+            max(0, hoursAtIdleStart)
+        }
+    }
+
+    var idleAlertState: IdleAlertState? = nil
 
     var filteredStatuses: [ProjectStatus] {
         switch selectedTab {
@@ -60,6 +80,7 @@ final class TimeComparisonViewModel {
     private var refreshTimer: Timer?
     private var elapsedTimer: Timer?
     private var notifiedProjectIds: Set<Int> = []
+    private var idleNotificationSent: Bool = false
 
     enum AuthMode {
         case oauth, pat, none
@@ -157,13 +178,128 @@ final class TimeComparisonViewModel {
     private func startElapsedTimer() {
         elapsedTimer?.invalidate()
         elapsedOffset = 0
+        idleNotificationSent = false
         elapsedTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
                 self.elapsedOffset += 1.0 / 60.0  // add 1 minute in hours
                 self.checkBookedHoursReached()
+                self.checkIdleTime()
             }
         }
+    }
+
+    private func checkIdleTime() {
+        let enabled = UserDefaults.standard.bool(forKey: "idleDetectionEnabled")
+        guard enabled else {
+            idleNotificationSent = false
+            return
+        }
+
+        // Only alert when a timer is actively running
+        guard let project = trackingProject,
+              let entry = trackingEntry else {
+            idleNotificationSent = false
+            return
+        }
+
+        // Don't check if we're already showing the idle alert
+        guard idleAlertState == nil else { return }
+
+        let idleMinutes = UserDefaults.standard.integer(forKey: "idleMinutes")
+        let thresholdSeconds = Double(max(idleMinutes, 1)) * 60.0
+
+        // Get system-wide idle time (seconds since last keyboard/mouse/trackpad event)
+        let idleSeconds = CGEventSource.secondsSinceLastEventType(
+            .combinedSessionState,
+            eventType: .init(rawValue: ~0)!
+        )
+
+        if idleSeconds >= thresholdSeconds {
+            if !idleNotificationSent {
+                idleNotificationSent = true
+
+                // Use the actual idle seconds from CGEventSource (not the threshold)
+                // since the check fires every 60s, actual idle could be beyond threshold
+                let actualIdleHours = idleSeconds / 3600.0
+                let hoursAtIdleStart = max(0, entry.hours - actualIdleHours)
+
+                let name = [project.clientName, project.projectName]
+                    .compactMap { $0 }
+                    .joined(separator: " — ")
+
+                idleAlertState = IdleAlertState(
+                    idleStartDate: Date().addingTimeInterval(-idleSeconds),
+                    entryId: entry.id,
+                    projectName: name,
+                    hoursAtIdleStart: hoursAtIdleStart
+                )
+
+                // Open the menu bar popup so the user sees the idle alert inline
+                openMenuBarPanel()
+            }
+        } else {
+            // User is active again — reset so we can notify next time
+            if idleNotificationSent {
+                idleNotificationSent = false
+            }
+        }
+    }
+
+    /// Programmatically open the MenuBarExtra panel by clicking its NSStatusItem button.
+    private func openMenuBarPanel() {
+        // Find our status item button — it's the one whose window belongs to this app
+        guard let button = NSApp.windows
+            .compactMap({ $0.value(forKey: "statusItem") as? NSStatusItem })
+            .first?.button
+        else { return }
+        button.performClick(nil)
+    }
+
+    // MARK: - Idle Alert Actions
+
+    /// Continue timing but subtract the idle time from the entry
+    @MainActor
+    func idleContinueAndRemoveTime() async {
+        guard let alert = idleAlertState,
+              let (harvestService, _) = makeServices() else { return }
+
+        do {
+            // Stop current timer, adjust hours to remove idle time, restart
+            _ = try await harvestService.stopTimer(entryId: alert.entryId)
+            _ = try await harvestService.updateTimeEntryHours(entryId: alert.entryId, hours: alert.adjustedHours)
+            _ = try await harvestService.restartTimer(entryId: alert.entryId)
+            idleAlertState = nil
+            idleNotificationSent = false
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Stop the timer and subtract the idle time
+    @MainActor
+    func idleStopAndRemoveTime() async {
+        guard let alert = idleAlertState,
+              let (harvestService, _) = makeServices() else { return }
+
+        do {
+            _ = try await harvestService.stopTimer(entryId: alert.entryId)
+            _ = try await harvestService.updateTimeEntryHours(entryId: alert.entryId, hours: alert.adjustedHours)
+            idleAlertState = nil
+            pausedState = nil
+            idleNotificationSent = false
+            await refresh()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Keep all the time (including idle) and dismiss
+    @MainActor
+    func idleDismiss() {
+        idleAlertState = nil
+        idleNotificationSent = false
     }
 
     private func checkBookedHoursReached() {
@@ -453,9 +589,11 @@ final class TimeComparisonViewModel {
             var statuses: [ProjectStatus] = []
             var processedHarvestIds: Set<Int> = []
 
-            // Start with Forecast projects (booked)
+            // Start with Forecast projects (booked), skip non-Harvest projects (e.g. Time Off)
             for (forecastProjectId, bookedHours) in bookedByForecastProject {
                 let project = projectMap[forecastProjectId]
+                // Skip Forecast-only projects with no Harvest link (Time Off, PTO, etc.)
+                if project?.harvestId == nil { continue }
                 let projectName = project?.name ?? "Unknown Project"
                 let clientName = project?.clientId.flatMap { clientMap[$0]?.name }
                 var logged: Double = 0

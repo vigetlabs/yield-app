@@ -66,6 +66,14 @@ final class HarvestService {
         return response.taskAssignments
     }
 
+    func updateTimeEntryHours(entryId: Int, hours: Double) async throws -> HarvestTimeEntry {
+        try await client.request(
+            "/time_entries/\(entryId)",
+            method: "PATCH",
+            body: ["hours": hours]
+        )
+    }
+
     func createTimeEntry(projectId: Int, taskId: Int) async throws -> HarvestTimeEntry {
         let today = DateHelpers.dateFormatter.string(from: Date())
         return try await client.request(

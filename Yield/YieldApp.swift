@@ -22,6 +22,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Register defaults so @AppStorage and UserDefaults agree on initial values
+        UserDefaults.standard.register(defaults: [
+            "idleDetectionEnabled": true,
+            "idleMinutes": 10,
+        ])
+
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         AppState.shared.updaterController = updaterController
         AppState.shared.start()
