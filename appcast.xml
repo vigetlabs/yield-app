@@ -3,6 +3,28 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.6</title>
+      <sparkle:version>9</sparkle:version>
+      <sparkle:shortVersionString>0.9.6</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>New timer entry form: create, edit, and delete time entries with project/task dropdowns grouped by client</li>
+          <li>Idle detection alert: full-screen takeover with continue, stop, or keep options</li>
+          <li>Settings moved inline into menu bar panel with card-based UI</li>
+          <li>Hover states on all buttons, project rows, and interactive elements</li>
+          <li>Smooth transitions between views (slide, fade, cross-fade)</li>
+          <li>Animated progress bars and tab toggle</li>
+          <li>Forecasted project indicator: white left-border line</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.6/Yield-0.9.6.zip"
+        sparkle:edSignature="At8hws1ZdOdiv2zIYC07p2XT08KnCuJDeugwg3w14jAjgMPPxBH1vezGWuKfSFAzS03PHksyGsKzB1ifo0JuAw=="
+        length="1916711"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.5.1</title>
       <sparkle:version>8</sparkle:version>
       <sparkle:shortVersionString>0.9.5.1</sparkle:shortVersionString>
