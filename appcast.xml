@@ -3,6 +3,30 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.6.2</title>
+      <sparkle:version>11</sparkle:version>
+      <sparkle:shortVersionString>0.9.6.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix DELETE endpoint crash when deleting time entries</li>
+          <li>Fix OAuth token refresh race condition</li>
+          <li>Move OAuth secrets out of source code into build config</li>
+          <li>Eliminate all force-unwraps for crash safety</li>
+          <li>Fix timer display after app backgrounding</li>
+          <li>Fix pagination edge cases in API calls</li>
+          <li>Fix notes being cleared when editing time entries</li>
+          <li>Add thread safety to keychain cache</li>
+          <li>Prevent ID collisions between Forecast and Harvest projects</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.6.2/Yield-0.9.6.2.zip"
+        sparkle:edSignature="8v7JDI6Evv379qlVLqZQlKrVOqaa39i35zuW/jUYDIamLZZ38ZyvhWVXWzwuoIL4isTPRV7uxO9Wl2MCmGebCA=="
+        length="1933964"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.6.1</title>
       <sparkle:version>10</sparkle:version>
       <sparkle:shortVersionString>0.9.6.1</sparkle:shortVersionString>
