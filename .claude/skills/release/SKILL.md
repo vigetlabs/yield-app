@@ -124,15 +124,19 @@ git add appcast.xml
 
 Commit message: `Update appcast for vVERSION`
 
-### 7. Push & GitHub Release
+### 7. Push, Tag & GitHub Release
+
+Push commits, then create and push the tag *before* creating the release. This ensures the tag exists on the correct commit when GitHub fires the `published` event (otherwise the Slack notification workflow may not trigger):
 
 ```bash
 git push origin main
+git tag vVERSION
+git push origin vVERSION
 ```
 
-Create the GitHub release with the zip attached:
+Create the GitHub release pointing at the existing tag:
 ```bash
-gh release create vVERSION /tmp/Yield-VERSION.zip --title "vVERSION" --notes "RELEASE_NOTES"
+gh release create vVERSION /tmp/Yield-VERSION.zip --title "vVERSION" --notes "RELEASE_NOTES" --verify-tag
 ```
 
 The release notes for GitHub should be formatted with markdown headers and bullet points.
