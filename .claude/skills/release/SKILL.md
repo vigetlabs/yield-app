@@ -137,9 +137,7 @@ gh release create vVERSION /tmp/Yield-VERSION.zip --title "vVERSION" --notes "RE
 
 The release notes for GitHub should be formatted with markdown headers and bullet points.
 
-### 8. Slack Notification
-
-Post release notes to #yield-app (channel ID: `C0ARSF8PQAD`) using the `slack_send_message_draft` MCP tool. Format as a brief summary — title with version, key changes as bullet points, and a link to the GitHub release.
+The GitHub Actions workflow (`.github/workflows/slack-release-notify.yml`) will automatically post to #yield-app when the release is created — no manual Slack step needed.
 
 ## Reminders
 
