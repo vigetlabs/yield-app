@@ -16,6 +16,14 @@ final class TimeComparisonViewModel {
     var totalBooked: Double = 0
     var totalUnbookedLogged: Double = 0
     var totalTodayLogged: Double = 0
+    var dailyHours: [DayHours] = []
+
+    struct DayHours: Identifiable {
+        let id: String          // date string YYYY-MM-DD
+        let dayLabel: String    // "Mon", "Tue", etc.
+        let hours: Double
+        let isToday: Bool
+    }
     var weekLabel: String = ""
     var lastUpdated: Date? = nil
     var isLoading: Bool = false
@@ -839,6 +847,28 @@ final class TimeComparisonViewModel {
             totalBooked = booked.reduce(0) { $0 + $1.bookedHours }
             totalUnbookedLogged = unbooked.reduce(0) { $0 + $1.loggedHours }
             totalTodayLogged = statuses.reduce(0) { $0 + $1.todayHours }
+
+            // Build daily hours breakdown (Mon–Sun)
+            var hoursByDate: [String: Double] = [:]
+            for entry in entries {
+                hoursByDate[entry.spentDate, default: 0] += entry.hours
+            }
+            let calendar = Calendar.current
+            let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            var days: [DayHours] = []
+            for i in 0..<7 {
+                guard let date = calendar.date(byAdding: .day, value: i, to: weekBounds.start) else { continue }
+                let dateStr = DateHelpers.dateFormatter.string(from: date)
+                let isToday = calendar.isDateInToday(date)
+                days.append(DayHours(
+                    id: dateStr,
+                    dayLabel: dayLabels[i],
+                    hours: hoursByDate[dateStr] ?? 0,
+                    isToday: isToday
+                ))
+            }
+            dailyHours = days
+
             weekLabel = DateHelpers.formattedWeekRange()
             lastUpdated = Date()
 

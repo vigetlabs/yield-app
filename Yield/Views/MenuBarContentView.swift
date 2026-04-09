@@ -170,23 +170,77 @@ struct MenuBarContentView: View {
     // MARK: - Header
 
     private var headerView: some View {
-        HStack(spacing: 8) {
-            Text(viewModel.weekLabel)
-                .font(YieldFonts.titleMedium)
-                .foregroundStyle(YieldColors.textPrimary)
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text(viewModel.weekLabel)
+                    .font(YieldFonts.titleMedium)
+                    .foregroundStyle(YieldColors.textPrimary)
 
-            Spacer()
+                Spacer()
 
-            tabToggle
+                tabToggle
 
-            timerButton
+                timerButton
+            }
+            .padding(16)
+
+            if !viewModel.dailyHours.isEmpty {
+                weekDayBar
+                    .padding(.leading, 18)
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 10)
+            }
         }
-        .padding(16)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(YieldColors.border)
                 .frame(height: 1)
         }
+    }
+
+    // MARK: - Week Day Bar
+
+    private var weekDayBar: some View {
+        HStack(spacing: 0) {
+            ForEach(viewModel.dailyHours) { day in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(day.dayLabel)
+                        .font(YieldFonts.dmSans(9, weight: day.isToday ? .semibold : .medium))
+                        .foregroundStyle(day.isToday ? YieldColors.textPrimary : YieldColors.textSecondary)
+
+                    HStack(spacing: 2) {
+                        Text(formatDayHours(day.hours))
+                            .font(YieldFonts.jetBrainsMono(10, weight: day.isToday ? .medium : .regular))
+                            .foregroundStyle(day.isToday ? YieldColors.textPrimary : YieldColors.textSecondary)
+
+                        if day.isToday && viewModel.projectStatuses.contains(where: { $0.isTracking }) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 7))
+                                .foregroundStyle(YieldColors.greenAccent)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            // Week total
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Week")
+                    .font(YieldFonts.dmSans(9, weight: .semibold))
+                    .foregroundStyle(YieldColors.textSecondary)
+
+                Text(formatDayHours(viewModel.totalLogged + viewModel.totalUnbookedLogged))
+                    .font(YieldFonts.jetBrainsMono(10, weight: .medium))
+                    .foregroundStyle(YieldColors.textPrimary)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+
+    private func formatDayHours(_ hours: Double) -> String {
+        let h = Int(hours)
+        let m = Int((hours - Double(h)) * 60)
+        return String(format: "%d:%02d", h, m)
     }
 
     private var tabToggle: some View {
