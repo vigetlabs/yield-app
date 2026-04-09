@@ -7,6 +7,7 @@ struct ProjectRowView: View {
     var onToggleEntryTimer: ((Int, Bool) -> Void)? = nil
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
+    var isHarvestDown: Bool = false
     var onStartTimerForProject: (() -> Void)? = nil
     @State private var isExpanded: Bool = false
     @State private var isHovered: Bool = false
@@ -34,12 +35,13 @@ struct ProjectRowView: View {
                     } label: {
                         Label("Start Timer", systemImage: "play.fill")
                     }
+                    .disabled(isHarvestDown)
                 }
 
             // Expanded time entries
             if isExpanded {
                 ForEach(project.timeEntries) { entry in
-                    TaskEntryRowView(entry: entry, onToggleTimer: {
+                    TaskEntryRowView(entry: entry, isHarvestDown: isHarvestDown, onToggleTimer: {
                         onToggleEntryTimer?(entry.id, entry.isRunning)
                     }, onEditEntry: {
                         onEditEntry?(entry)
@@ -231,6 +233,7 @@ struct ProgressBarView: View {
 
 struct TaskEntryRowView: View {
     let entry: TimeEntryInfo
+    var isHarvestDown: Bool = false
     var onToggleTimer: (() -> Void)? = nil
     var onEditEntry: (() -> Void)? = nil
     var onDeleteEntry: (() -> Void)? = nil
@@ -311,6 +314,8 @@ struct TaskEntryRowView: View {
                     borderColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.buttonBorder,
                     foregroundColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.textSecondary
                 ))
+                .disabled(isHarvestDown)
+                .opacity(isHarvestDown ? 0.4 : 1.0)
             }
         }
         .padding(.leading, 32)
@@ -326,11 +331,13 @@ struct TaskEntryRowView: View {
             } label: {
                 Label("Edit Entry", systemImage: "pencil")
             }
+            .disabled(isHarvestDown)
             Button(role: .destructive) {
                 onDeleteEntry?()
             } label: {
                 Label("Delete Entry", systemImage: "trash")
             }
+            .disabled(isHarvestDown)
         }
         .overlay(alignment: .bottom) {
             Rectangle()

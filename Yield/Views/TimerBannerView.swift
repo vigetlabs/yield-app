@@ -78,6 +78,8 @@ struct TimerBannerView: View {
                             borderColor: accentDim,
                             foregroundColor: accentColor
                         ))
+                        .disabled(viewModel.isHarvestDown)
+                        .opacity(viewModel.isHarvestDown ? 0.4 : 1.0)
 
                         // Stop button
                         Button {
@@ -90,6 +92,8 @@ struct TimerBannerView: View {
                             borderColor: YieldColors.buttonBorder,
                             foregroundColor: YieldColors.textSecondary
                         ))
+                        .disabled(viewModel.isHarvestDown)
+                        .opacity(viewModel.isHarvestDown ? 0.4 : 1.0)
                     }
                 }
             }

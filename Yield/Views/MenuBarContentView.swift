@@ -154,6 +154,7 @@ struct MenuBarContentView: View {
                         onDeleteEntry: { entry in
                             Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
                         },
+                        isHarvestDown: viewModel.isHarvestDown,
                         onStartTimerForProject: {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 preselectedProjectId = project.harvestProjectId
@@ -232,6 +233,8 @@ struct MenuBarContentView: View {
             }
         }
         .buttonStyle(.greenOutlined)
+        .disabled(viewModel.isHarvestDown)
+        .opacity(viewModel.isHarvestDown ? 0.4 : 1.0)
     }
 
     // MARK: - States

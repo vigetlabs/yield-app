@@ -38,6 +38,11 @@ final class TimeComparisonViewModel {
         case harvest = "Harvest"
         case forecast = "Forecast"
     }
+
+    /// Whether Harvest API is currently unreachable (timer controls should be disabled)
+    var isHarvestDown: Bool {
+        serviceErrors.contains { $0.service == .harvest }
+    }
     var elapsedOffset: Double = 0  // hours elapsed locally since last API refresh
     var selectedTab: ProjectTab = .recent
     var pausedState: PausedTimerState? = nil
