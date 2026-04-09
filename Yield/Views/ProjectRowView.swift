@@ -92,12 +92,15 @@ struct ProjectRowView: View {
                         }
                     }
 
-                    // Remaining label (forecasted only)
-                    if project.isForecasted && project.remainingHours > 0 {
-                        Text(project.remainingFormatted)
-                            .font(YieldFonts.labelTimeRemaining)
-                            .foregroundStyle(YieldColors.greenAccent)
-                            .tracking(0.18)
+                    // Remaining / over label (forecasted only)
+                    if project.isForecasted {
+                        let remaining = project.bookedHours - effectiveLoggedHours
+                        if remaining != 0 {
+                            Text(formatRemainingLabel(remaining))
+                                .font(YieldFonts.labelTimeRemaining)
+                                .foregroundStyle(remaining < 0 ? YieldStatusColors.over : YieldColors.greenAccent)
+                                .tracking(0.18)
+                        }
                     }
                 }
 
@@ -160,6 +163,14 @@ struct ProjectRowView: View {
     private func formatHoursOnly(_ hours: Double) -> String {
         let h = Int(hours)
         return "\(h)h"
+    }
+
+    private func formatRemainingLabel(_ remaining: Double) -> String {
+        let abs = Swift.abs(remaining)
+        let h = Int(abs)
+        let m = Int((abs - Double(h)) * 60)
+        let suffix = remaining < 0 ? "over this week" : "remaining this week"
+        return "\(h)h \(String(format: "%02d", m))m \(suffix)"
     }
 }
 
