@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.6.3</title>
+      <sparkle:version>12</sparkle:version>
+      <sparkle:shortVersionString>0.9.6.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Add bug report button in footer (opens GitHub Issues)</li>
+          <li>Add automated release skill</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.6.3/Yield-0.9.6.3.zip"
+        sparkle:edSignature="y8uVHhDtarrQQfr8SxgI1QlayjE9kuJHJS2pNhYIf2zdA6V4yXwWeuW1ZCmKjRivbiyIsQH2Fui0Jdk+ADp0DA=="
+        length="1934334"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.6.2</title>
       <sparkle:version>11</sparkle:version>
       <sparkle:shortVersionString>0.9.6.2</sparkle:shortVersionString>
