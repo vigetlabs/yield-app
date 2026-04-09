@@ -20,6 +20,24 @@ final class TimeComparisonViewModel {
     var lastUpdated: Date? = nil
     var isLoading: Bool = false
     var errorMessage: String? = nil
+    var serviceErrors: [ServiceError] = []
+
+    #if DEBUG
+    /// Set to simulate API failures for UI testing.
+    /// Options: .harvest, .forecast, or both.
+    var simulateServiceFailures: Set<ServiceName> = []
+    #endif
+
+    struct ServiceError: Identifiable {
+        let id = UUID()
+        let service: ServiceName
+        let message: String
+    }
+
+    enum ServiceName: String {
+        case harvest = "Harvest"
+        case forecast = "Forecast"
+    }
     var elapsedOffset: Double = 0  // hours elapsed locally since last API refresh
     var selectedTab: ProjectTab = .recent
     var pausedState: PausedTimerState? = nil
@@ -601,6 +619,7 @@ final class TimeComparisonViewModel {
 
         isLoading = true
         errorMessage = nil
+        serviceErrors = []
 
         guard let (harvestService, forecastService) = makeServices() else {
             errorMessage = "API credentials not configured."
@@ -613,42 +632,57 @@ final class TimeComparisonViewModel {
         let todayString = DateHelpers.dateFormatter.string(from: Date())
 
         do {
-            // Fetch current user IDs in parallel
-            async let harvestUser = harvestService.getCurrentUser()
-            async let forecastPerson = forecastService.getCurrentPerson()
-            async let forecastProjects = forecastService.getProjects()
-            async let forecastClients = forecastService.getClients()
+            // Fetch Harvest data
+            let user: HarvestUserResponse
+            let entries: [HarvestTimeEntry]
+            do {
+                user = try await harvestService.getCurrentUser()
 
-            let user = try await harvestUser
-            let person = try await forecastPerson
-            let projects = try await forecastProjects
-
-            // Backfill user name if missing (e.g. after cache clear)
-            if AppState.shared.oAuthService.userName == nil {
-                let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
-                if !name.isEmpty {
-                    UserDefaults.standard.set(name, forKey: "oauthUserName")
+                // Backfill user name if missing (e.g. after cache clear)
+                if AppState.shared.oAuthService.userName == nil {
+                    let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
+                    if !name.isEmpty {
+                        UserDefaults.standard.set(name, forKey: "oauthUserName")
+                    }
                 }
+
+                entries = try await harvestService.getTimeEntries(
+                    userId: user.id,
+                    from: weekDates.start,
+                    to: weekDates.end
+                )
+            } catch {
+                serviceErrors.append(ServiceError(service: .harvest, message: friendlyErrorMessage(error)))
+                throw error
             }
-            let clients = try await forecastClients
+
+            // Fetch Forecast data
+            let person: ForecastCurrentUser
+            let projects: [ForecastProject]
+            let clients: [ForecastClient]
+            let allAssignments: [ForecastAssignment]
+            do {
+                async let forecastPerson = forecastService.getCurrentPerson()
+                async let forecastProjects = forecastService.getProjects()
+                async let forecastClients = forecastService.getClients()
+
+                person = try await forecastPerson
+                projects = try await forecastProjects
+                clients = try await forecastClients
+
+                allAssignments = try await forecastService.getAssignments(
+                    personId: person.id,
+                    startDate: weekDates.start,
+                    endDate: weekDates.end
+                )
+            } catch {
+                serviceErrors.append(ServiceError(service: .forecast, message: friendlyErrorMessage(error)))
+                throw error
+            }
 
             // Build lookups
             let projectMap = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
             let clientMap = Dictionary(uniqueKeysWithValues: clients.map { ($0.id, $0) })
-            // Fetch time data in parallel
-            async let timeEntries = harvestService.getTimeEntries(
-                userId: user.id,
-                from: weekDates.start,
-                to: weekDates.end
-            )
-            async let assignments = forecastService.getAssignments(
-                personId: person.id,
-                startDate: weekDates.start,
-                endDate: weekDates.end
-            )
-
-            let entries = try await timeEntries
-            let allAssignments = try await assignments
 
             // Aggregate logged hours by Harvest project ID and track timers
             var loggedByHarvestProject: [Int: Double] = [:]
@@ -816,9 +850,51 @@ final class TimeComparisonViewModel {
             }
 
         } catch {
-            errorMessage = error.localizedDescription
+            if serviceErrors.isEmpty {
+                errorMessage = error.localizedDescription
+            } else {
+                errorMessage = serviceErrors.map { "\($0.service.rawValue): \($0.message)" }.joined(separator: "\n")
+            }
         }
 
+        #if DEBUG
+        // Inject simulated service failures after real data loads
+        if !simulateServiceFailures.isEmpty {
+            serviceErrors = []
+            for service in simulateServiceFailures {
+                serviceErrors.append(ServiceError(service: service, message: "Service unavailable (simulated)"))
+            }
+            errorMessage = serviceErrors.map { "\($0.service.rawValue): \($0.message)" }.joined(separator: "\n")
+        }
+        #endif
+
         isLoading = false
+    }
+
+    private func friendlyErrorMessage(_ error: Error) -> String {
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .serverError(let code) where (500...599).contains(code):
+                return "Service unavailable (HTTP \(code))"
+            case .networkError:
+                return "Unable to connect"
+            default:
+                return apiError.localizedDescription
+            }
+        }
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            switch nsError.code {
+            case NSURLErrorNotConnectedToInternet:
+                return "No internet connection"
+            case NSURLErrorTimedOut:
+                return "Request timed out"
+            case NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost:
+                return "Unable to connect"
+            default:
+                return "Network error"
+            }
+        }
+        return error.localizedDescription
     }
 }

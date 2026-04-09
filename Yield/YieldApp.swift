@@ -73,7 +73,8 @@ struct YieldApp: App {
             Image(nsImage: composedMenuBarImage(
                 label: label,
                 isTracking: tracking != nil,
-                progress: progress
+                progress: progress,
+                hasServiceError: !viewModel.serviceErrors.isEmpty
             ))
         }
         .menuBarExtraStyle(.window)
@@ -82,14 +83,15 @@ struct YieldApp: App {
 
     /// Compose the full menu bar image: [green dot] [time text] [gauge icon]
     /// Draws into a single NSImage so MenuBarExtra renders it reliably.
-    private func composedMenuBarImage(label: String, isTracking: Bool, progress: Double) -> NSImage {
+    private func composedMenuBarImage(label: String, isTracking: Bool, progress: Double, hasServiceError: Bool = false) -> NSImage {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         let textColor = NSColor.black
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
 
-        // Gauge icon
+        // Icon: warning triangle when API error, gauge otherwise
+        let iconSymbol = hasServiceError ? "exclamationmark.triangle" : "gauge.with.needle"
         let gaugeConfig = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
-        let gaugeBase = NSImage(systemSymbolName: "gauge.with.needle", accessibilityDescription: "Yield")
+        let gaugeBase = NSImage(systemSymbolName: iconSymbol, accessibilityDescription: "Yield")
             .flatMap { $0.withSymbolConfiguration(gaugeConfig) }
             ?? NSImage(size: NSSize(width: 14, height: 14))
 
@@ -131,14 +133,10 @@ struct YieldApp: App {
                 x += fixedTextWidth + spacing
             }
 
-            // Gauge icon — tint and rotate based on progress
-            // Rotation: progress 0 → -90° (needle left), 0.5 → 0° (center), 1 → +90° (right)
-            let rotation = (progress - 0.5) * 180.0 * (.pi / 180.0)
+            // Icon — tint and optionally rotate (gauge only)
             let gaugeY = (barHeight - gaugeSize.height) / 2
-            let gaugeCenterX = x + gaugeSize.width / 2
-            let gaugeCenterY = gaugeY + gaugeSize.height / 2
 
-            // Tint the gauge to match text color
+            // Tint the icon to match text color
             let tintedGauge = NSImage(size: gaugeSize, flipped: false) { gaugeRect in
                 guard let ctx = NSGraphicsContext.current?.cgContext,
                       let cgImage = gaugeBase.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return false }
@@ -150,9 +148,15 @@ struct YieldApp: App {
 
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             ctx.saveGState()
-            ctx.translateBy(x: gaugeCenterX, y: gaugeCenterY)
-            ctx.rotate(by: rotation)
-            ctx.translateBy(x: -gaugeCenterX, y: -gaugeCenterY)
+            if !hasServiceError {
+                // Rotation: progress 0 → -90° (needle left), 0.5 → 0° (center), 1 → +90° (right)
+                let rotation = (progress - 0.5) * 180.0 * (.pi / 180.0)
+                let gaugeCenterX = x + gaugeSize.width / 2
+                let gaugeCenterY = gaugeY + gaugeSize.height / 2
+                ctx.translateBy(x: gaugeCenterX, y: gaugeCenterY)
+                ctx.rotate(by: rotation)
+                ctx.translateBy(x: -gaugeCenterX, y: -gaugeCenterY)
+            }
             tintedGauge.draw(in: CGRect(x: x, y: gaugeY, width: gaugeSize.width, height: gaugeSize.height))
             ctx.restoreGState()
 

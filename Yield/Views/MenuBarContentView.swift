@@ -96,6 +96,16 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 0) {
             headerView
 
+            if !viewModel.serviceErrors.isEmpty {
+                serviceWarningBanner
+            } else if let error = viewModel.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+            }
+
             if viewModel.isTimerBannerVisible {
                 TimerBannerView(viewModel: viewModel)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -118,14 +128,6 @@ struct MenuBarContentView: View {
                             .fill(YieldColors.border)
                             .frame(height: 1)
                     }
-            }
-
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
             }
 
             if viewModel.filteredStatuses.isEmpty {
@@ -268,13 +270,51 @@ struct MenuBarContentView: View {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
                 .foregroundStyle(YieldColors.yellowAccent)
-            Text(message)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(YieldColors.textSecondary)
-                .font(YieldFonts.dmSans(11))
+
+            if !viewModel.serviceErrors.isEmpty {
+                ForEach(viewModel.serviceErrors) { error in
+                    Text("\(error.service.rawValue) — \(error.message)")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .font(YieldFonts.dmSans(11))
+                }
+            } else {
+                Text(message)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .font(YieldFonts.dmSans(11))
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
+    }
+
+    // MARK: - Service Warning Banner
+
+    private var serviceWarningBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(YieldColors.yellowAccent)
+
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(viewModel.serviceErrors) { error in
+                    Text("\(error.service.rawValue) — \(error.message)")
+                        .font(YieldFonts.dmSans(10))
+                        .foregroundStyle(YieldColors.textSecondary)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(YieldColors.yellowFaint)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+        }
     }
 
     // MARK: - Footer
