@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.6.4</title>
+      <sparkle:version>13</sparkle:version>
+      <sparkle:shortVersionString>0.9.6.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Progress bar now shows overage: turns red when logged hours exceed booked</li>
+          <li>Simplified status colors: green under 100%, red over 100%</li>
+          <li>New accent red (#F05D28)</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.6.4/Yield-0.9.6.4.zip"
+        sparkle:edSignature="qyW6LNFb1Iu5VlttlAqNOCy9+y+cDnZS3WJuFxvdcjgbcbWDwGevarKJF6/rSd2SmUYygvb6Cb3v3YhZnwbpAA=="
+        length="1935037"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.6.3</title>
       <sparkle:version>12</sparkle:version>
       <sparkle:shortVersionString>0.9.6.3</sparkle:shortVersionString>
