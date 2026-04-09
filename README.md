@@ -10,19 +10,18 @@ Unzip, drag Yield to your Applications folder, and launch. It'll take root in yo
 
 *Requires macOS 14 (Sonoma) or later and a Harvest account with Forecast enabled.*
 
-## What it does
+## Features
 
-**See the whole field at a glance.** Yield shows every project you're working on this week with color-coded progress toward your booked hours. A quick click on the menu bar icon and you know exactly where things stand.
-
-**Keep your rows straight.** The weekly total tracks all your hours — booked and unbooked — against your target. Today's hours are called out separately so you can pace your day.
-
-**Start and stop timers without leaving the field.** Toggle Harvest timers for any project right from the dropdown. Drill into individual time entries to restart a previous task or see where your hours went.
-
-**Get a nudge when you've hit your mark.** Yield notifies you when you reach your booked hours on a project — so you know when it's time to move on to the next row.
-
-**Stays fresh on its own.** Data refreshes every five minutes automatically. Between refreshes, active timers tick locally so the numbers always feel current.
-
-**Updates itself.** Yield checks for new versions daily and prompts you to update — no need to come back here to check.
+- **At-a-glance weekly overview** — Every project with color-coded progress bars showing logged vs. booked hours. Green when under budget, red when over.
+- **Live timer controls** — Start, stop, pause, and resume Harvest timers without leaving the menu bar.
+- **Create & edit time entries** — Log time with project and task dropdowns grouped by client. Edit or delete entries inline.
+- **Smart progress tracking** — Progress bars visualize overage when you exceed your budget. The remaining label flips to "over this week" in red.
+- **Menu bar gauge** — An adaptive icon that rotates based on your weekly progress. Shows active timer info or time remaining at a glance.
+- **Idle detection** — Alerts you when you've been idle, with options to continue, stop, or keep the time.
+- **Booked-hours notifications** — Get a nudge when you hit your target on a project so you know when to move on.
+- **Recent & Forecasted views** — Toggle between projects with recent time entries and upcoming projects booked in Forecast.
+- **Auto-refresh** — Data refreshes every 5 minutes. Active timers tick locally so numbers always feel current.
+- **Automatic updates** — Checks for new versions daily and prompts you to install them.
 
 ## Getting started
 
