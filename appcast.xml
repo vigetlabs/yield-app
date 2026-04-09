@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.6.5</title>
+      <sparkle:version>14</sparkle:version>
+      <sparkle:shortVersionString>0.9.6.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Remaining label switches to "Xh XXm over this week" in red when over budget</li>
+          <li>Detect Harvest/Forecast API outages with per-service warning banner</li>
+          <li>Menu bar icon switches to warning triangle during API errors</li>
+          <li>Timer controls disabled when Harvest is unreachable</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.6.5/Yield-0.9.6.5.zip"
+        sparkle:edSignature="EQGde1BTfnKszOiz2YAdOsMiJkKTQ2ewmKd+z0As5bZBp79DpCZXRjtGpHjEeB6/UINH1nmeYfeCU6b5rTNCBA=="
+        length="1954219"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.6.4</title>
       <sparkle:version>13</sparkle:version>
       <sparkle:shortVersionString>0.9.6.4</sparkle:shortVersionString>
