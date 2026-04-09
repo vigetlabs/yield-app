@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.7</title>
+      <sparkle:version>15</sparkle:version>
+      <sparkle:shortVersionString>0.9.7</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Daily hours breakdown in header: Mon–Sun totals with week total</li>
+          <li>Current day highlighted with brighter text</li>
+          <li>Clock icon next to today when a timer is running</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.7/Yield-0.9.7.zip"
+        sparkle:edSignature="3I+U5usFZzDcRKXEH+Zf8UJhd+qBG+aKykUnzaaNmppowlPKb7s5PGAceZwyS5KD59uHMVkKEC0HCxxTwtFmCw=="
+        length="1968968"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.6.5</title>
       <sparkle:version>14</sparkle:version>
       <sparkle:shortVersionString>0.9.6.5</sparkle:shortVersionString>
