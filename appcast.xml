@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.6.1</title>
+      <sparkle:version>10</sparkle:version>
+      <sparkle:shortVersionString>0.9.6.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Tab toggle matches Figma: opaque colors, no inner borders</li>
+          <li>Inactive timer slot shows subtle green gradient bar below header</li>
+          <li>Menu bar gauge reflects overall weekly progress when no timer is running</li>
+          <li>Improved Slack release notification formatting</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.6.1/Yield-0.9.6.1.zip"
+        sparkle:edSignature="GA5Jgl/oNwFso9kG1qIP4dqltZ0fMYQqAeHJnzNS/f5VqbYXJbB9OK5dlwf0msH37u/yQncTyGwKUqJuz15+AQ=="
+        length="1918306"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.6</title>
       <sparkle:version>9</sparkle:version>
       <sparkle:shortVersionString>0.9.6</sparkle:shortVersionString>
