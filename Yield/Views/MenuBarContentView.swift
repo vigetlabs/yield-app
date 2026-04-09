@@ -281,11 +281,17 @@ struct MenuBarContentView: View {
 
     private var footerView: some View {
         HStack {
-            if let lastUpdated = viewModel.lastUpdated {
-                Text("Updated \(lastUpdated, style: .relative) ago")
-                    .font(YieldFonts.dmSans(9))
-                    .foregroundStyle(YieldColors.textSecondary.opacity(0.5))
+            Button {
+                if let url = URL(string: "https://github.com/vigetlabs/yield-app/issues/new") {
+                    NSWorkspace.shared.open(url)
+                }
+            } label: {
+                Image(systemName: "ladybug.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(YieldColors.textSecondary)
             }
+            .buttonStyle(.plain)
+            .help("Report a bug")
 
             Spacer()
 
