@@ -99,6 +99,25 @@ struct MenuBarContentView: View {
             if viewModel.isTimerBannerVisible {
                 TimerBannerView(viewModel: viewModel)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                // Inactive timer slot — subtle green gradient bar
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                YieldColors.greenAccent.opacity(0.15),
+                                Color.clear,
+                            ],
+                            startPoint: .leading,
+                            endPoint: UnitPoint(x: 0.7, y: 0.5)
+                        )
+                    )
+                    .frame(height: 16)
+                    .overlay(alignment: .bottom) {
+                        Rectangle()
+                            .fill(YieldColors.border)
+                            .frame(height: 1)
+                    }
             }
 
             if let error = viewModel.errorMessage {

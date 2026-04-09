@@ -62,7 +62,13 @@ struct YieldApp: App {
         } label: {
             let tracking = viewModel.projectStatuses.first(where: { $0.isTracking })
             let label = viewModel.menuBarLabel
-            let progress = trackingProgress(tracking)
+            let progress: Double = if let tracking, tracking.bookedHours > 0 {
+                min(viewModel.effectiveLoggedHours(for: tracking) / tracking.bookedHours, 1.0)
+            } else if viewModel.totalBooked > 0 {
+                min(viewModel.totalLogged / viewModel.totalBooked, 1.0)
+            } else {
+                0
+            }
             Image(nsImage: composedMenuBarImage(
                 label: label,
                 isTracking: tracking != nil,
@@ -71,12 +77,6 @@ struct YieldApp: App {
         }
         .menuBarExtraStyle(.window)
 
-    }
-
-    private func trackingProgress(_ project: ProjectStatus?) -> Double {
-        guard let project, project.bookedHours > 0 else { return 0 }
-        let effective = viewModel.effectiveLoggedHours(for: project)
-        return min(effective / project.bookedHours, 1.0)
     }
 
     /// Compose the full menu bar image: [green dot] [time text] [gauge icon]
