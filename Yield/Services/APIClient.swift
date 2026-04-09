@@ -78,6 +78,51 @@ final class APIClient {
         return try await performRequest(endpoint, method: method, queryItems: queryItems, body: body, token: token)
     }
 
+    /// Fire-and-forget request that discards the response body (e.g. DELETE)
+    func requestVoid(
+        _ endpoint: String,
+        method: String = "GET",
+        queryItems: [URLQueryItem]? = nil,
+        body: [String: Any]? = nil
+    ) async throws {
+        let token = try await tokenProvider()
+        guard var components = URLComponents(string: baseURL + endpoint) else {
+            throw APIError.noData
+        }
+        components.queryItems = queryItems
+
+        guard let url = components.url else {
+            throw APIError.noData
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue(accountId, forHTTPHeaderField: accountHeader)
+        request.setValue("Yield (menubar)", forHTTPHeaderField: "User-Agent")
+
+        if let body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        }
+
+        let (_, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.noData
+        }
+
+        switch httpResponse.statusCode {
+        case 200...299:
+            break
+        case 401, 403:
+            throw APIError.unauthorized
+        case 429:
+            throw APIError.rateLimited
+        default:
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+    }
+
     private func performRequest<T: Decodable>(
         _ endpoint: String,
         method: String,
@@ -85,10 +130,15 @@ final class APIClient {
         body: [String: Any]?,
         token: String
     ) async throws -> T {
-        var components = URLComponents(string: baseURL + endpoint)!
+        guard var components = URLComponents(string: baseURL + endpoint) else {
+            throw APIError.noData
+        }
         components.queryItems = queryItems
 
-        var request = URLRequest(url: components.url!)
+        guard let url = components.url else {
+            throw APIError.noData
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(accountId, forHTTPHeaderField: accountHeader)

@@ -42,6 +42,10 @@ struct NewTimerFormView: View {
         selectedProjectId != nil && selectedTaskId != nil && !isStarting && !isLogging
     }
 
+    private var canLog: Bool {
+        canStart && enteredHours > 0
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
@@ -147,8 +151,8 @@ struct NewTimerFormView: View {
                         Text("Log Time")
                     }
                     .buttonStyle(.yieldBordered)
-                    .disabled(!canStart)
-                    .opacity(canStart ? 1 : 0.5)
+                    .disabled(!canLog)
+                    .opacity(canLog ? 1 : 0.5)
                 }
             }
             .padding(.horizontal, 16)
@@ -202,11 +206,12 @@ struct NewTimerFormView: View {
             if b.isEmpty { return true }
             return a.localizedCaseInsensitiveCompare(b) == .orderedAscending
         }
-        return sortedKeys.map { key in
-            let projects = grouped[key]!.sorted { $0.projectName.localizedCaseInsensitiveCompare($1.projectName) == .orderedAscending }
+        return sortedKeys.compactMap { key in
+            guard let projects = grouped[key] else { return nil }
+            let sorted = projects.sorted { $0.projectName.localizedCaseInsensitiveCompare($1.projectName) == .orderedAscending }
             return DropdownGroup(
                 label: key.isEmpty ? nil : key,
-                items: projects.map { ($0.harvestProjectId, $0.projectName) }
+                items: sorted.map { ($0.harvestProjectId, $0.projectName) }
             )
         }
     }
@@ -288,13 +293,15 @@ struct NewTimerFormView: View {
         guard let entry = editingEntry,
               let taskId = selectedTaskId else { return }
         let hours = enteredHours > 0 ? enteredHours : entry.hours
+        // Only send notes if the user changed them, to avoid unintentionally clearing
+        let notesToSend = notes != (entry.notes ?? "") ? notes : entry.notes ?? ""
 
         isSaving = true
         await viewModel.updateExistingEntry(
             entryId: entry.id,
             taskId: taskId,
             hours: hours,
-            notes: notes  // always send — empty string clears notes
+            notes: notesToSend
         )
         isSaving = false
         onDismiss()

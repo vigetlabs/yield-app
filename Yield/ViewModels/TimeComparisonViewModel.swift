@@ -5,6 +5,12 @@ import UserNotifications
 
 @Observable
 final class TimeComparisonViewModel {
+    deinit {
+        refreshTimer?.invalidate()
+        activeRefreshTask?.cancel()
+        elapsedTimer?.invalidate()
+    }
+
     var projectStatuses: [ProjectStatus] = []
     var totalLogged: Double = 0
     var totalBooked: Double = 0
@@ -78,8 +84,9 @@ final class TimeComparisonViewModel {
     }
 
     private var refreshTimer: Timer?
+    private var activeRefreshTask: Task<Void, Never>?
     private var elapsedTimer: Timer?
-    private var notifiedProjectIds: Set<Int> = []
+    private var notifiedProjectIds: Set<String> = []
     private var idleNotificationSent: Bool = false
 
     enum AuthMode {
@@ -136,17 +143,21 @@ final class TimeComparisonViewModel {
         switch authMode {
         case .oauth:
             let oAuth = AppState.shared.oAuthService
-            let harvestId = UserDefaults.standard.string(forKey: "oauthHarvestAccountId")!
-            let forecastId = UserDefaults.standard.string(forKey: "oauthForecastAccountId")!
+            guard let harvestId = UserDefaults.standard.string(forKey: "oauthHarvestAccountId"),
+                  let forecastId = UserDefaults.standard.string(forKey: "oauthForecastAccountId") else {
+                return nil
+            }
             let tokenProvider: () async throws -> String = { try await oAuth.getAccessToken() }
             return (
                 HarvestService(tokenProvider: tokenProvider, accountId: harvestId),
                 ForecastService(tokenProvider: tokenProvider, accountId: forecastId)
             )
         case .pat:
-            let token = UserDefaults.standard.string(forKey: "harvestToken")!
-            let harvestId = UserDefaults.standard.string(forKey: "harvestAccountId")!
-            let forecastId = UserDefaults.standard.string(forKey: "forecastAccountId")!
+            guard let token = UserDefaults.standard.string(forKey: "harvestToken"),
+                  let harvestId = UserDefaults.standard.string(forKey: "harvestAccountId"),
+                  let forecastId = UserDefaults.standard.string(forKey: "forecastAccountId") else {
+                return nil
+            }
             return (
                 HarvestService(token: token, accountId: harvestId),
                 ForecastService(token: token, accountId: forecastId)
@@ -158,13 +169,15 @@ final class TimeComparisonViewModel {
 
     func startAutoRefresh() {
         refreshTimer?.invalidate()
+        activeRefreshTask?.cancel()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             guard let self else { return }
-            Task { @MainActor in
+            self.activeRefreshTask?.cancel()
+            self.activeRefreshTask = Task { @MainActor in
                 await self.refresh()
             }
         }
-        Task { @MainActor in
+        activeRefreshTask = Task { @MainActor in
             await refresh()
         }
     }
@@ -212,7 +225,7 @@ final class TimeComparisonViewModel {
         // Get system-wide idle time (seconds since last keyboard/mouse/trackpad event)
         let idleSeconds = CGEventSource.secondsSinceLastEventType(
             .combinedSessionState,
-            eventType: .init(rawValue: ~0)!
+            eventType: CGEventType(rawValue: ~0) ?? .mouseMoved
         )
 
         if idleSeconds >= thresholdSeconds {
@@ -265,15 +278,20 @@ final class TimeComparisonViewModel {
               let (harvestService, _) = makeServices() else { return }
 
         do {
-            // Stop current timer, adjust hours to remove idle time, restart
             _ = try await harvestService.stopTimer(entryId: alert.entryId)
-            _ = try await harvestService.updateTimeEntry(entryId: alert.entryId, hours: alert.adjustedHours, notes: nil)
+            do {
+                _ = try await harvestService.updateTimeEntry(entryId: alert.entryId, hours: alert.adjustedHours, notes: nil)
+            } catch {
+                // Update failed — restart timer to avoid leaving it stopped
+                _ = try? await harvestService.restartTimer(entryId: alert.entryId)
+                throw error
+            }
             _ = try await harvestService.restartTimer(entryId: alert.entryId)
             idleAlertState = nil
             idleNotificationSent = false
             await refresh()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "Failed to adjust idle time: \(error.localizedDescription)"
         }
     }
 
@@ -291,7 +309,7 @@ final class TimeComparisonViewModel {
             idleNotificationSent = false
             await refresh()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "Failed to adjust idle time: \(error.localizedDescription)"
         }
     }
 
@@ -333,11 +351,12 @@ final class TimeComparisonViewModel {
     }
 
     private static func makeEntryInfos(from entries: [HarvestTimeEntry]) -> [TimeEntryInfo] {
-        entries.map { entry in
-            TimeEntryInfo(
+        entries.compactMap { entry in
+            guard let taskId = entry.task?.id ?? entry.taskAssignment?.task?.id else { return nil }
+            return TimeEntryInfo(
                 id: entry.id,
                 harvestProjectId: entry.project.id,
-                taskId: entry.task?.id ?? entry.taskAssignment?.task?.id ?? 0,
+                taskId: taskId,
                 taskName: entry.task?.name ?? entry.taskAssignment?.task?.name ?? "Unknown Task",
                 hours: entry.hours,
                 date: entry.spentDate,
@@ -718,7 +737,7 @@ final class TimeComparisonViewModel {
                 }
 
                 statuses.append(ProjectStatus(
-                    id: forecastProjectId,
+                    id: "forecast-\(forecastProjectId)",
                     clientName: clientName,
                     projectName: projectName,
                     bookedHours: bookedHours,
@@ -741,7 +760,7 @@ final class TimeComparisonViewModel {
                 let todayEntry = todayEntryByProject[harvestProjectId]
                 let latestEntry = latestEntryByProject[harvestProjectId]
                 statuses.append(ProjectStatus(
-                    id: harvestProjectId + 1_000_000,
+                    id: "harvest-\(harvestProjectId)",
                     clientName: clientName,
                     projectName: projectName,
                     bookedHours: 0,

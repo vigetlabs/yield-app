@@ -154,15 +154,21 @@ struct ProjectRowView: View {
     // MARK: - Formatting
 
     private func formatHoursMinutes(_ hours: Double) -> String {
-        let h = Int(hours)
-        let m = Int((hours - Double(h)) * 60)
-        return "\(h)h \(String(format: "%02d", m))m"
+        formatHM(hours)
     }
 
     private func formatHoursOnly(_ hours: Double) -> String {
         let h = Int(hours)
         return "\(h)h"
     }
+}
+
+// Shared hours:minutes formatter used by ProjectRowView and TaskEntryRowView
+private func formatHM(_ hours: Double) -> String {
+    let abs = Swift.abs(hours)
+    let h = Int(abs)
+    let m = Int((abs - Double(h)) * 60)
+    return "\(h)h \(String(format: "%02d", m))m"
 }
 
 // MARK: - Progress Bar
@@ -173,7 +179,7 @@ struct ProgressBarView: View {
 
     private var progress: Double {
         guard booked > 0 else { return 0 }
-        return min(logged / booked, 1.0)
+        return min(max(logged / booked, 0), 1.0)
     }
 
     var body: some View {
@@ -208,9 +214,7 @@ struct TaskEntryRowView: View {
     }
 
     private var isToday: Bool {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        guard let date = formatter.date(from: entry.date) else { return false }
+        guard let date = DateHelpers.dateFormatter.date(from: entry.date) else { return false }
         return Calendar.current.isDateInToday(date)
     }
 
@@ -226,8 +230,8 @@ struct TaskEntryRowView: View {
                         .truncationMode(.tail)
                         .frame(width: 226, alignment: .leading)
 
-                    if hasNotes {
-                        Text(entry.notes!)
+                    if let notes = entry.notes, !notes.isEmpty {
+                        Text(notes)
                             .font(YieldFonts.labelNote)
                             .foregroundStyle(YieldColors.textSecondary)
                             .lineLimit(1)
@@ -308,18 +312,18 @@ struct TaskEntryRowView: View {
     }
 
     private func formatHoursMinutes(_ hours: Double) -> String {
-        let h = Int(hours)
-        let m = Int((hours - Double(h)) * 60)
-        return "\(h)h \(m)m"
+        formatHM(hours)
     }
 
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEE"
+        return f
+    }()
+
     private func formatDay(_ dateString: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        guard let date = formatter.date(from: dateString) else { return dateString }
+        guard let date = DateHelpers.dateFormatter.date(from: dateString) else { return dateString }
         if Calendar.current.isDateInToday(date) { return "Today" }
-        let display = DateFormatter()
-        display.dateFormat = "EEE"
-        return display.string(from: date)
+        return Self.dayFormatter.string(from: date)
     }
 }

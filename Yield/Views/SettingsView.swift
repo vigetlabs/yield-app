@@ -230,6 +230,9 @@ struct SettingsView: View {
                     )
                     .disabled(!idleDetectionEnabled)
                     .opacity(idleDetectionEnabled ? 1 : 0.4)
+                    .onChange(of: idleMinutes) { _, newValue in
+                        if newValue < 1 { idleMinutes = 1 }
+                    }
 
                 Text("min")
                     .font(YieldFonts.dmSans(10))
@@ -310,11 +313,12 @@ struct SettingsView: View {
     // MARK: - Helpers
 
     private var initials: String {
-        guard let name = oAuthService.userName else { return "?" }
-        let parts = name.split(separator: " ")
+        guard let name = oAuthService.userName, !name.isEmpty else { return "?" }
+        let parts = name.split(separator: " ", omittingEmptySubsequences: true)
         let first = parts.first.map { String($0.prefix(1)) } ?? ""
-        let last = parts.count > 1 ? String(parts.last!.prefix(1)) : ""
-        return (first + last).uppercased()
+        let last = parts.count > 1 ? (parts.last.map { String($0.prefix(1)) } ?? "") : ""
+        let result = (first + last).uppercased()
+        return result.isEmpty ? "?" : result
     }
 
     private func accountBadge(_ text: String) -> some View {

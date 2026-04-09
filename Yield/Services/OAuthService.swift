@@ -3,10 +3,10 @@ import Foundation
 import Network
 
 @Observable
+@MainActor
 final class OAuthService {
-    // TODO: Replace with your registered OAuth app credentials
-    private let clientId = "seJMYEa5PwYL2G6f1UJGmsOq"
-    private let clientSecret = "vrTLvN4QyEtc_7E0sddKeZI4BrxNxfNmiFwS4OoIxljTeuEL-I8yOwl-BVR87OkOGyBmjvQItrI3-izxZp_Tmw"
+    private let clientId: String = Bundle.main.object(forInfoDictionaryKey: "HarvestClientId") as? String ?? ""
+    private let clientSecret: String = Bundle.main.object(forInfoDictionaryKey: "HarvestClientSecret") as? String ?? ""
     private let redirectURI = "http://localhost:14739/oauth/callback"
     private let callbackPort: UInt16 = 14739
 
@@ -36,7 +36,7 @@ final class OAuthService {
         authError = nil
         startLocalServer { [weak self] in
             guard let self else { return }
-            var components = URLComponents(string: "https://id.getharvest.com/oauth2/authorize")!
+            guard var components = URLComponents(string: "https://id.getharvest.com/oauth2/authorize") else { return }
             components.queryItems = [
                 URLQueryItem(name: "client_id", value: self.clientId),
                 URLQueryItem(name: "response_type", value: "code"),
@@ -57,7 +57,12 @@ final class OAuthService {
 
         do {
             let params = NWParameters.tcp
-            listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: callbackPort)!)
+            guard let port = NWEndpoint.Port(rawValue: callbackPort) else {
+                authError = "Invalid OAuth callback port"
+                isAuthenticating = false
+                return
+            }
+            listener = try NWListener(using: params, on: port)
         } catch {
             authError = "Failed to start local OAuth server: \(error.localizedDescription)"
             isAuthenticating = false
@@ -65,33 +70,39 @@ final class OAuthService {
         }
 
         listener?.newConnectionHandler = { [weak self] connection in
-            self?.handleConnection(connection)
+            MainActor.assumeIsolated {
+                self?.handleConnection(connection)
+            }
         }
 
         var didCallReady = false
         listener?.stateUpdateHandler = { [weak self] state in
-            switch state {
-            case .ready:
-                if !didCallReady {
-                    didCallReady = true
-                    onReady()
+            MainActor.assumeIsolated {
+                switch state {
+                case .ready:
+                    if !didCallReady {
+                        didCallReady = true
+                        onReady()
+                    }
+                case .failed(let error):
+                    self?.authError = "OAuth server failed: \(error.localizedDescription)"
+                    self?.isAuthenticating = false
+                    self?.stopLocalServer()
+                default:
+                    break
                 }
-            case .failed(let error):
-                self?.authError = "OAuth server failed: \(error.localizedDescription)"
-                self?.isAuthenticating = false
-                self?.stopLocalServer()
-            default:
-                break
             }
         }
         listener?.start(queue: .main)
 
         // Timeout after 2 minutes
         DispatchQueue.main.asyncAfter(deadline: .now() + 120) { [weak self] in
-            guard let self, self.isAuthenticating else { return }
-            self.stopLocalServer()
-            self.authError = "Sign-in timed out. Please try again."
-            self.isAuthenticating = false
+            MainActor.assumeIsolated {
+                guard let self, self.isAuthenticating else { return }
+                self.stopLocalServer()
+                self.authError = "Sign-in timed out. Please try again."
+                self.isAuthenticating = false
+            }
         }
     }
 
@@ -243,7 +254,10 @@ final class OAuthService {
     }
 
     private func postTokenRequest(body: [String: String]) async throws -> OAuthTokenResponse {
-        var request = URLRequest(url: URL(string: "https://id.getharvest.com/api/v2/oauth2/token")!)
+        guard let tokenURL = URL(string: "https://id.getharvest.com/api/v2/oauth2/token") else {
+            throw APIError.noData
+        }
+        var request = URLRequest(url: tokenURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Yield (menubar)", forHTTPHeaderField: "User-Agent")
@@ -296,7 +310,10 @@ final class OAuthService {
             throw APIError.notConfigured
         }
 
-        var request = URLRequest(url: URL(string: "https://id.getharvest.com/api/v2/accounts")!)
+        guard let accountsURL = URL(string: "https://id.getharvest.com/api/v2/accounts") else {
+            throw APIError.noData
+        }
+        var request = URLRequest(url: accountsURL)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("Yield (menubar)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -326,11 +343,13 @@ final class OAuthService {
         }
     }
 
-    @MainActor
     private func fetchUserName() async {
-        guard let token = KeychainHelper.load(key: "accessToken"),
-              let accountId = harvestAccountId else { return }
-        let service = HarvestService(token: token, accountId: accountId)
+        guard let accountId = harvestAccountId else { return }
+        let tokenProvider: () async throws -> String = { [weak self] in
+            guard let self else { throw APIError.notConfigured }
+            return try await self.getAccessToken()
+        }
+        let service = HarvestService(tokenProvider: tokenProvider, accountId: accountId)
         if let user = try? await service.getCurrentUser() {
             let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
             if !name.isEmpty {

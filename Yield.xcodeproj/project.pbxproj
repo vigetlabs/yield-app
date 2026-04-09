@@ -67,6 +67,7 @@
 		C54F1249B6E2997187DDBD28 /* HarvestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestService.swift; sourceTree = "<group>"; };
 		C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Medium.ttf"; sourceTree = "<group>"; };
 		DB799247D52776862953EA20 /* Yield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yield.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		E6AE4314E6BA70459850E000 /* Yield.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Yield.entitlements; sourceTree = "<group>"; };
 		EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastService.swift; sourceTree = "<group>"; };
 		ECA417D28206A2DBE49C1D74 /* ProjectStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStatus.swift; sourceTree = "<group>"; };
@@ -116,8 +117,18 @@
 			isa = PBXGroup;
 			children = (
 				8EB7C0973F6B178FE8C6BAFA /* Yield */,
+				4622807E83DB620559DD6D8B /* yield-app */,
 				DA617D7850417F3DE5B5E450 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		4622807E83DB620559DD6D8B /* yield-app */ = {
+			isa = PBXGroup;
+			children = (
+				DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */,
+			);
+			name = "yield-app";
+			path = .;
 			sourceTree = "<group>";
 		};
 		6BB3D5EF89C68D9AF3EBB7EB /* Models */ = {
@@ -423,6 +434,7 @@
 		};
 		F0ED4E867366C249A48BF621 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Yield/Yield.entitlements;
@@ -448,6 +460,7 @@
 		};
 		F5415641154FD9814AC7C09C /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Yield/Yield.entitlements;

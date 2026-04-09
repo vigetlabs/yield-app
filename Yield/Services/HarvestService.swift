@@ -41,9 +41,7 @@ final class HarvestService {
             )
             allEntries.append(contentsOf: response.timeEntries)
 
-            if page >= response.totalPages {
-                break
-            }
+            guard response.totalPages > 0, page < response.totalPages else { break }
             page += 1
         }
 
@@ -77,9 +75,7 @@ final class HarvestService {
             )
             allAssignments.append(contentsOf: response.projectAssignments)
 
-            if page >= response.totalPages {
-                break
-            }
+            guard response.totalPages > 0, page < response.totalPages else { break }
             page += 1
         }
 
@@ -87,9 +83,7 @@ final class HarvestService {
     }
 
     func deleteTimeEntry(entryId: Int) async throws {
-        // DELETE returns empty body — use HarvestTimeEntry but ignore result
-        // Harvest actually returns the deleted entry on DELETE
-        let _: HarvestTimeEntry = try await client.request(
+        try await client.requestVoid(
             "/time_entries/\(entryId)",
             method: "DELETE"
         )

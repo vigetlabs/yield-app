@@ -336,9 +336,9 @@ private struct OpaqueMenuBarPanel: NSViewRepresentable {
             window.backgroundColor = .windowBackgroundColor
             // Remove the visual effect (vibrancy) view if present
             if let contentView = window.contentView {
-                for subview in contentView.subviews where subview is NSVisualEffectView {
-                    (subview as! NSVisualEffectView).state = .inactive
-                    (subview as! NSVisualEffectView).material = .windowBackground
+                for case let effectView as NSVisualEffectView in contentView.subviews {
+                    effectView.state = .inactive
+                    effectView.material = .windowBackground
                 }
             }
         }

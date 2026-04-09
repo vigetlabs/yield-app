@@ -22,6 +22,10 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>HarvestClientId</key>
+	<string>$(HARVEST_CLIENT_ID)</string>
+	<key>HarvestClientSecret</key>
+	<string>$(HARVEST_CLIENT_SECRET)</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>

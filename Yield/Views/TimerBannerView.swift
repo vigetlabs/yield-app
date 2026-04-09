@@ -114,11 +114,12 @@ struct TimerBannerView: View {
 
     private func computeTotalSeconds(at now: Date) -> Int {
         let baseSeconds = Int(baseHours * 3600)
-        if isActive, let lastUpdated = viewModel.lastUpdated {
-            let elapsed = Int(now.timeIntervalSince(lastUpdated))
-            return baseSeconds + elapsed
+        if isActive, let lastUpdated = viewModel.lastUpdated, lastUpdated <= now {
+            // Clamp elapsed to refresh interval (5 min) to avoid huge jumps after backgrounding
+            let elapsed = min(Int(now.timeIntervalSince(lastUpdated)), 300)
+            return max(0, baseSeconds + elapsed)
         }
-        return baseSeconds
+        return max(0, baseSeconds)
     }
 
     private func formatTimer(_ totalSeconds: Int) -> String {

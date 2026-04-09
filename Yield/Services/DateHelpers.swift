@@ -21,9 +21,13 @@ enum DateHelpers {
         let weekday = calendar.component(.weekday, from: today)
         // Sunday=1, Monday=2, ..., Saturday=7
         let daysFromMonday = (weekday + 5) % 7
-        let monday = calendar.date(byAdding: .day, value: -daysFromMonday, to: today)!
+        guard let monday = calendar.date(byAdding: .day, value: -daysFromMonday, to: today) else {
+            return (today, today)
+        }
         let startOfMonday = calendar.startOfDay(for: monday)
-        let sunday = calendar.date(byAdding: .day, value: 6, to: startOfMonday)!
+        guard let sunday = calendar.date(byAdding: .day, value: 6, to: startOfMonday) else {
+            return (startOfMonday, startOfMonday)
+        }
         return (startOfMonday, sunday)
     }
 
@@ -67,7 +71,8 @@ enum DateHelpers {
             if !calendar.isDateInWeekend(current) {
                 count += 1
             }
-            current = calendar.date(byAdding: .day, value: 1, to: current)!
+            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: current) else { break }
+            current = nextDay
         }
         return count
     }

@@ -39,6 +39,11 @@ targets:
         SUPublicEDKey: "qf90v1Zbq7OTVAfWHnhjzHEkvnW4juPWIgjbm/3U/P8="
         SUEnableAutomaticChecks: true
         SUScheduledCheckInterval: 86400
+        HarvestClientId: "$(HARVEST_CLIENT_ID)"
+        HarvestClientSecret: "$(HARVEST_CLIENT_SECRET)"
+    configFiles:
+      Debug: Secrets.xcconfig
+      Release: Secrets.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.yield

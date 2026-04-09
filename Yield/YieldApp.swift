@@ -4,6 +4,7 @@ import SwiftUI
 import UserNotifications
 
 @Observable
+@MainActor
 final class AppState {
     static let shared = AppState()
     let viewModel = TimeComparisonViewModel()
@@ -88,8 +89,9 @@ struct YieldApp: App {
 
         // Gauge icon
         let gaugeConfig = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
-        let gaugeBase = NSImage(systemSymbolName: "gauge.with.needle", accessibilityDescription: "Yield")!
-            .withSymbolConfiguration(gaugeConfig)!
+        let gaugeBase = NSImage(systemSymbolName: "gauge.with.needle", accessibilityDescription: "Yield")
+            .flatMap { $0.withSymbolConfiguration(gaugeConfig) }
+            ?? NSImage(size: NSSize(width: 14, height: 14))
 
         let gaugeSize = gaugeBase.size
         let barHeight: CGFloat = max(gaugeSize.height, 18)

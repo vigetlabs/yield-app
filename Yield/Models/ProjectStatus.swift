@@ -12,7 +12,7 @@ struct TimeEntryInfo: Identifiable {
 }
 
 struct ProjectStatus: Identifiable {
-    let id: Int
+    let id: String
     let clientName: String?
     let projectName: String
     let bookedHours: Double

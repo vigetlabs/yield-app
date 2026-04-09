@@ -3,6 +3,7 @@ import Security
 
 enum KeychainHelper {
     private static let service = "com.yield.auth"
+    private static let lock = NSLock()
     private static var cache: [String: String] = [:]
 
     static func save(key: String, value: String) throws {
@@ -39,23 +40,32 @@ enum KeychainHelper {
             throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
         }
 
+        lock.lock()
         cache[key] = value
+        lock.unlock()
     }
 
     static func load(key: String) -> String? {
-        if let cached = cache[key] {
+        lock.lock()
+        let cached = cache[key]
+        lock.unlock()
+        if let cached {
             return cached
         }
 
         // Try Data Protection Keychain first
         if let value = loadFromKeychain(key: key, dataProtection: true) {
+            lock.lock()
             cache[key] = value
+            lock.unlock()
             return value
         }
 
         // Fall back to legacy keychain
         if let value = loadFromKeychain(key: key, dataProtection: false) {
+            lock.lock()
             cache[key] = value
+            lock.unlock()
             return value
         }
 
@@ -63,7 +73,9 @@ enum KeychainHelper {
     }
 
     static func delete(key: String) {
+        lock.lock()
         cache.removeValue(forKey: key)
+        lock.unlock()
         deleteFromKeychain(key: key, dataProtection: true)
         deleteFromKeychain(key: key, dataProtection: false)
     }
