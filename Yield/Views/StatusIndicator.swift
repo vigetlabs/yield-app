@@ -8,8 +8,7 @@ struct StatusIndicator: View {
     var color: Color {
         if isUnbooked { return YieldStatusColors.unbooked }
         switch status {
-        case .under: return YieldStatusColors.under
-        case .onTrack: return YieldStatusColors.onTrack
+        case .under, .onTrack: return YieldStatusColors.under
         case .over: return YieldStatusColors.over
         }
     }

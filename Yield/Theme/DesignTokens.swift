@@ -101,8 +101,7 @@ extension YieldFonts {
 
 enum YieldStatusColors {
     static let under = YieldColors.greenAccent
-    static let onTrack = Color(red: 0.85, green: 0.78, blue: 0.45)    // amber
-    static let over = Color(red: 0.80, green: 0.45, blue: 0.40)       // red
+    static let over = Color(red: 0.941, green: 0.365, blue: 0.157)    // #F05D28
     static let unbooked = Color.white.opacity(0.3)
 }
 

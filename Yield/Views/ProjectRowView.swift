@@ -177,25 +177,42 @@ struct ProgressBarView: View {
     let logged: Double
     let booked: Double
 
-    private var progress: Double {
+    private var ratio: Double {
         guard booked > 0 else { return 0 }
-        return min(max(logged / booked, 0), 1.0)
+        return max(logged / booked, 0)
+    }
+
+    private var isOver: Bool { ratio > 1.0 }
+
+    private var barColor: Color {
+        isOver ? YieldStatusColors.over : YieldStatusColors.under
+    }
+
+    /// Normalized fill: when over, the "booked" portion shrinks to show overage visually.
+    /// e.g. 24h/12h (2x) → booked fills 50%, overage fills remaining 50%.
+    private var bookedFill: Double {
+        guard ratio > 1.0 else { return max(ratio, 0) }
+        // Invert: booked portion = 1/ratio (shrinks as overage grows), min 20% so it stays visible
+        return max(1.0 / min(ratio, 5.0), 0.2)
     }
 
     var body: some View {
         ZStack(alignment: .leading) {
+            // Background: overage color when over, default otherwise
             RoundedRectangle(cornerRadius: YieldRadius.progressBar)
-                .fill(YieldColors.surfaceActive)
+                .fill(isOver ? YieldStatusColors.over.opacity(0.4) : YieldColors.surfaceActive)
                 .frame(width: YieldDimensions.progressBarWidth, height: YieldDimensions.progressBarHeight)
 
+            // Fill: booked portion
             RoundedRectangle(cornerRadius: YieldRadius.progressBar)
-                .fill(YieldColors.greenAccent)
+                .fill(barColor)
                 .frame(
-                    width: YieldDimensions.progressBarWidth * progress,
+                    width: YieldDimensions.progressBarWidth * bookedFill,
                     height: YieldDimensions.progressBarHeight
                 )
-                .animation(.easeInOut(duration: 0.4), value: progress)
+                .animation(.easeInOut(duration: 0.4), value: bookedFill)
         }
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.progressBar))
     }
 }
 
