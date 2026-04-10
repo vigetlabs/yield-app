@@ -441,7 +441,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application: Jeremy Fields (7G49Y875S8)";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = 7G49Y875S8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Yield/Info.plist;
@@ -450,7 +450,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.9.7.1;
+				MARKETING_VERSION = 0.9.7.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yield;
 				PRODUCT_NAME = Yield;
 				SDKROOT = macosx;
@@ -467,7 +467,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application: Jeremy Fields (7G49Y875S8)";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = 7G49Y875S8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Yield/Info.plist;
@@ -476,7 +476,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.9.7.1;
+				MARKETING_VERSION = 0.9.7.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yield;
 				PRODUCT_NAME = Yield;
 				SDKROOT = macosx;
