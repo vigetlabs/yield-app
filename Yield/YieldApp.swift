@@ -61,52 +61,62 @@ struct YieldApp: App {
         MenuBarExtra {
             MenuBarContentView(viewModel: viewModel)
         } label: {
-            let tracking = viewModel.projectStatuses.first(where: { $0.isTracking })
-            let label = viewModel.menuBarLabel
-            let progress: Double = if let tracking, tracking.bookedHours > 0 {
-                min(viewModel.effectiveLoggedHours(for: tracking) / tracking.bookedHours, 1.0)
-            } else if viewModel.totalBooked > 0 {
-                min(viewModel.totalLogged / viewModel.totalBooked, 1.0)
-            } else {
-                0
-            }
+            let isTracking = viewModel.projectStatuses.contains(where: { $0.isTracking })
             Image(nsImage: composedMenuBarImage(
-                label: label,
-                isTracking: tracking != nil,
-                progress: progress,
-                hasServiceError: !viewModel.serviceErrors.isEmpty
+                label: viewModel.menuBarLabel,
+                icon: viewModel.menuBarIcon,
+                isTracking: isTracking
             ))
         }
         .menuBarExtraStyle(.window)
 
     }
 
-    /// Compose the full menu bar image: [green dot] [time text] [gauge icon]
+    /// Compose the full menu bar image: [tracking dot] [time text] [state icon]
     /// Draws into a single NSImage so MenuBarExtra renders it reliably.
-    private func composedMenuBarImage(label: String, isTracking: Bool, progress: Double, hasServiceError: Bool = false) -> NSImage {
+    private func composedMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, isTracking: Bool) -> NSImage {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         let textColor = NSColor.black
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
 
-        // Icon: warning triangle when API error, gauge otherwise
-        let iconSymbol = hasServiceError ? "exclamationmark.triangle" : "gauge.with.needle"
-        let gaugeConfig = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
-        let gaugeBase = NSImage(systemSymbolName: iconSymbol, accessibilityDescription: "Yield")
-            .flatMap { $0.withSymbolConfiguration(gaugeConfig) }
+        // Resolve symbol name and rotation behavior from icon state
+        let symbolName: String
+        let rotationProgress: Double?  // nil = no rotation
+        switch icon {
+        case .calendar:
+            symbolName = "calendar.day.timeline.left"
+            rotationProgress = nil
+        case .gaugeUnder(let progress):
+            symbolName = "gauge.with.needle"
+            rotationProgress = progress
+        case .gaugeOver:
+            symbolName = "gauge.open.with.lines.needle.84percent.exclamation"
+            rotationProgress = nil
+        case .timer:
+            symbolName = "timer"
+            rotationProgress = nil
+        case .error:
+            symbolName = "exclamationmark.triangle"
+            rotationProgress = nil
+        }
+
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+        let iconBase = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Yield")
+            .flatMap { $0.withSymbolConfiguration(iconConfig) }
             ?? NSImage(size: NSSize(width: 14, height: 14))
 
-        let gaugeSize = gaugeBase.size
-        let barHeight: CGFloat = max(gaugeSize.height, 18)
+        let iconSize = iconBase.size
+        let barHeight: CGFloat = max(iconSize.height, 18)
         let spacing: CGFloat = 4
         let dotSize: CGFloat = 6
 
         // Fixed-width text area — measure widest possible string to prevent width jitter
-        let maxLabel = "88:88 over"
+        let maxLabel = "-88:88"
         let fixedTextWidth: CGFloat = (maxLabel as NSString).size(withAttributes: attrs).width
         let textSize: CGSize = label.isEmpty ? .zero : (label as NSString).size(withAttributes: attrs)
 
         // Calculate total width (fixed regardless of label content)
-        var totalWidth: CGFloat = gaugeSize.width
+        var totalWidth: CGFloat = iconSize.width
         if !label.isEmpty {
             totalWidth += fixedTextWidth + spacing
         }
@@ -133,31 +143,31 @@ struct YieldApp: App {
                 x += fixedTextWidth + spacing
             }
 
-            // Icon — tint and optionally rotate (gauge only)
-            let gaugeY = (barHeight - gaugeSize.height) / 2
+            // Icon — tint and optionally rotate
+            let iconY = (barHeight - iconSize.height) / 2
 
             // Tint the icon to match text color
-            let tintedGauge = NSImage(size: gaugeSize, flipped: false) { gaugeRect in
+            let tintedIcon = NSImage(size: iconSize, flipped: false) { iconRect in
                 guard let ctx = NSGraphicsContext.current?.cgContext,
-                      let cgImage = gaugeBase.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return false }
-                ctx.clip(to: gaugeRect, mask: cgImage)
+                      let cgImage = iconBase.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return false }
+                ctx.clip(to: iconRect, mask: cgImage)
                 ctx.setFillColor(textColor.cgColor)
-                ctx.fill(gaugeRect)
+                ctx.fill(iconRect)
                 return true
             }
 
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             ctx.saveGState()
-            if !hasServiceError {
+            if let progress = rotationProgress {
                 // Rotation: progress 0 → -90° (needle left), 0.5 → 0° (center), 1 → +90° (right)
                 let rotation = (progress - 0.5) * 180.0 * (.pi / 180.0)
-                let gaugeCenterX = x + gaugeSize.width / 2
-                let gaugeCenterY = gaugeY + gaugeSize.height / 2
-                ctx.translateBy(x: gaugeCenterX, y: gaugeCenterY)
+                let iconCenterX = x + iconSize.width / 2
+                let iconCenterY = iconY + iconSize.height / 2
+                ctx.translateBy(x: iconCenterX, y: iconCenterY)
                 ctx.rotate(by: rotation)
-                ctx.translateBy(x: -gaugeCenterX, y: -gaugeCenterY)
+                ctx.translateBy(x: -iconCenterX, y: -iconCenterY)
             }
-            tintedGauge.draw(in: CGRect(x: x, y: gaugeY, width: gaugeSize.width, height: gaugeSize.height))
+            tintedIcon.draw(in: CGRect(x: x, y: iconY, width: iconSize.width, height: iconSize.height))
             ctx.restoreGState()
 
             return true

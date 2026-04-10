@@ -145,29 +145,88 @@ final class TimeComparisonViewModel {
         authMode != .none
     }
 
+    enum MenuBarIcon {
+        case calendar                      // no timer running
+        case gaugeUnder(progress: Double)  // booked timer, under budget (rotates)
+        case gaugeOver                     // booked timer, over budget
+        case timer                         // unbooked timer running
+        case error                         // API error
+    }
+
+    /// The project containing the paused entry, if any
+    private var pausedProject: ProjectStatus? {
+        guard let paused = pausedState else { return nil }
+        return projectStatuses.first { project in
+            project.timeEntries.contains(where: { $0.id == paused.entryId })
+        }
+    }
+
     var menuBarLabel: String {
         guard lastUpdated != nil else { return "" }
-        guard let tracking = projectStatuses.first(where: { $0.isTracking }) else {
-            let remaining = totalBooked - totalLogged
-            return formatRemaining(remaining)
+
+        // Active tracking timer
+        if let tracking = projectStatuses.first(where: { $0.isTracking }) {
+            if tracking.bookedHours == 0 {
+                let entry = tracking.timeEntries.first(where: { $0.isRunning })
+                let hours = (entry?.hours ?? 0) + elapsedOffset
+                return formatHM(hours)
+            }
+            let effectiveLogged = tracking.loggedHours + elapsedOffset
+            return formatDelta(tracking.bookedHours - effectiveLogged)
         }
-        let effectiveLogged = tracking.loggedHours + elapsedOffset
-        let remaining = tracking.bookedHours - effectiveLogged
-        return formatRemaining(remaining)
+
+        // Paused timer — same state, frozen hours (no live offset)
+        if let paused = pausedState, let project = pausedProject {
+            if project.bookedHours == 0 {
+                return formatHM(paused.frozenHours)
+            }
+            return formatDelta(project.bookedHours - project.loggedHours)
+        }
+
+        // No timer running or paused — week delta
+        return formatDelta(totalBooked - totalLogged)
+    }
+
+    var menuBarIcon: MenuBarIcon {
+        if !serviceErrors.isEmpty { return .error }
+        guard lastUpdated != nil else { return .calendar }
+
+        if let tracking = projectStatuses.first(where: { $0.isTracking }) {
+            if tracking.bookedHours == 0 { return .timer }
+            let effectiveLogged = tracking.loggedHours + elapsedOffset
+            if effectiveLogged > tracking.bookedHours { return .gaugeOver }
+            let progress = min(effectiveLogged / tracking.bookedHours, 1.0)
+            return .gaugeUnder(progress: progress)
+        }
+
+        if let project = pausedProject {
+            if project.bookedHours == 0 { return .timer }
+            if project.loggedHours > project.bookedHours { return .gaugeOver }
+            let progress = min(project.loggedHours / project.bookedHours, 1.0)
+            return .gaugeUnder(progress: progress)
+        }
+
+        return .calendar
     }
 
     func effectiveLoggedHours(for project: ProjectStatus) -> Double {
         project.loggedHours + (project.isTracking ? elapsedOffset : 0)
     }
 
-    private func formatRemaining(_ hours: Double) -> String {
+    /// Format budget delta — minus prefix when over: "7:50" or "-8:10"
+    private func formatDelta(_ hours: Double) -> String {
         let abs = Swift.abs(hours)
         let h = Int(abs)
         let m = Int((abs - Double(h)) * 60)
-        if hours < 0 {
-            return String(format: "%d:%02d over", h, m)
-        }
-        return String(format: "%d:%02d left", h, m)
+        let prefix = hours < 0 ? "-" : ""
+        return "\(prefix)\(h):\(String(format: "%02d", m))"
+    }
+
+    /// Format raw hours: "7:50"
+    private func formatHM(_ hours: Double) -> String {
+        let h = Int(hours)
+        let m = Int((hours - Double(h)) * 60)
+        return "\(h):\(String(format: "%02d", m))"
     }
 
     private func makeServices() -> (HarvestService, ForecastService)? {
