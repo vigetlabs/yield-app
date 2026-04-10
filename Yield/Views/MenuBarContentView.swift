@@ -201,15 +201,19 @@ struct MenuBarContentView: View {
     // MARK: - Week Day Bar
 
     private var weekDayBar: some View {
-        HStack(spacing: 0) {
+        let liveOffset = viewModel.projectStatuses.contains(where: { $0.isTracking }) ? viewModel.elapsedOffset : 0
+
+        return HStack(spacing: 0) {
             ForEach(viewModel.dailyHours) { day in
+                let displayHours = day.hours + (day.isToday ? liveOffset : 0)
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(day.dayLabel)
                         .font(YieldFonts.dmSans(9, weight: day.isToday ? .semibold : .medium))
                         .foregroundStyle(day.isToday ? YieldColors.textPrimary : YieldColors.textSecondary)
 
                     HStack(spacing: 2) {
-                        Text(formatDayHours(day.hours))
+                        Text(formatDayHours(displayHours))
                             .font(YieldFonts.jetBrainsMono(10, weight: day.isToday ? .medium : .regular))
                             .foregroundStyle(day.isToday ? YieldColors.textPrimary : YieldColors.textSecondary)
 
@@ -229,7 +233,7 @@ struct MenuBarContentView: View {
                     .font(YieldFonts.dmSans(9, weight: .semibold))
                     .foregroundStyle(YieldColors.textSecondary)
 
-                Text(formatDayHours(viewModel.totalLogged + viewModel.totalUnbookedLogged))
+                Text(formatDayHours(viewModel.totalLogged + viewModel.totalUnbookedLogged + liveOffset))
                     .font(YieldFonts.jetBrainsMono(10, weight: .medium))
                     .foregroundStyle(YieldColors.textPrimary)
             }
