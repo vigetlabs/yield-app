@@ -107,8 +107,18 @@ struct MenuBarContentView: View {
             }
 
             if viewModel.isTimerBannerVisible {
-                TimerBannerView(viewModel: viewModel)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                TimerBannerView(
+                    viewModel: viewModel,
+                    onEditEntry: { entry in
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            editingEntry = entry
+                        }
+                    },
+                    onDeleteEntry: { entry in
+                        Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
+                    }
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
             } else {
                 // Inactive timer slot — subtle green gradient bar
                 Rectangle()

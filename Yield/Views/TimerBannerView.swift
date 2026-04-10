@@ -2,8 +2,23 @@ import SwiftUI
 
 struct TimerBannerView: View {
     let viewModel: TimeComparisonViewModel
+    var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
+    var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
 
     private var isActive: Bool { !viewModel.isTimerPaused }
+
+    /// The entry represented by the banner — tracking entry when active, paused entry when paused
+    private var currentEntry: TimeEntryInfo? {
+        if let entry = viewModel.trackingEntry { return entry }
+        if let paused = viewModel.pausedState {
+            for project in viewModel.projectStatuses {
+                if let entry = project.timeEntries.first(where: { $0.id == paused.entryId }) {
+                    return entry
+                }
+            }
+        }
+        return nil
+    }
 
     /// Accent color: green when active, yellow when paused
     private var accentColor: Color { isActive ? YieldColors.greenAccent : YieldColors.yellowAccent }
@@ -99,6 +114,7 @@ struct TimerBannerView: View {
             }
             .padding(16)
         }
+        .contentShape(Rectangle())
         .background(
             LinearGradient(
                 colors: [
@@ -113,6 +129,20 @@ struct TimerBannerView: View {
             Rectangle()
                 .fill(YieldColors.border)
                 .frame(height: 1)
+        }
+        .contextMenu {
+            Button {
+                if let entry = currentEntry { onEditEntry?(entry) }
+            } label: {
+                Label("Edit Timer", systemImage: "pencil")
+            }
+            .disabled(viewModel.isHarvestDown || currentEntry == nil)
+            Button(role: .destructive) {
+                if let entry = currentEntry { onDeleteEntry?(entry) }
+            } label: {
+                Label("Delete Timer", systemImage: "trash")
+            }
+            .disabled(viewModel.isHarvestDown || currentEntry == nil)
         }
     }
 
