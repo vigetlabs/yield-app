@@ -111,7 +111,7 @@ struct YieldApp: App {
         let dotSize: CGFloat = 6
 
         // Fixed-width text area — measure widest possible string to prevent width jitter
-        let maxLabel = "-88:88"
+        let maxLabel = "88:88 / 88:88"
         let fixedTextWidth: CGFloat = (maxLabel as NSString).size(withAttributes: attrs).width
         let textSize: CGSize = label.isEmpty ? .zero : (label as NSString).size(withAttributes: attrs)
 
@@ -159,8 +159,20 @@ struct YieldApp: App {
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             ctx.saveGState()
             if let progress = rotationProgress {
-                // Rotation: progress 0 → -90° (needle left), 0.5 → 0° (center), 1 → +90° (right)
-                let rotation = (progress - 0.5) * 180.0 * (.pi / 180.0)
+                // Needle calibration (convention: 0° = straight up, clockwise positive).
+                //   Default needle (gauge.with.needle): 315° (10:30, upper-left)
+                //   Target sweep:
+                //     0%   → 225° (7:30, lower-left)
+                //     50%  → 0°   (12:00, straight up)
+                //     100% → 135° (4:30, lower-right)
+                //   Total sweep: 270° clockwise, passing through 12:00.
+                //
+                // Converting to CGContext math angles (CCW positive from east):
+                //   neutral   = 135°
+                //   target(p) = -135° - 270° * p
+                //   rotation  = target - neutral = 90° - 270° * p
+                //             = (0.5 - 1.5 * p) * π radians
+                let rotation = (0.5 - 1.5 * progress) * .pi
                 let iconCenterX = x + iconSize.width / 2
                 let iconCenterY = iconY + iconSize.height / 2
                 ctx.translateBy(x: iconCenterX, y: iconCenterY)

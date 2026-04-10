@@ -161,30 +161,39 @@ final class TimeComparisonViewModel {
         }
     }
 
+    /// Minimum weekly budget floor used when user has little or no forecast data
+    private static let minimumWeeklyBudget: Double = 40
+
     var menuBarLabel: String {
         guard lastUpdated != nil else { return "" }
 
         // Active tracking timer
         if let tracking = projectStatuses.first(where: { $0.isTracking }) {
             if tracking.bookedHours == 0 {
-                let entry = tracking.timeEntries.first(where: { $0.isRunning })
-                let hours = (entry?.hours ?? 0) + elapsedOffset
-                return formatHM(hours)
+                // Unbooked: current entry (live) / today's total (live)
+                let entryHours = (trackingEntry?.hours ?? 0) + elapsedOffset
+                let todayTotal = totalTodayLogged + elapsedOffset
+                return formatPair(entryHours, todayTotal)
             }
-            let effectiveLogged = tracking.loggedHours + elapsedOffset
-            return formatDelta(tracking.bookedHours - effectiveLogged)
+            // Booked: project tracked / project booked
+            let tracked = tracking.loggedHours + elapsedOffset
+            return formatPair(tracked, tracking.bookedHours)
         }
 
-        // Paused timer — same state, frozen hours (no live offset)
-        if let paused = pausedState, let project = pausedProject {
+        // Paused timer — same semantics as active, frozen values (no live offset)
+        if let project = pausedProject {
             if project.bookedHours == 0 {
-                return formatHM(paused.frozenHours)
+                // Unbooked paused: frozen entry hours / today's total
+                let entryHours = pausedState?.frozenHours ?? 0
+                return formatPair(entryHours, totalTodayLogged)
             }
-            return formatDelta(project.bookedHours - project.loggedHours)
+            return formatPair(project.loggedHours, project.bookedHours)
         }
 
-        // No timer running or paused — week delta
-        return formatDelta(totalBooked - totalLogged)
+        // No timer: all tracked time / weekly booked (40h min)
+        let allTracked = totalLogged + totalUnbookedLogged
+        let budget = max(totalBooked, Self.minimumWeeklyBudget)
+        return formatPair(allTracked, budget)
     }
 
     var menuBarIcon: MenuBarIcon {
@@ -213,13 +222,9 @@ final class TimeComparisonViewModel {
         project.loggedHours + (project.isTracking ? elapsedOffset : 0)
     }
 
-    /// Format budget delta — minus prefix when over: "7:50" or "-8:10"
-    private func formatDelta(_ hours: Double) -> String {
-        let abs = Swift.abs(hours)
-        let h = Int(abs)
-        let m = Int((abs - Double(h)) * 60)
-        let prefix = hours < 0 ? "-" : ""
-        return "\(prefix)\(h):\(String(format: "%02d", m))"
+    /// Format a "tracked / budget" pair: "7:50 / 8:00"
+    private func formatPair(_ tracked: Double, _ budget: Double) -> String {
+        "\(formatHM(tracked)) / \(formatHM(budget))"
     }
 
     /// Format raw hours: "7:50"
@@ -410,6 +415,13 @@ final class TimeComparisonViewModel {
         idleNotificationSent = false
     }
 
+    /// If the project is already at or over its booked budget, mark it as already-notified
+    /// so starting a timer on it doesn't fire a duplicate notification.
+    private func suppressBookedHoursNotificationIfOver(_ project: ProjectStatus) {
+        guard project.bookedHours > 0, project.loggedHours >= project.bookedHours else { return }
+        notifiedProjectIds.insert(project.id)
+    }
+
     private func checkBookedHoursReached() {
         for project in projectStatuses where project.isTracking {
             let effective = effectiveLoggedHours(for: project)
@@ -485,6 +497,7 @@ final class TimeComparisonViewModel {
                 // We just stopped it above — done
             } else if let todayEntryId = project.todayEntryId {
                 // There's already an entry for today — restart it
+                suppressBookedHoursNotificationIfOver(project)
                 _ = try await service.restartTimer(entryId: todayEntryId)
             } else {
                 // No entry for today — create a new one (timer starts automatically)
@@ -498,6 +511,7 @@ final class TimeComparisonViewModel {
                     errorMessage = "No tasks assigned to this project in Harvest."
                     return
                 }
+                suppressBookedHoursNotificationIfOver(project)
                 _ = try await service.createTimeEntry(projectId: harvestProjectId, taskId: resolvedTaskId)
             }
 
@@ -554,6 +568,11 @@ final class TimeComparisonViewModel {
             if let running = projectStatuses.first(where: { $0.isTracking }),
                let runningEntryId = running.todayEntryId {
                 _ = try await harvestService.stopTimer(entryId: runningEntryId)
+            }
+
+            // Suppress over-budget notification if the target project is already over
+            if let target = projectStatuses.first(where: { $0.harvestProjectId == projectId }) {
+                suppressBookedHoursNotificationIfOver(target)
             }
 
             // Create new entry (starts timer automatically)
@@ -673,6 +692,12 @@ final class TimeComparisonViewModel {
                 if let running = projectStatuses.first(where: { $0.isTracking }),
                    let runningEntryId = running.todayEntryId {
                     _ = try await harvestService.stopTimer(entryId: runningEntryId)
+                }
+                // Suppress over-budget notification if the entry's project is already over
+                if let target = projectStatuses.first(where: { project in
+                    project.timeEntries.contains(where: { $0.id == entryId })
+                }) {
+                    suppressBookedHoursNotificationIfOver(target)
                 }
                 _ = try await harvestService.restartTimer(entryId: entryId)
             }
