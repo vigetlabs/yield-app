@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.7.2</title>
+      <sparkle:version>17</sparkle:version>
+      <sparkle:shortVersionString>0.9.7.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Menu bar label now shows a "tracked / budget" pair — running entry vs. today's total for unbooked timers, project vs. booked for booked timers, weekly total vs. forecast when idle</li>
+          <li>Gauge needle recalibrated to sweep a full 270° from lower-left (0%) through the top (50%) to lower-right (100%)</li>
+          <li>Right-click the active timer banner to edit or delete the current entry</li>
+          <li>No duplicate over-budget notification when starting a timer on a project that's already over</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.7.2/Yield-0.9.7.2.zip"
+        sparkle:edSignature="GLc5TqE1Mbl6jQUq7r+4+ql5QtZ02v3Km0RyKONg8cRxvjJGVL8uiqUdioa3mBR7I3MnpMy+J4gCSaqZPgJbCA=="
+        length="1979043"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.7.1</title>
       <sparkle:version>16</sparkle:version>
       <sparkle:shortVersionString>0.9.7.1</sparkle:shortVersionString>
