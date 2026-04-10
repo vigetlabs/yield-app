@@ -329,13 +329,13 @@ struct TaskEntryRowView: View {
             Button {
                 onEditEntry?()
             } label: {
-                Label("Edit Entry", systemImage: "pencil")
+                Label("Edit Timer", systemImage: "pencil")
             }
             .disabled(isHarvestDown)
             Button(role: .destructive) {
                 onDeleteEntry?()
             } label: {
-                Label("Delete Entry", systemImage: "trash")
+                Label("Delete Timer", systemImage: "trash")
             }
             .disabled(isHarvestDown)
         }
