@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.7.1</title>
+      <sparkle:version>16</sparkle:version>
+      <sparkle:shortVersionString>0.9.7.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Menu bar now uses distinct icons to convey state: calendar (no timer), gauge (booked timer), timer (unbooked), warning triangle (API error)</li>
+          <li>Time labels are tighter — minus prefix for over-budget (e.g. <code>-8:10</code>) instead of "left"/"over" suffix</li>
+          <li>Paused timers keep showing their project's state in the menu bar (without the active dot)</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.7.1/Yield-0.9.7.1.zip"
+        sparkle:edSignature="FqymNkrcvky/S3Wni53mZbn8wbcX4xqyKMe0p7X3thrtWd/PvjvIb6J5grjYfnGiN1r2r4gFbap4VLG+/DsKCQ=="
+        length="1971151"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.7</title>
       <sparkle:version>15</sparkle:version>
       <sparkle:shortVersionString>0.9.7</sparkle:shortVersionString>
