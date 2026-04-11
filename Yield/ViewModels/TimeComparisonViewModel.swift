@@ -583,13 +583,19 @@ final class TimeComparisonViewModel {
         }
     }
 
-    /// Log a time entry with specific hours (no running timer)
+    /// Log a time entry with specific hours (no running timer). If `spentDate` is nil, defaults to today.
     @MainActor
-    func logTimeEntry(projectId: Int, taskId: Int, hours: Double, notes: String? = nil) async {
+    func logTimeEntry(projectId: Int, taskId: Int, hours: Double, notes: String? = nil, spentDate: String? = nil) async {
         guard let (harvestService, _) = makeServices() else { return }
 
         do {
-            _ = try await harvestService.createTimeEntry(projectId: projectId, taskId: taskId, hours: hours, notes: notes)
+            _ = try await harvestService.createTimeEntry(
+                projectId: projectId,
+                taskId: taskId,
+                hours: hours,
+                notes: notes,
+                spentDate: spentDate
+            )
             await refresh()
         } catch {
             errorMessage = error.localizedDescription

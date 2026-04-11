@@ -4,6 +4,7 @@ struct NewTimerFormView: View {
     let viewModel: TimeComparisonViewModel
     let editingEntry: TimeEntryInfo?
     let preselectedProjectId: Int?
+    let targetDate: Date?
     let onDismiss: () -> Void
 
     @State private var allProjects: [TimeComparisonViewModel.TimerProjectOption] = []
@@ -18,15 +19,24 @@ struct NewTimerFormView: View {
     @State private var isStarting = false
     @State private var isLogging = false
     @State private var isSaving = false
+    @State private var spentDate: Date = Date()
 
-    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, onDismiss: @escaping () -> Void) {
+    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
         self.editingEntry = editingEntry
         self.preselectedProjectId = preselectedProjectId
+        self.targetDate = targetDate
         self.onDismiss = onDismiss
     }
 
     private var isEditing: Bool { editingEntry != nil }
+    private var isSpentDateToday: Bool { Calendar.current.isDateInToday(spentDate) }
+    private var spentDateString: String { DateHelpers.dateFormatter.string(from: spentDate) }
+
+    private var headerTitle: String {
+        let prefix = isEditing ? "Edit time entry" : "New time entry"
+        return "\(prefix): \(DateHelpers.displayFormatter.string(from: spentDate))"
+    }
 
     struct TaskOption: Identifiable, Hashable {
         let id: Int
@@ -49,8 +59,8 @@ struct NewTimerFormView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
-            HStack {
-                Text(isEditing ? "Edit time entry" : "New time entry")
+            HStack(spacing: 8) {
+                Text(headerTitle)
                     .font(YieldFonts.titleMedium)
                     .foregroundStyle(YieldColors.textPrimary)
 
@@ -126,7 +136,7 @@ struct NewTimerFormView: View {
                     .buttonStyle(.greenOutlined)
                     .disabled(!canStart || isSaving)
                     .opacity(canStart && !isSaving ? 1 : 0.5)
-                } else {
+                } else if isSpentDateToday {
                     Button {
                         Task { await startTimer() }
                     } label: {
@@ -161,6 +171,14 @@ struct NewTimerFormView: View {
             Spacer()
         }
         .task {
+            // Initialize spent date: edit mode uses the entry's date, create mode uses
+            // the targetDate (from a day-cell click) or today.
+            if let entry = editingEntry, let parsed = DateHelpers.dateFormatter.date(from: entry.date) {
+                spentDate = parsed
+            } else if let target = targetDate {
+                spentDate = target
+            }
+
             await loadProjects()
             if let entry = editingEntry {
                 // Edit mode: populate all fields
@@ -284,7 +302,13 @@ struct NewTimerFormView: View {
         guard enteredHours > 0 else { return }
 
         isLogging = true
-        await viewModel.logTimeEntry(projectId: projectId, taskId: taskId, hours: enteredHours, notes: notes.isEmpty ? nil : notes)
+        await viewModel.logTimeEntry(
+            projectId: projectId,
+            taskId: taskId,
+            hours: enteredHours,
+            notes: notes.isEmpty ? nil : notes,
+            spentDate: spentDateString
+        )
         isLogging = false
         onDismiss()
     }

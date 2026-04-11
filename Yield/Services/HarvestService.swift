@@ -102,12 +102,12 @@ final class HarvestService {
         )
     }
 
-    func createTimeEntry(projectId: Int, taskId: Int, hours: Double? = nil, notes: String? = nil) async throws -> HarvestTimeEntry {
-        let today = DateHelpers.dateFormatter.string(from: Date())
+    func createTimeEntry(projectId: Int, taskId: Int, hours: Double? = nil, notes: String? = nil, spentDate: String? = nil) async throws -> HarvestTimeEntry {
+        let dateString = spentDate ?? DateHelpers.dateFormatter.string(from: Date())
         var body: [String: Any] = [
             "project_id": projectId,
             "task_id": taskId,
-            "spent_date": today,
+            "spent_date": dateString,
         ]
         if let hours {
             body["hours"] = hours

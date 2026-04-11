@@ -33,7 +33,9 @@ struct MenuBarContentView: View {
     @State private var showNewTimerForm = false
     @State private var editingEntry: TimeEntryInfo? = nil
     @State private var preselectedProjectId: Int? = nil
+    @State private var newTimerTargetDate: Date? = nil
     @State private var showSettings = false
+    @State private var hoveredDayId: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -52,12 +54,14 @@ struct MenuBarContentView: View {
                     NewTimerFormView(
                         viewModel: viewModel,
                         editingEntry: editingEntry,
-                        preselectedProjectId: preselectedProjectId
+                        preselectedProjectId: preselectedProjectId,
+                        targetDate: newTimerTargetDate
                     ) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             showNewTimerForm = false
                             editingEntry = nil
                             preselectedProjectId = nil
+                            newTimerTargetDate = nil
                         }
                     }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -216,11 +220,20 @@ struct MenuBarContentView: View {
         return HStack(spacing: 0) {
             ForEach(viewModel.dailyHours) { day in
                 let displayHours = day.hours + (day.isToday ? liveOffset : 0)
+                let isHovered = hoveredDayId == day.id
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(day.dayLabel)
-                        .font(YieldFonts.dmSans(9, weight: day.isToday ? .semibold : .medium))
-                        .foregroundStyle(day.isToday ? YieldColors.textPrimary : YieldColors.textSecondary)
+                    HStack(spacing: 3) {
+                        Text(day.dayLabel)
+                            .font(YieldFonts.dmSans(9, weight: day.isToday ? .semibold : .medium))
+                            .foregroundStyle(day.isToday ? YieldColors.textPrimary : YieldColors.textSecondary)
+
+                        if isHovered {
+                            Image(systemName: "plus")
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundStyle(YieldColors.greenAccent)
+                        }
+                    }
 
                     HStack(spacing: 2) {
                         Text(formatDayHours(displayHours))
@@ -235,6 +248,14 @@ struct MenuBarContentView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onHover { hovering in
+                    hoveredDayId = hovering ? day.id : (hoveredDayId == day.id ? nil : hoveredDayId)
+                }
+                .onTapGesture {
+                    openNewTimerForm(for: day)
+                }
+                .help("Add Time")
             }
 
             // Week total
@@ -255,6 +276,15 @@ struct MenuBarContentView: View {
         let h = Int(hours)
         let m = Int((hours - Double(h)) * 60)
         return String(format: "%d:%02d", h, m)
+    }
+
+    private func openNewTimerForm(for day: TimeComparisonViewModel.DayHours) {
+        guard !viewModel.isHarvestDown else { return }
+        let date = DateHelpers.dateFormatter.date(from: day.id) ?? Date()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            newTimerTargetDate = date
+            showNewTimerForm = true
+        }
     }
 
     private var tabToggle: some View {
