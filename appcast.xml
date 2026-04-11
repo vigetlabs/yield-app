@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.7.3</title>
+      <sparkle:version>18</sparkle:version>
+      <sparkle:shortVersionString>0.9.7.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Click any day in the week header to add a time entry to that day — useful for catching up or pre-logging PTO</li>
+          <li>Hover any weekday to see a green "+" affordance, with an "Add Time" tooltip</li>
+          <li>The new entry form title reflects the target date (e.g. "New time entry: Apr 11")</li>
+          <li>Start Timer is only offered when the target day is today; other days log time directly</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.7.3/Yield-0.9.7.3.zip"
+        sparkle:edSignature="f/99yf57EaG4MKGZzC/b0fvqP9x8qeYo0szyJ5Y66lEY49ZtUL1z9MAmj8gZEE4kZdiz5Ox7HRaquyRn1QReAQ=="
+        length="1997307"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.7.2</title>
       <sparkle:version>17</sparkle:version>
       <sparkle:shortVersionString>0.9.7.2</sparkle:shortVersionString>
