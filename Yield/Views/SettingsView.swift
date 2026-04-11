@@ -23,7 +23,7 @@ struct SettingsView: View {
                         Text("Back")
                             .font(YieldFonts.dmSans(11, weight: .medium))
                     }
-                    .foregroundStyle(YieldColors.greenAccent)
+                    .foregroundStyle(YieldColors.textPrimary)
                 }
                 .buttonStyle(.plain)
 

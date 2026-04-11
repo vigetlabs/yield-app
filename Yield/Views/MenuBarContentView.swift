@@ -231,7 +231,7 @@ struct MenuBarContentView: View {
                         if isHovered {
                             Image(systemName: "plus")
                                 .font(.system(size: 8, weight: .semibold))
-                                .foregroundStyle(YieldColors.greenAccent)
+                                .foregroundStyle(YieldColors.textPrimary)
                         }
                     }
 
