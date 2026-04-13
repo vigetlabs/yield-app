@@ -276,7 +276,8 @@ struct NewTimerFormView: View {
               let taskId = selectedTaskId else { return }
 
         isStarting = true
-        await viewModel.startNewTimer(projectId: projectId, taskId: taskId, notes: notes.isEmpty ? nil : notes)
+        let hours = enteredHours > 0 ? enteredHours : nil
+        await viewModel.startNewTimer(projectId: projectId, taskId: taskId, hours: hours, notes: notes.isEmpty ? nil : notes)
         isStarting = false
         onDismiss()
     }

@@ -556,7 +556,7 @@ final class TimeComparisonViewModel {
 
     /// Start a new timer for a specific project and task, stopping any running timer first
     @MainActor
-    func startNewTimer(projectId: Int, taskId: Int, notes: String? = nil) async {
+    func startNewTimer(projectId: Int, taskId: Int, hours: Double? = nil, notes: String? = nil) async {
         guard let (harvestService, _) = makeServices() else { return }
         pausedState = nil
 
@@ -573,7 +573,7 @@ final class TimeComparisonViewModel {
             }
 
             // Create new entry (starts timer automatically)
-            _ = try await harvestService.createTimeEntry(projectId: projectId, taskId: taskId, notes: notes)
+            _ = try await harvestService.createTimeEntry(projectId: projectId, taskId: taskId, hours: hours, notes: notes)
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
