@@ -56,14 +56,6 @@ final class HarvestService {
         try await client.request("/time_entries/\(entryId)/restart", method: "PATCH")
     }
 
-    func getTaskAssignments(projectId: Int) async throws -> [HarvestProjectTaskAssignment] {
-        let response: HarvestTaskAssignmentsResponse = try await client.request(
-            "/projects/\(projectId)/task_assignments",
-            queryItems: [URLQueryItem(name: "is_active", value: "true")]
-        )
-        return response.taskAssignments
-    }
-
     func getMyProjectAssignments() async throws -> [HarvestProjectAssignment] {
         var allAssignments: [HarvestProjectAssignment] = []
         var page = 1

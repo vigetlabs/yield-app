@@ -51,16 +51,12 @@ struct HarvestTaskAssignmentRef: Codable {
     let task: HarvestTaskRef?
 }
 
-struct HarvestTaskRef: Codable {
+struct HarvestTaskRef: Codable, Hashable {
     let id: Int
     let name: String
 }
 
-struct HarvestTaskAssignmentsResponse: Codable {
-    let taskAssignments: [HarvestProjectTaskAssignment]
-}
-
-struct HarvestProjectTaskAssignment: Codable, Identifiable {
+struct HarvestProjectTaskAssignment: Codable, Identifiable, Hashable {
     let id: Int
     let isActive: Bool
     let task: HarvestTaskRef

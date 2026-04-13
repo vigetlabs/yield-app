@@ -15,7 +15,6 @@ struct NewTimerFormView: View {
     @State private var timeHours: Int = 0
     @State private var timeMinutes: Int = 0
     @State private var availableTasks: [TaskOption] = []
-    @State private var isLoadingTasks = false
     @State private var isStarting = false
     @State private var isLogging = false
     @State private var isSaving = false
@@ -186,13 +185,10 @@ struct NewTimerFormView: View {
                 notes = entry.notes ?? ""
                 timeHours = Int(entry.hours)
                 timeMinutes = Int((entry.hours - Double(Int(entry.hours))) * 60)
-                do {
-                    let tasks = try await viewModel.fetchTaskAssignments(projectId: entry.harvestProjectId)
-                    availableTasks = tasks.map { TaskOption(id: $0.task.id, name: $0.task.name) }
-                    selectedTaskId = entry.taskId
-                } catch {
-                    availableTasks = []
+                if let project = allProjects.first(where: { $0.harvestProjectId == entry.harvestProjectId }) {
+                    availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
                 }
+                selectedTaskId = entry.taskId
             } else if let projectId = preselectedProjectId,
                       let project = allProjects.first(where: { $0.harvestProjectId == projectId }) {
                 // Pre-selected project: populate project and load its tasks
@@ -240,10 +236,10 @@ struct NewTimerFormView: View {
         DropdownPicker(
             label: "TASK",
             placeholder: selectedProjectId == nil ? "Select a project first..." : "Select a task",
-            isLoading: isLoadingTasks,
+            isLoading: false,
             items: availableTasks.map { ($0.id, $0.name) },
             selectedId: selectedTaskId,
-            isDisabled: selectedProjectId == nil || isLoadingTasks
+            isDisabled: selectedProjectId == nil
         ) { id in
             selectedTaskId = id
         }
@@ -265,20 +261,9 @@ struct NewTimerFormView: View {
     private func selectProject(_ project: TimeComparisonViewModel.TimerProjectOption) {
         selectedProjectId = project.harvestProjectId
         selectedTaskId = nil
-        availableTasks = []
-
-        isLoadingTasks = true
-        Task {
-            do {
-                let tasks = try await viewModel.fetchTaskAssignments(projectId: project.harvestProjectId)
-                availableTasks = tasks.map { TaskOption(id: $0.task.id, name: $0.task.name) }
-                if availableTasks.count == 1 {
-                    selectedTaskId = availableTasks.first?.id
-                }
-            } catch {
-                availableTasks = []
-            }
-            isLoadingTasks = false
+        availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
+        if availableTasks.count == 1 {
+            selectedTaskId = availableTasks.first?.id
         }
     }
 

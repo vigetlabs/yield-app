@@ -504,8 +504,9 @@ final class TimeComparisonViewModel {
                 // Use known task ID, or fetch the first active task for this project
                 var taskId = project.lastTaskId
                 if taskId == nil {
-                    let tasks = try await service.getTaskAssignments(projectId: harvestProjectId)
-                    taskId = tasks.first?.task.id
+                    let assignments = try await service.getMyProjectAssignments()
+                    let tasks = assignments.first(where: { $0.project.id == harvestProjectId })?.taskAssignments.filter { $0.isActive }
+                    taskId = tasks?.first?.task.id
                 }
                 guard let resolvedTaskId = taskId else {
                     errorMessage = "No tasks assigned to this project in Harvest."
@@ -521,12 +522,6 @@ final class TimeComparisonViewModel {
         }
     }
 
-    /// Fetch task assignments for a Harvest project (used by NewTimerFormView)
-    func fetchTaskAssignments(projectId: Int) async throws -> [HarvestProjectTaskAssignment] {
-        guard let (harvestService, _) = makeServices() else { return [] }
-        return try await harvestService.getTaskAssignments(projectId: projectId)
-    }
-
     /// Fetch all active projects assigned to the current user (used by NewTimerFormView)
     func fetchAllProjects() async throws -> [TimerProjectOption] {
         guard let (harvestService, _) = makeServices() else { return [] }
@@ -539,7 +534,8 @@ final class TimeComparisonViewModel {
                 TimerProjectOption(
                     harvestProjectId: assignment.project.id,
                     projectName: assignment.project.name,
-                    clientName: assignment.client?.name
+                    clientName: assignment.client?.name,
+                    taskAssignments: assignment.taskAssignments.filter { $0.isActive }
                 )
             }
             .sorted { a, b in
@@ -555,6 +551,7 @@ final class TimeComparisonViewModel {
         let harvestProjectId: Int
         let projectName: String
         let clientName: String?
+        let taskAssignments: [HarvestProjectTaskAssignment]
     }
 
     /// Start a new timer for a specific project and task, stopping any running timer first
