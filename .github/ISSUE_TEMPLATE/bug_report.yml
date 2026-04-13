@@ -1,0 +1,46 @@
+name: Bug Report
+description: Report something that isn't working correctly
+labels: ["bug"]
+assignees:
+  - ten1seven
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Yield version
+      description: Check Settings in the app.
+      placeholder: e.g. 0.9.7.3
+    validations:
+      required: false
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: e.g. 15.4
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this?
+      placeholder: |
+        1. Open Yield
+        2. Click...
+        3. See error
+    validations:
+      required: false
