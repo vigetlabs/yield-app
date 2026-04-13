@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.7.4</title>
+      <sparkle:version>19</sparkle:version>
+      <sparkle:shortVersionString>0.9.7.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix task list not populating when adding time — non-admin Harvest users can now see and select tasks</li>
+          <li>Weekday hover "+" and Settings back button now use white instead of green</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.7.4/Yield-0.9.7.4.zip"
+        sparkle:edSignature="HJIVOnsGLui2U6/8z/hy9o951GEFoabCyqx2EKtWOutiu1G/HTN2fhuChP+AQzxaIeAfOsYmBkt3CUcWKxUDBQ=="
+        length="1993815"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.7.3</title>
       <sparkle:version>18</sparkle:version>
       <sparkle:shortVersionString>0.9.7.3</sparkle:shortVersionString>
