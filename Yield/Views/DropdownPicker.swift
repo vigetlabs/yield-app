@@ -83,7 +83,7 @@ private struct NativePopUpButton: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> NSView {
-        let container = NSView()
+        let container = ClickForwardingView()
 
         // Popup button
         let popup = NSPopUpButton(frame: .zero, pullsDown: false)
@@ -99,12 +99,17 @@ private struct NativePopUpButton: NSViewRepresentable {
         container.addSubview(popup)
 
         NSLayoutConstraint.activate([
+            // Fill the container so the entire visible dropdown area is clickable —
+            // otherwise the button only takes its intrinsic ~22pt height centered in
+            // the 32pt container, leaving ~5pt strips of dead space top and bottom.
             popup.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
             popup.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8),
-            popup.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            popup.topAnchor.constraint(equalTo: container.topAnchor),
+            popup.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
         context.coordinator.popup = popup
+        container.popup = popup
 
         return container
     }
@@ -115,6 +120,11 @@ private struct NativePopUpButton: NSViewRepresentable {
 
         popup.removeAllItems()
         popup.isEnabled = !isDisabled
+
+        // Respect our manual `isEnabled = false` on group-header items. Without this,
+        // NSMenu re-enables items via target/action validation and client headers
+        // become selectable.
+        popup.menu?.autoenablesItems = false
 
         let menuFont = NSFont(name: "Newsreader-Regular", size: 12) ?? NSFont.systemFont(ofSize: 12)
         let headerFont = NSFont(name: "DMSans-SemiBold", size: 10) ?? NSFont.boldSystemFont(ofSize: 10)
@@ -188,6 +198,26 @@ private struct NativePopUpButton: NSViewRepresentable {
 
         // Update accessibility label
         popup.setAccessibilityLabel(label)
+    }
+
+    /// Container view that forwards clicks in its padding strips to the embedded
+    /// popup button — without this, ~8pt strips on the left/right and any area
+    /// outside the popup's intrinsic bounds aren't clickable.
+    class ClickForwardingView: NSView {
+        weak var popup: NSPopUpButton?
+
+        override func mouseDown(with event: NSEvent) {
+            guard let popup, popup.isEnabled else {
+                super.mouseDown(with: event)
+                return
+            }
+            popup.performClick(nil)
+        }
+
+        override func resetCursorRects() {
+            super.resetCursorRects()
+            addCursorRect(bounds, cursor: .arrow)
+        }
     }
 
     class Coordinator {

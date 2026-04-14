@@ -583,8 +583,13 @@ final class TimeComparisonViewModel {
                 suppressBookedHoursNotificationIfOver(target)
             }
 
-            // Create new entry (starts timer automatically)
-            _ = try await harvestService.createTimeEntry(projectId: projectId, taskId: taskId, hours: hours, notes: notes)
+            // Create new entry. Harvest auto-starts a timer only when `hours` is
+            // omitted; posting with `hours` creates a stopped entry, so we need to
+            // explicitly restart it to get a running timer pre-filled with that time.
+            let created = try await harvestService.createTimeEntry(projectId: projectId, taskId: taskId, hours: hours, notes: notes)
+            if hours != nil {
+                _ = try await harvestService.restartTimer(entryId: created.id)
+            }
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
