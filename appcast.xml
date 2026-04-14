@@ -3,6 +3,26 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.7.5</title>
+      <sparkle:version>20</sparkle:version>
+      <sparkle:shortVersionString>0.9.7.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Opening the menu bar now triggers a fresh refresh, so timers started outside the app show up right away</li>
+          <li>Added a loading spinner next to the week label during refreshes</li>
+          <li>New 1-minute soft refresh keeps today's timer state near-real-time without hammering the API</li>
+          <li>Active timer banner now shows HH:MM with a flashing colon — no more seconds snapping backward on refresh</li>
+          <li>Pre-fill hours when starting a new timer to catch up on time you forgot to track</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.7.5/Yield-0.9.7.5.zip"
+        sparkle:edSignature="88oCIYMHwLRt+Je5BUm+114cRLJD38LIO30B6hzu2muLdyDT5TkcmQnRhHj3zjMrRWIiapw+dfqnE7RUeNjrCA=="
+        length="2010695"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.7.4</title>
       <sparkle:version>19</sparkle:version>
       <sparkle:shortVersionString>0.9.7.4</sparkle:shortVersionString>
