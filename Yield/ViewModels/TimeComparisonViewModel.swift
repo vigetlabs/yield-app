@@ -710,12 +710,25 @@ final class TimeComparisonViewModel {
         }
     }
 
+    private var lastRefreshAt: Date?
+
+    /// Refresh only if we haven't refreshed in the last `interval` seconds.
+    /// Used by menu-open refresh to keep state fresh without hammering the API.
+    @MainActor
+    func refreshIfStale(interval: TimeInterval = 5) async {
+        if let last = lastRefreshAt, Date().timeIntervalSince(last) < interval {
+            return
+        }
+        await refresh()
+    }
+
     @MainActor
     func refresh() async {
         guard isConfigured else {
             errorMessage = "Open Settings to configure your API credentials."
             return
         }
+        lastRefreshAt = Date()
 
         isLoading = true
         errorMessage = nil

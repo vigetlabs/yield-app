@@ -35,6 +35,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
 
         // Force dark mode until light/system modes are designed
         NSApp.appearance = NSAppearance(named: .darkAqua)
+
+        // Refresh whenever the MenuBarExtra panel opens, so state reflects
+        // any changes made outside the app (e.g. starting a timer in Harvest).
+        // Throttled to avoid excess API calls when opening/closing rapidly.
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            guard let window = note.object as? NSWindow else { return }
+            let className = String(describing: type(of: window))
+            // MenuBarExtra's panel window has "MenuBarExtra" in its class name
+            guard className.contains("MenuBarExtra") else { return }
+            Task { @MainActor in
+                await AppState.shared.viewModel.refreshIfStale()
+            }
+        }
     }
 
     // MARK: - SPUStandardUserDriverDelegate (Gentle Reminders)

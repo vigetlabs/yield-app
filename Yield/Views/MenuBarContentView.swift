@@ -190,12 +190,23 @@ struct MenuBarContentView: View {
                     .font(YieldFonts.titleMedium)
                     .foregroundStyle(YieldColors.textPrimary)
 
+                if viewModel.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .scaleEffect(0.85)
+                        .frame(width: 18, height: 18)
+                        .tint(YieldColors.textSecondary)
+                        .offset(y: -2)
+                        .transition(.opacity)
+                }
+
                 Spacer()
 
                 tabToggle
 
                 timerButton
             }
+            .animation(.easeInOut(duration: 0.15), value: viewModel.isLoading)
             .padding(16)
 
             if !viewModel.dailyHours.isEmpty {
