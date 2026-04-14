@@ -120,6 +120,14 @@ final class TimeComparisonViewModel {
     private var notifiedProjectIds: Set<String> = []
     private var idleNotificationSent: Bool = false
 
+    // Cached state from last hard refresh — used by softRefresh() to avoid
+    // re-fetching Forecast data and non-today Harvest entries every minute.
+    private var cachedWeekEntries: [HarvestTimeEntry] = []
+    private var cachedForecastBookings: [Int: Double] = [:]
+    private var cachedProjectMap: [Int: ForecastProject] = [:]
+    private var cachedClientMap: [Int: ForecastClient] = [:]
+    private var cachedHarvestUserId: Int?
+
     enum AuthMode {
         case oauth, pat, none
     }
@@ -265,11 +273,14 @@ final class TimeComparisonViewModel {
     func startAutoRefresh() {
         refreshTimer?.invalidate()
         activeRefreshTask?.cancel()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+        // Soft refresh every minute: a single lightweight API call to pick up
+        // timer state changes made outside the app. Hard refresh happens on
+        // menu open and manual refresh, so no need for a periodic hard refresh.
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             guard let self else { return }
             self.activeRefreshTask?.cancel()
             self.activeRefreshTask = Task { @MainActor in
-                await self.refresh()
+                await self.softRefresh()
             }
         }
         activeRefreshTask = Task { @MainActor in
@@ -742,7 +753,6 @@ final class TimeComparisonViewModel {
 
         let weekDates = DateHelpers.weekDateStrings()
         let weekBounds = DateHelpers.currentWeekBounds()
-        let todayString = DateHelpers.dateFormatter.string(from: Date())
 
         do {
             // Fetch Harvest data
@@ -797,8 +807,70 @@ final class TimeComparisonViewModel {
             let projectMap = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
             let clientMap = Dictionary(uniqueKeysWithValues: clients.map { ($0.id, $0) })
 
-            // Aggregate logged hours by Harvest project ID and track timers
-            var loggedByHarvestProject: [Int: Double] = [:]
+            // Aggregate booked hours by Forecast project ID (moved from below)
+            var bookedByForecastProject: [Int: Double] = [:]
+            for assignment in allAssignments {
+                guard let projectId = assignment.projectId else { continue }
+                let weekdays = DateHelpers.countOverlappingWeekdays(
+                    assignmentStart: assignment.startDate,
+                    assignmentEnd: assignment.endDate,
+                    weekStart: weekBounds.start,
+                    weekEnd: weekBounds.end
+                )
+                let hoursPerDay = Double(assignment.allocation ?? 0) / 3600.0
+                bookedByForecastProject[projectId, default: 0] += hoursPerDay * Double(weekdays)
+            }
+
+            // Cache everything needed for a future soft refresh
+            cachedHarvestUserId = user.id
+            cachedWeekEntries = entries
+            cachedForecastBookings = bookedByForecastProject
+            cachedProjectMap = projectMap
+            cachedClientMap = clientMap
+
+            applyRefreshedData(
+                entries: entries,
+                bookedByForecastProject: bookedByForecastProject,
+                projectMap: projectMap,
+                clientMap: clientMap
+            )
+
+        } catch {
+            if serviceErrors.isEmpty {
+                errorMessage = error.localizedDescription
+            } else {
+                errorMessage = serviceErrors.map { "\($0.service.rawValue): \($0.message)" }.joined(separator: "\n")
+            }
+        }
+
+        #if DEBUG
+        // Inject simulated service failures after real data loads
+        if !simulateServiceFailures.isEmpty {
+            serviceErrors = []
+            for service in simulateServiceFailures {
+                serviceErrors.append(ServiceError(service: service, message: "Service unavailable (simulated)"))
+            }
+            errorMessage = serviceErrors.map { "\($0.service.rawValue): \($0.message)" }.joined(separator: "\n")
+        }
+        #endif
+
+        isLoading = false
+    }
+
+    /// Rebuild projectStatuses and derived view state from entries + Forecast data.
+    /// Called by both full refresh and soft refresh.
+    @MainActor
+    private func applyRefreshedData(
+        entries: [HarvestTimeEntry],
+        bookedByForecastProject: [Int: Double],
+        projectMap: [Int: ForecastProject],
+        clientMap: [Int: ForecastClient]
+    ) {
+        let weekBounds = DateHelpers.currentWeekBounds()
+        let todayString = DateHelpers.dateFormatter.string(from: Date())
+
+        // Aggregate logged hours by Harvest project ID and track timers
+        var loggedByHarvestProject: [Int: Double] = [:]
             var todayByHarvestProject: [Int: Double] = [:]
             var harvestProjectNames: [Int: String] = [:]
             var harvestClientNames: [Int: String] = [:]
@@ -840,21 +912,7 @@ final class TimeComparisonViewModel {
                 }
             }
 
-            // Aggregate booked hours by Forecast project ID
-            var bookedByForecastProject: [Int: Double] = [:]
-            for assignment in allAssignments {
-                guard let projectId = assignment.projectId else { continue }
-                let weekdays = DateHelpers.countOverlappingWeekdays(
-                    assignmentStart: assignment.startDate,
-                    assignmentEnd: assignment.endDate,
-                    weekStart: weekBounds.start,
-                    weekEnd: weekBounds.end
-                )
-                let hoursPerDay = Double(assignment.allocation ?? 0) / 3600.0
-                bookedByForecastProject[projectId, default: 0] += hoursPerDay * Double(weekdays)
-            }
-
-            // Merge into ProjectStatus list
+        // Merge into ProjectStatus list
             var statuses: [ProjectStatus] = []
             var processedHarvestIds: Set<Int> = []
 
@@ -983,27 +1041,48 @@ final class TimeComparisonViewModel {
             } else {
                 stopElapsedTimer()
             }
+    }
 
+    /// Lightweight refresh: fetches today's time entries only, merges with cached
+    /// non-today entries, and rebuilds view state using cached Forecast data.
+    /// Falls back to a hard refresh if cache is empty.
+    @MainActor
+    func softRefresh() async {
+        guard isConfigured else { return }
+
+        // If we haven't done a hard refresh yet, do one instead
+        guard let userId = cachedHarvestUserId, !cachedForecastBookings.isEmpty else {
+            await refresh()
+            return
+        }
+
+        guard let (harvestService, _) = makeServices() else { return }
+
+        let todayString = DateHelpers.dateFormatter.string(from: Date())
+
+        do {
+            let todayEntries = try await harvestService.getTimeEntries(
+                userId: userId,
+                from: todayString,
+                to: todayString
+            )
+            // Replace today's slice of the cached week with fresh data
+            let nonTodayEntries = cachedWeekEntries.filter { $0.spentDate != todayString }
+            let merged = nonTodayEntries + todayEntries
+            cachedWeekEntries = merged
+
+            applyRefreshedData(
+                entries: merged,
+                bookedByForecastProject: cachedForecastBookings,
+                projectMap: cachedProjectMap,
+                clientMap: cachedClientMap
+            )
+            // Intentionally not updating lastRefreshAt — that tracks hard refreshes
+            // only, so menu-open still gets a full refresh after a soft one.
         } catch {
-            if serviceErrors.isEmpty {
-                errorMessage = error.localizedDescription
-            } else {
-                errorMessage = serviceErrors.map { "\($0.service.rawValue): \($0.message)" }.joined(separator: "\n")
-            }
+            // Silent — soft refresh failures shouldn't interrupt the user.
+            // The next hard refresh will surface any real issue.
         }
-
-        #if DEBUG
-        // Inject simulated service failures after real data loads
-        if !simulateServiceFailures.isEmpty {
-            serviceErrors = []
-            for service in simulateServiceFailures {
-                serviceErrors.append(ServiceError(service: service, message: "Service unavailable (simulated)"))
-            }
-            errorMessage = serviceErrors.map { "\($0.service.rawValue): \($0.message)" }.joined(separator: "\n")
-        }
-        #endif
-
-        isLoading = false
     }
 
     private func friendlyErrorMessage(_ error: Error) -> String {

@@ -5,6 +5,8 @@ struct TimerBannerView: View {
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
 
+    @State private var colonOn: Bool = true
+
     private var isActive: Bool { !viewModel.isTimerPaused }
 
     /// The entry represented by the banner — tracking entry when active, paused entry when paused
@@ -43,7 +45,7 @@ struct TimerBannerView: View {
     }
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: isActive ? 1 : 60)) { timeline in
+        TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let totalSeconds = computeTotalSeconds(at: timeline.date)
 
             HStack(spacing: 10) {
@@ -70,10 +72,7 @@ struct TimerBannerView: View {
 
                 // Right: timer + controls
                 HStack(spacing: 12) {
-                    Text(formatTimer(totalSeconds))
-                        .font(YieldFonts.monoMedium)
-                        .foregroundStyle(accentColor)
-                        .monospacedDigit()
+                    timerDisplay(totalSeconds: totalSeconds)
 
                     HStack(spacing: 8) {
                         // Pause / Play button
@@ -146,11 +145,37 @@ struct TimerBannerView: View {
         }
     }
 
+    /// Timer text with a flashing colon while the timer is active — matches
+    /// the macOS menu-bar clock's "Flash the time separators" behavior:
+    /// 1s visible, 1s hidden, hard on/off (no fade).
+    @ViewBuilder
+    private func timerDisplay(totalSeconds: Int) -> some View {
+        let h = totalSeconds / 3600
+        let m = (totalSeconds % 3600) / 60
+        HStack(spacing: 0) {
+            Text(String(format: "%02d", h))
+            Text(":")
+                .opacity(isActive && !colonOn ? 0.0 : 1.0)
+            Text(String(format: "%02d", m))
+        }
+        .font(YieldFonts.monoMedium)
+        .foregroundStyle(accentColor)
+        .monospacedDigit()
+        .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
+            if isActive {
+                colonOn.toggle()
+            } else if !colonOn {
+                colonOn = true
+            }
+        }
+    }
+
     private func computeTotalSeconds(at now: Date) -> Int {
         let baseSeconds = Int(baseHours * 3600)
         if isActive, let lastUpdated = viewModel.lastUpdated, lastUpdated <= now {
-            // Clamp elapsed to refresh interval (5 min) to avoid huge jumps after backgrounding
-            let elapsed = min(Int(now.timeIntervalSince(lastUpdated)), 300)
+            // Clamp elapsed to 1 min — soft refresh polls every 60s, so local
+            // ticking only has to bridge that window.
+            let elapsed = min(Int(now.timeIntervalSince(lastUpdated)), 60)
             return max(0, baseSeconds + elapsed)
         }
         return max(0, baseSeconds)
@@ -159,7 +184,6 @@ struct TimerBannerView: View {
     private func formatTimer(_ totalSeconds: Int) -> String {
         let h = totalSeconds / 3600
         let m = (totalSeconds % 3600) / 60
-        let s = totalSeconds % 60
-        return String(format: "%02d:%02d:%02d", h, m, s)
+        return String(format: "%02d:%02d", h, m)
     }
 }
