@@ -110,41 +110,46 @@ struct MenuBarContentView: View {
                     .padding(.vertical, 8)
             }
 
-            if viewModel.isTimerBannerVisible {
-                TimerBannerView(
-                    viewModel: viewModel,
-                    onEditEntry: { entry in
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            editingEntry = entry
+            // Hide the timer banner on the chart tab — the chart is the focus there.
+            if viewModel.selectedTab != .chart {
+                if viewModel.isTimerBannerVisible {
+                    TimerBannerView(
+                        viewModel: viewModel,
+                        onEditEntry: { entry in
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                editingEntry = entry
+                            }
+                        },
+                        onDeleteEntry: { entry in
+                            Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
                         }
-                    },
-                    onDeleteEntry: { entry in
-                        Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
-                    }
-                )
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            } else {
-                // Inactive timer slot — subtle green gradient bar
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                YieldColors.greenAccent.opacity(0.15),
-                                Color.clear,
-                            ],
-                            startPoint: .leading,
-                            endPoint: UnitPoint(x: 0.7, y: 0.5)
-                        )
                     )
-                    .frame(height: 16)
-                    .overlay(alignment: .bottom) {
-                        Rectangle()
-                            .fill(YieldColors.border)
-                            .frame(height: 1)
-                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                } else {
+                    // Inactive timer slot — subtle green gradient bar
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    YieldColors.greenAccent.opacity(0.15),
+                                    Color.clear,
+                                ],
+                                startPoint: .leading,
+                                endPoint: UnitPoint(x: 0.7, y: 0.5)
+                            )
+                        )
+                        .frame(height: 16)
+                        .overlay(alignment: .bottom) {
+                            Rectangle()
+                                .fill(YieldColors.border)
+                                .frame(height: 1)
+                        }
+                }
             }
 
-            if viewModel.filteredStatuses.isEmpty {
+            if viewModel.selectedTab == .chart {
+                ProjectChartView(viewModel: viewModel)
+            } else if viewModel.filteredStatuses.isEmpty {
                 Text("No projects found for this week.")
                     .foregroundStyle(YieldColors.textSecondary)
                     .font(YieldFonts.dmSans(11))
@@ -307,13 +312,7 @@ struct MenuBarContentView: View {
                         viewModel.selectedTab = tab
                     }
                 } label: {
-                    Text(tab == .recent ? "Recent" : "Forecasted")
-                        .font(isSelected
-                            ? YieldFonts.dmSans(10, weight: .semibold)
-                            : YieldFonts.dmSans(10, weight: .medium))
-                        .foregroundStyle(isSelected
-                            ? YieldColors.textPrimary
-                            : YieldColors.textSecondary)
+                    tabLabel(tab, isSelected: isSelected)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 3)
                         .frame(height: 20)
@@ -322,10 +321,39 @@ struct MenuBarContentView: View {
                             : Color(red: 0.141, green: 0.145, blue: 0.149))
                 }
                 .buttonStyle(.plain)
+                .help(tabHelp(tab))
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
         .frame(height: 22)
+    }
+
+    @ViewBuilder
+    private func tabLabel(_ tab: TimeComparisonViewModel.ProjectTab, isSelected: Bool) -> some View {
+        switch tab {
+        case .recent, .forecasted:
+            Text(tab == .recent ? "Recent" : "Forecasted")
+                .font(isSelected
+                    ? YieldFonts.dmSans(10, weight: .semibold)
+                    : YieldFonts.dmSans(10, weight: .medium))
+                .foregroundStyle(isSelected
+                    ? YieldColors.textPrimary
+                    : YieldColors.textSecondary)
+        case .chart:
+            Image(systemName: "chart.xyaxis.line")
+                .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
+                .foregroundStyle(isSelected
+                    ? YieldColors.textPrimary
+                    : YieldColors.textSecondary)
+        }
+    }
+
+    private func tabHelp(_ tab: TimeComparisonViewModel.ProjectTab) -> String {
+        switch tab {
+        case .recent: return "Projects with recent time entries"
+        case .forecasted: return "Projects booked in Forecast"
+        case .chart: return "Weekly time chart"
+        }
     }
 
     private var timerButton: some View {

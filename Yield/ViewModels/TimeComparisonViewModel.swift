@@ -56,7 +56,59 @@ final class TimeComparisonViewModel {
     var pausedState: PausedTimerState? = nil
 
     enum ProjectTab: String, CaseIterable {
-        case recent, forecasted
+        case recent, forecasted, chart
+    }
+
+    /// Per-project, per-day hours for the current week — used by the chart tab.
+    struct ChartPoint: Identifiable {
+        let id: String  // "\(projectId)-\(date)"
+        let projectId: Int
+        let projectName: String
+        let date: String       // YYYY-MM-DD
+        let dayLabel: String   // "Mon", "Tue"…
+        let hours: Double
+    }
+
+    /// Returns one point per (project, weekday) for every project that logged any
+    /// hours this week. Missing days get zero-hour points so lines span the full
+    /// Mon–Sun axis.
+    var chartSeries: [ChartPoint] {
+        let calendar = Calendar.current
+        let weekStart = DateHelpers.currentWeekBounds().start
+        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+        // Build week day strings once
+        var weekDays: [(date: String, label: String)] = []
+        for i in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: i, to: weekStart) else { continue }
+            weekDays.append((DateHelpers.dateFormatter.string(from: date), dayLabels[i]))
+        }
+
+        // Only include projects with logged time this week
+        let projectsWithTime = projectStatuses.filter { $0.loggedHours > 0 && $0.harvestProjectId != nil }
+
+        var points: [ChartPoint] = []
+        for project in projectsWithTime {
+            guard let pid = project.harvestProjectId else { continue }
+
+            // Aggregate project's entries by date
+            var hoursByDate: [String: Double] = [:]
+            for entry in project.timeEntries {
+                hoursByDate[entry.date, default: 0] += entry.hours
+            }
+
+            for day in weekDays {
+                points.append(ChartPoint(
+                    id: "\(pid)-\(day.date)",
+                    projectId: pid,
+                    projectName: project.projectName,
+                    date: day.date,
+                    dayLabel: day.label,
+                    hours: hoursByDate[day.date] ?? 0
+                ))
+            }
+        }
+        return points
     }
 
     struct PausedTimerState {
@@ -91,6 +143,8 @@ final class TimeComparisonViewModel {
             return projectStatuses
         case .forecasted:
             return projectStatuses.filter { $0.bookedHours > 0 }
+        case .chart:
+            return []  // chart tab renders its own view; list is hidden
         }
     }
 

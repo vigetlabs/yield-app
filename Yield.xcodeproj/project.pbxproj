@@ -12,6 +12,7 @@
 		12764D69F0D5F8224898949E /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BD4C5582428B3456F726D2 /* DesignTokens.swift */; };
 		1581C711C6C01278186D9AD1 /* YieldApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 138C505A4936EA5B2A5B16FD /* YieldApp.swift */; };
 		1777566CD97D2CB223E29E5D /* TimerBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0E8E50D8DEBFD70A32D925 /* TimerBannerView.swift */; };
+		232E3E8034BF33986F220DD0 /* ProjectChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */; };
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
 		428D5AEC2E6086C0999F9F7E /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */; };
 		539A827FDCADF80CA5457BFD /* DMSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */; };
@@ -60,6 +61,7 @@
 		9F394448517841A11132011C /* IdleAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertView.swift; sourceTree = "<group>"; };
 		9FE70177FE259AB1C37908F0 /* HarvestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestModels.swift; sourceTree = "<group>"; };
 		ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Italic.ttf"; sourceTree = "<group>"; };
+		B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectChartView.swift; sourceTree = "<group>"; };
 		B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastModels.swift; sourceTree = "<group>"; };
 		C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		C0FD7AEC1C89E1F04B5509F7 /* JetBrainsMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Regular.ttf"; sourceTree = "<group>"; };
@@ -161,6 +163,7 @@
 				9F394448517841A11132011C /* IdleAlertView.swift */,
 				C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */,
 				9128BE0471E69DB0E0878DA8 /* NewTimerFormView.swift */,
+				B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */,
 				78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */,
 				FF707BC7919EFF060031F5B9 /* SettingsView.swift */,
 				81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */,
@@ -299,6 +302,7 @@
 				7C1545B79A40F59B462C2BE3 /* MenuBarContentView.swift in Sources */,
 				C0BFE1EB7FE167CA2FBD34B4 /* NewTimerFormView.swift in Sources */,
 				6D46A5BB044C89897B4AB4D9 /* OAuthService.swift in Sources */,
+				232E3E8034BF33986F220DD0 /* ProjectChartView.swift in Sources */,
 				0A4CD72A293DB291F4C6F20D /* ProjectRowView.swift in Sources */,
 				CB09C6FE3EFC23724CEBE6BA /* ProjectStatus.swift in Sources */,
 				EE882AB59C60F5BAE74C3B8A /* SettingsView.swift in Sources */,
