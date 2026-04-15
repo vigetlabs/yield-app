@@ -17,11 +17,11 @@ struct ProjectChartView: View {
         }
         let n = max(projects.count, 1)
         let hue = Double(idx) / Double(n)
-        // Alternate sat/bright to give a second axis of variation, which helps
-        // neighbors in the stack feel even more distinct.
+        // Muted, dark-theme-friendly tones. Alternate sat/bright between two
+        // low-saturation levels so neighbors differ on a second axis.
         let even = idx.isMultiple(of: 2)
-        let sat: Double = even ? 0.80 : 0.60
-        let bright: Double = even ? 0.95 : 0.88
+        let sat: Double = even ? 0.50 : 0.35
+        let bright: Double = even ? 0.82 : 0.72
         return Color(hue: hue, saturation: sat, brightness: bright)
     }
 
