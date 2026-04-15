@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.7.6</title>
+      <sparkle:version>21</sparkle:version>
+      <sparkle:shortVersionString>0.9.7.6</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Start Timer with pre-filled hours now actually starts a running timer instead of logging a stopped entry</li>
+          <li>The entire visible dropdown area is clickable — no more dead strips in the padding</li>
+          <li>Client names in the project dropdown are no longer selectable; only projects underneath them are</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.7.6/Yield-0.9.7.6.zip"
+        sparkle:edSignature="fp0hWywTj7DXzbifZvfjJVh/+SfIY2f2z6NPQBgoqdoTVgpKnMsqJVU5cZnAKpg8FdoRuJPmfxQi4SArkzxFBg=="
+        length="2012913"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.7.5</title>
       <sparkle:version>20</sparkle:version>
       <sparkle:shortVersionString>0.9.7.5</sparkle:shortVersionString>
