@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.8.0</title>
+      <sparkle:version>22</sparkle:version>
+      <sparkle:shortVersionString>0.9.8.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>New <strong>weekly time chart</strong> tab in the header — stacked area chart showing each project's contribution to your daily totals across the week</li>
+          <li>Y-axis starts at 0–8h with a dashed 8h workday reference line, growing in 2h steps if you log a longer day</li>
+          <li>Colors are auto-computed to be maximally distinct for however many projects you have, tuned as muted tones for the dark theme</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.8.0/Yield-0.9.8.0.zip"
+        sparkle:edSignature="SZuo8iViqGvIrzmQIo4S1t8Q2gD5xo2r15qAYPn1WP2HaWAUlPck4s8C0d1yGVZo36FR3JEPzn33krRMa6DnBA=="
+        length="2059603"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.7.6</title>
       <sparkle:version>21</sparkle:version>
       <sparkle:shortVersionString>0.9.7.6</sparkle:shortVersionString>
