@@ -69,22 +69,18 @@ final class TimeComparisonViewModel {
         let hours: Double
     }
 
+    /// Day labels on the chart's X-axis. Always Mon–Fri; Sat/Sun are only
+    /// appended if someone logged time on those days.
+    var chartDays: [String] {
+        chartWeekDays().map(\.label)
+    }
+
     /// Returns one point per (project, weekday) for every project that logged any
-    /// hours this week. Missing days get zero-hour points so lines span the full
-    /// Mon–Sun axis.
+    /// hours this week. Weekend days are dropped unless time was logged on them,
+    /// so the chart defaults to Mon–Fri.
     var chartSeries: [ChartPoint] {
-        let calendar = Calendar.current
-        let weekStart = DateHelpers.currentWeekBounds().start
-        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let weekDays = chartWeekDays()
 
-        // Build week day strings once
-        var weekDays: [(date: String, label: String)] = []
-        for i in 0..<7 {
-            guard let date = calendar.date(byAdding: .day, value: i, to: weekStart) else { continue }
-            weekDays.append((DateHelpers.dateFormatter.string(from: date), dayLabels[i]))
-        }
-
-        // Only include projects with logged time this week
         let projectsWithTime = projectStatuses.filter { $0.loggedHours > 0 && $0.harvestProjectId != nil }
 
         var points: [ChartPoint] = []
@@ -109,6 +105,41 @@ final class TimeComparisonViewModel {
             }
         }
         return points
+    }
+
+    /// Days included on the chart. Mon–Fri always; Sat included if any hours
+    /// were logged Sat or Sun (so we don't leave a gap); Sun included if Sun
+    /// has any hours.
+    private func chartWeekDays() -> [(date: String, label: String)] {
+        let calendar = Calendar.current
+        let weekStart = DateHelpers.currentWeekBounds().start
+        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+        var allDays: [(date: String, label: String)] = []
+        for i in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: i, to: weekStart) else { continue }
+            allDays.append((DateHelpers.dateFormatter.string(from: date), dayLabels[i]))
+        }
+
+        // Sum every project's hours per day
+        var hoursByDate: [String: Double] = [:]
+        for project in projectStatuses {
+            for entry in project.timeEntries {
+                hoursByDate[entry.date, default: 0] += entry.hours
+            }
+        }
+
+        let satHours = hoursByDate[allDays[5].date] ?? 0
+        let sunHours = hoursByDate[allDays[6].date] ?? 0
+
+        var days = Array(allDays.prefix(5))  // Mon–Fri
+        if satHours > 0 || sunHours > 0 {
+            days.append(allDays[5])  // Sat — include if weekend was worked at all
+        }
+        if sunHours > 0 {
+            days.append(allDays[6])  // Sun
+        }
+        return days
     }
 
     struct PausedTimerState {

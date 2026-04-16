@@ -73,16 +73,39 @@ struct ProjectChartView: View {
         stride(from: 0, through: upper, by: 2).map { $0 }
     }
 
+    /// Anchor for X-axis day labels. Edge labels are anchored so they hang
+    /// inward from the tick (avoiding clipping at the plot boundary); middle
+    /// labels stay centered under their tick.
+    private static func xLabelAnchor(value: AxisValue, dayCount: Int) -> UnitPoint {
+        guard let d = value.as(Double.self),
+              let idx = Int(exactly: d.rounded())
+        else {
+            return .top
+        }
+        if idx == 0 { return .topLeading }
+        if idx == dayCount - 1 { return .topTrailing }
+        return .top
+    }
+
     @ViewBuilder
     private func chart(points: [TimeComparisonViewModel.ChartPoint]) -> some View {
         let upper = yMax(for: points)
 
         let projects = projectList
+        let days = viewModel.chartDays
+
+        // Use numeric x-values (day indices) rather than String categories so the
+        // first/last points land on the plot edges instead of being centered in a
+        // "band" that leaves half-a-band of gutter on each side.
+        let dayIndex: [String: Double] = Dictionary(
+            uniqueKeysWithValues: days.enumerated().map { ($1, Double($0)) }
+        )
+        let upperX = Double(max(days.count - 1, 1))
 
         Chart {
             ForEach(points) { point in
                 AreaMark(
-                    x: .value("Day", point.dayLabel),
+                    x: .value("Day", dayIndex[point.dayLabel] ?? 0),
                     y: .value("Hours", point.hours),
                     stacking: .standard
                 )
@@ -90,27 +113,34 @@ struct ProjectChartView: View {
                 .interpolationMethod(.monotone)
             }
 
-            // 8-hour reference line (a workday)
+            // 8-hour reference line (a workday). The label is rendered as a
+            // trailing Y-axis tick (below) so it sits outside the plot area to the
+            // right, mirroring how the leading tick labels sit outside on the left.
             RuleMark(y: .value("Target", 8))
                 .foregroundStyle(YieldColors.textSecondary.opacity(0.6))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                .annotation(position: .topTrailing, alignment: .trailing, spacing: 2) {
-                    Text("8h")
-                        .font(YieldFonts.dmSans(9, weight: .medium))
-                        .foregroundStyle(YieldColors.textSecondary)
-                }
         }
         .chartForegroundStyleScale(
             domain: projects.map(\.name),
             range: projects.map { color(for: $0.id) }
         )
         .chartYScale(domain: 0...upper)
+        .chartXScale(domain: 0...upperX)
         .chartLegend(.hidden)  // custom legend below
         .chartXAxis {
-            AxisMarks(values: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) { _ in
-                AxisValueLabel()
-                    .font(YieldFonts.dmSans(9, weight: .medium))
-                    .foregroundStyle(YieldColors.textSecondary)
+            AxisMarks(values: days.indices.map { Double($0) }) { value in
+                // Anchor the edge labels so they don't get clipped: the leftmost
+                // label hangs from the tick rightward, the rightmost hangs
+                // leftward, and middle labels stay centered under their tick.
+                AxisValueLabel(anchor: Self.xLabelAnchor(value: value, dayCount: days.count)) {
+                    if let d = value.as(Double.self),
+                       let idx = Int(exactly: d.rounded()),
+                       idx >= 0, idx < days.count {
+                        Text(days[idx])
+                            .font(YieldFonts.dmSans(9, weight: .medium))
+                            .foregroundStyle(YieldColors.textSecondary)
+                    }
+                }
                 AxisGridLine()
                     .foregroundStyle(YieldColors.border)
             }
@@ -126,6 +156,16 @@ struct ProjectChartView: View {
                 }
                 AxisGridLine()
                     .foregroundStyle(YieldColors.border)
+            }
+            // Trailing-axis "8h" label for the workday reference rule — sits in
+            // the right-side axis gutter, outside the plot, mirroring the leading
+            // tick labels on the left.
+            AxisMarks(position: .trailing, values: [8]) { _ in
+                AxisValueLabel {
+                    Text("8h")
+                        .font(YieldFonts.dmSans(9, weight: .medium))
+                        .foregroundStyle(YieldColors.textSecondary)
+                }
             }
         }
     }
