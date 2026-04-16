@@ -6,6 +6,11 @@ import SwiftUI
 struct ProjectChartView: View {
     let viewModel: TimeComparisonViewModel
 
+    /// When non-nil, the chart shows only this project's data and dims the
+    /// other rows in the legend. Click a legend row to isolate; click the same
+    /// row again to reset back to "all."
+    @State private var isolatedProjectId: Int?
+
     /// Assign colors by dividing the color wheel into N equal slices (where N is
     /// the number of projects in the chart). Every pair of projects ends up the
     /// same 360°/N apart — maximum possible separation. Sat/bright alternates so
@@ -42,18 +47,53 @@ struct ProjectChartView: View {
         return out.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    var body: some View {
-        let points = viewModel.chartSeries
-        let projects = projectList
+    /// Returns the active isolation id (or nil if nothing is isolated, or the
+    /// isolated project no longer has data this week).
+    private func activeIsolation(projects: [ProjectRef]) -> Int? {
+        guard let id = isolatedProjectId,
+              projects.contains(where: { $0.id == id })
+        else { return nil }
+        return id
+    }
 
-        if points.isEmpty {
+    /// Chart points with non-isolated projects' hours zeroed out. Returning the
+    /// full dataset (rather than filtering) keeps every ChartPoint's id stable
+    /// across isolation toggles, so Swift Charts can smoothly animate the
+    /// non-isolated areas collapsing to zero and the Y-axis rescaling, instead
+    /// of unmounting/remounting marks abruptly.
+    private func visiblePoints(
+        allPoints: [TimeComparisonViewModel.ChartPoint],
+        isolatedId: Int?
+    ) -> [TimeComparisonViewModel.ChartPoint] {
+        guard let id = isolatedId else { return allPoints }
+        return allPoints.map { point in
+            point.projectId == id
+                ? point
+                : TimeComparisonViewModel.ChartPoint(
+                    id: point.id,
+                    projectId: point.projectId,
+                    projectName: point.projectName,
+                    date: point.date,
+                    dayLabel: point.dayLabel,
+                    hours: 0
+                )
+        }
+    }
+
+    var body: some View {
+        let allPoints = viewModel.chartSeries
+        let projects = projectList
+        let isolated = activeIsolation(projects: projects)
+        let points = visiblePoints(allPoints: allPoints, isolatedId: isolated)
+
+        if allPoints.isEmpty {
             emptyState
         } else {
             VStack(alignment: .leading, spacing: 12) {
                 chart(points: points)
                     .frame(height: 200)
 
-                legend(projects: projects)
+                legend(projects: projects, isolatedId: isolated)
             }
             .padding(16)
         }
@@ -89,7 +129,11 @@ struct ProjectChartView: View {
 
     @ViewBuilder
     private func chart(points: [TimeComparisonViewModel.ChartPoint]) -> some View {
-        let upper = yMax(for: points)
+        // Use the full (unfiltered) series to set the Y-axis upper bound so the
+        // chart's vertical scale stays constant when a project is isolated —
+        // otherwise zeroed-out non-isolated points shrink the total per-day
+        // peak and the axis rescales downward.
+        let upper = yMax(for: viewModel.chartSeries)
 
         let projects = projectList
         let days = viewModel.chartDays
@@ -168,23 +212,41 @@ struct ProjectChartView: View {
                 }
             }
         }
+        // Explicit animation hook so Swift Charts interpolates its internal
+        // layout (y-axis rescale, mark shapes) when the isolation toggles.
+        .animation(.easeInOut(duration: 0.25), value: isolatedProjectId)
     }
 
-    private func legend(projects: [ProjectRef]) -> some View {
+    private func legend(projects: [ProjectRef], isolatedId: Int?) -> some View {
         // Two-column flow so long project lists don't overflow the panel width.
+        // Clicking a row isolates that project; clicking the already-isolated
+        // row toggles back to "all" — no separate reset button needed.
         let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
         return LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
             ForEach(projects) { project in
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(color(for: project.id))
-                        .frame(width: 7, height: 7)
-                    Text(project.name)
-                        .font(YieldFonts.dmSans(10))
-                        .foregroundStyle(YieldColors.textPrimary)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        if isolatedProjectId == project.id {
+                            isolatedProjectId = nil  // toggle off
+                        } else {
+                            isolatedProjectId = project.id
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(color(for: project.id))
+                            .frame(width: 7, height: 7)
+                        Text(project.name)
+                            .font(YieldFonts.dmSans(10))
+                            .foregroundStyle(YieldColors.textPrimary)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .opacity(isolatedId == nil || isolatedId == project.id ? 1.0 : 0.35)
             }
         }
     }
