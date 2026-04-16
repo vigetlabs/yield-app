@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.8.1</title>
+      <sparkle:version>23</sparkle:version>
+      <sparkle:shortVersionString>0.9.8.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Click a project in the chart legend to isolate it</strong> — the chart dims the other projects so you can focus on just one. Click it again to return to the full stack.</li>
+          <li>Chart defaults to Mon–Fri and only extends into Sat/Sun when time was tracked on those days</li>
+          <li>Chart now runs edge-to-edge within its panel (no more wasted horizontal padding at the Mon/Sun edges)</li>
+          <li>Y-axis stays pinned to the week's true peak when isolating, so the chart doesn't visually shrink</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.8.1/Yield-0.9.8.1.zip"
+        sparkle:edSignature="xBOyYWEnDnQ+AIBxuvwQQTeedXF6/uRXZ309JaF1eJDetGve8KYp8BmMDXde8vNBF8smvsBVtyyJsIosS1V4BA=="
+        length="2069228"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.8.0</title>
       <sparkle:version>22</sparkle:version>
       <sparkle:shortVersionString>0.9.8.0</sparkle:shortVersionString>
