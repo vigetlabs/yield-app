@@ -202,7 +202,16 @@ final class TimeComparisonViewModel {
     private var refreshTimer: Timer?
     private var activeRefreshTask: Task<Void, Never>?
     private var elapsedTimer: Timer?
+    /// Projects we've already notified (or explicitly suppressed) for the
+    /// current week. Sticky across timer stop/start cycles — only cleared on
+    /// week rollover (see `notifiedWeekStart`). Prevents duplicate "Time's up!"
+    /// alerts when a user starts, stops, or restarts a timer on a project that
+    /// is already over budget.
     private var notifiedProjectIds: Set<String> = []
+    /// Week-start date associated with the current `notifiedProjectIds`.
+    /// When the user crosses into a new week we reset the set so fresh budget
+    /// notifications can fire again.
+    private var notifiedWeekStart: Date?
     private var idleNotificationSent: Bool = false
 
     // Cached state from last hard refresh — used by softRefresh() to avoid
@@ -1120,10 +1129,14 @@ final class TimeComparisonViewModel {
             weekLabel = DateHelpers.formattedWeekRange()
             lastUpdated = Date()
 
-            // Reset elapsed counter — API data is fresh
-            // Remove notifications only for projects no longer being tracked
-            notifiedProjectIds = notifiedProjectIds.filter { id in
-                statuses.contains { $0.id == id && $0.isTracking }
+            // Reset budget-notification state on week rollover. Within a week
+            // the set is sticky so stopping/restarting a timer on an already-
+            // over project doesn't re-fire the notification. The previous
+            // behavior dropped IDs for any non-tracking project and caused
+            // exactly that bug.
+            if notifiedWeekStart != weekBounds.start {
+                notifiedProjectIds.removeAll()
+                notifiedWeekStart = weekBounds.start
             }
             if statuses.contains(where: { $0.isTracking }) {
                 startElapsedTimer()
