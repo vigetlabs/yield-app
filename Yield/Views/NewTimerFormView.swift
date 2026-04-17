@@ -52,14 +52,15 @@ struct NewTimerFormView: View {
         selectedProjectId != nil && selectedTaskId != nil && !isStarting && !isLogging
     }
 
-    /// Today's existing entries for the currently selected project.
+    /// Today's existing entries for the currently selected project and task.
     private var existingTodayEntries: [TimeEntryInfo] {
-        guard let projectId = selectedProjectId else { return [] }
+        guard let projectId = selectedProjectId,
+              let taskId = selectedTaskId else { return [] }
         let todayString = DateHelpers.dateFormatter.string(from: Date())
         guard let project = viewModel.projectStatuses.first(where: {
             $0.harvestProjectId == projectId
         }) else { return [] }
-        return project.timeEntries.filter { $0.date == todayString }
+        return project.timeEntries.filter { $0.date == todayString && $0.taskId == taskId }
     }
 
     private var canLog: Bool {
@@ -153,7 +154,7 @@ struct NewTimerFormView: View {
                     .opacity(canStart && !isSaving ? 1 : 0.5)
                 } else if isSpentDateToday {
                     Button {
-                        requestStartTimer()
+                        Task { await startTimer() }
                     } label: {
                         Text("Start Timer")
                     }
@@ -257,7 +258,7 @@ struct NewTimerFormView: View {
             selectedId: selectedTaskId,
             isDisabled: selectedProjectId == nil
         ) { id in
-            selectedTaskId = id
+            selectTask(id)
         }
         .opacity(selectedProjectId == nil ? 0.5 : 1)
     }
@@ -280,26 +281,20 @@ struct NewTimerFormView: View {
         duplicateConfirmEntries = nil
         availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
         if availableTasks.count == 1 {
-            selectedTaskId = availableTasks.first?.id
+            selectTask(availableTasks.first!.id)
+        }
+    }
+
+    private func selectTask(_ taskId: Int) {
+        selectedTaskId = taskId
+        let existing = existingTodayEntries
+        withAnimation(.easeInOut(duration: 0.15)) {
+            duplicateConfirmEntries = existing.isEmpty ? nil : existing
         }
     }
 
     private var enteredHours: Double {
         Double(timeHours) + Double(timeMinutes) / 60.0
-    }
-
-    /// Check for existing today entries before starting a timer. If the
-    /// selected project already has time logged today, show a confirmation
-    /// so the user can choose to resume the existing entry instead.
-    private func requestStartTimer() {
-        let existing = existingTodayEntries
-        if existing.isEmpty {
-            Task { await startTimer() }
-        } else {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                duplicateConfirmEntries = existing
-            }
-        }
     }
 
     private func startTimer() async {
@@ -353,13 +348,15 @@ struct NewTimerFormView: View {
     private func duplicateConfirmBanner(entries: [TimeEntryInfo]) -> some View {
         let totalHours = entries.reduce(0.0) { $0 + $1.hours }
         let projectName = selectedProject?.projectName ?? "This project"
+        let taskName = entries.first?.taskName ?? "this task"
         let hasRunning = entries.contains(where: { $0.isRunning })
         let h = Int(totalHours)
         let m = Int((totalHours - Double(h)) * 60)
         let timeStr = "\(h)h \(String(format: "%02d", m))m"
+        let label = "\(projectName) / \(taskName)"
         let message = hasRunning
-            ? "\(projectName) has a timer running (\(timeStr) today)."
-            : "\(projectName) already has \(timeStr) logged today."
+            ? "\(label) has a timer running (\(timeStr) today)."
+            : "\(label) already has \(timeStr) logged today."
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
@@ -391,7 +388,9 @@ struct NewTimerFormView: View {
                 }
 
                 Button {
-                    Task { await startTimer() }
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        duplicateConfirmEntries = nil
+                    }
                 } label: {
                     Text("New entry")
                 }
@@ -415,7 +414,7 @@ struct NewTimerFormView: View {
         )
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
-        .transition(.opacity.combined(with: .move(edge: .bottom)))
+        .transition(.opacity)
     }
 }
 
