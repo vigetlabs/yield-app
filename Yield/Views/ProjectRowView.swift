@@ -16,7 +16,6 @@ struct ProjectRowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Project header row
             projectHeader
                 .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
                 .contentShape(Rectangle())
@@ -38,8 +37,10 @@ struct ProjectRowView: View {
                     .disabled(isHarvestDown)
                 }
 
-            // Expanded time entries
-            if isExpanded {
+            // Accordion drawer: entries are always in the view tree but their
+            // container height animates between 0 and natural. clipped() hides
+            // overflow so they're revealed top-to-bottom as the height grows.
+            VStack(spacing: 0) {
                 ForEach(project.timeEntries) { entry in
                     TaskEntryRowView(entry: entry, isHarvestDown: isHarvestDown, onToggleTimer: {
                         onToggleEntryTimer?(entry.id, entry.isRunning)
@@ -49,8 +50,9 @@ struct ProjectRowView: View {
                         onDeleteEntry?(entry)
                     })
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
+            .frame(maxHeight: isExpanded ? .infinity : 0, alignment: .top)
+            .clipped()
         }
         .overlay(alignment: .bottom) {
             Rectangle()

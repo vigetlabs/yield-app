@@ -110,8 +110,11 @@ struct MenuBarContentView: View {
                     .padding(.vertical, 8)
             }
 
-            // Hide the timer banner on the chart tab — the chart is the focus there.
-            if viewModel.selectedTab != .chart {
+            // Timer banner / inactive slot — kept in the view tree so timer
+            // start/stop transitions play normally. On the chart tab the
+            // container collapses to zero height instead of removing the view
+            // (which would trigger the removal transition during tab switch).
+            VStack(spacing: 0) {
                 if viewModel.isTimerBannerVisible {
                     TimerBannerView(
                         viewModel: viewModel,
@@ -146,6 +149,8 @@ struct MenuBarContentView: View {
                         }
                 }
             }
+            .frame(maxHeight: viewModel.selectedTab != .chart ? .infinity : 0, alignment: .top)
+            .clipped()
 
             if viewModel.selectedTab == .chart {
                 ProjectChartView(viewModel: viewModel)
