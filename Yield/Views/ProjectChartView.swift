@@ -1,3 +1,4 @@
+import AppKit
 import Charts
 import SwiftUI
 
@@ -90,8 +91,25 @@ struct ProjectChartView: View {
             emptyState
         } else {
             VStack(alignment: .leading, spacing: 12) {
-                chart(points: points)
-                    .frame(height: 200)
+                ZStack(alignment: .topTrailing) {
+                    chart(points: points)
+                        .frame(height: 200)
+
+                    Button {
+                        exportChartAsPNG(
+                            allPoints: allPoints,
+                            projects: projects
+                        )
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(YieldColors.textSecondary)
+                            .frame(width: 20, height: 20)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Save chart as PNG")
+                }
 
                 legend(projects: projects, isolatedId: isolated)
             }
@@ -269,5 +287,135 @@ struct ProjectChartView: View {
             return "\(Int(hours))h"
         }
         return String(format: "%.1fh", hours)
+    }
+
+    // MARK: - PNG Export
+
+    /// Builds a standalone version of the chart suitable for ImageRenderer.
+    /// Explicit dark background, week title, and wider layout for a clean PNG.
+    private func exportableView(
+        allPoints: [TimeComparisonViewModel.ChartPoint],
+        projects: [ProjectRef]
+    ) -> some View {
+        let upper = yMax(for: allPoints)
+        let days = viewModel.chartDays
+        let dayIndex: [String: Double] = Dictionary(
+            uniqueKeysWithValues: days.enumerated().map { ($1, Double($0)) }
+        )
+        let upperX = Double(max(days.count - 1, 1))
+
+        return VStack(alignment: .leading, spacing: 16) {
+            // Week title
+            Text(viewModel.weekLabel)
+                .font(YieldFonts.newsreader(16))
+                .foregroundStyle(YieldColors.textPrimary)
+
+            // Chart
+            Chart {
+                ForEach(allPoints) { point in
+                    AreaMark(
+                        x: .value("Day", dayIndex[point.dayLabel] ?? 0),
+                        y: .value("Hours", point.hours),
+                        stacking: .standard
+                    )
+                    .foregroundStyle(by: .value("Project", point.projectName))
+                    .interpolationMethod(.monotone)
+                }
+
+                RuleMark(y: .value("Target", 8))
+                    .foregroundStyle(Color.white.opacity(0.4))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            }
+            .chartForegroundStyleScale(
+                domain: projects.map(\.name),
+                range: projects.map { color(for: $0.id) }
+            )
+            .chartYScale(domain: 0...upper)
+            .chartXScale(domain: 0...upperX)
+            .chartLegend(.hidden)
+            .chartXAxis {
+                AxisMarks(values: days.indices.map { Double($0) }) { value in
+                    AxisValueLabel(anchor: Self.xLabelAnchor(value: value, dayCount: days.count)) {
+                        if let d = value.as(Double.self),
+                           let idx = Int(exactly: d.rounded()),
+                           idx >= 0, idx < days.count {
+                            Text(days[idx])
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(Color.white.opacity(0.7))
+                        }
+                    }
+                    AxisGridLine()
+                        .foregroundStyle(Color.white.opacity(0.1))
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: yTicks(upTo: upper)) { value in
+                    AxisValueLabel {
+                        if let h = value.as(Double.self) {
+                            Text(formatHours(h))
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(Color.white.opacity(0.7))
+                        }
+                    }
+                    AxisGridLine()
+                        .foregroundStyle(Color.white.opacity(0.1))
+                }
+                AxisMarks(position: .trailing, values: [8]) { _ in
+                    AxisValueLabel {
+                        Text("8h")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.7))
+                    }
+                }
+            }
+            .frame(width: 560, height: 260)
+
+            // Legend
+            let columns = [
+                GridItem(.flexible(), spacing: 16),
+                GridItem(.flexible(), spacing: 16)
+            ]
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                ForEach(projects) { project in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(color(for: project.id))
+                            .frame(width: 8, height: 8)
+                        Text(project.name)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.white)
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+        .padding(24)
+        .background(Color(red: 0.102, green: 0.106, blue: 0.110))  // YieldColors.background
+    }
+
+    @MainActor
+    private func exportChartAsPNG(
+        allPoints: [TimeComparisonViewModel.ChartPoint],
+        projects: [ProjectRef]
+    ) {
+        let view = exportableView(allPoints: allPoints, projects: projects)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2.0  // Retina
+
+        guard let cgImage = renderer.cgImage else { return }
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png]
+        panel.nameFieldStringValue = "yield-chart-\(DateHelpers.weekDateStrings().start).png"
+        panel.canCreateDirectories = true
+
+        panel.begin { result in
+            guard result == .OK, let url = panel.url else { return }
+            guard let destination = CGImageDestinationCreateWithURL(
+                url as CFURL, "public.png" as CFString, 1, nil
+            ) else { return }
+            CGImageDestinationAddImage(destination, cgImage, nil)
+            CGImageDestinationFinalize(destination)
+        }
     }
 }
