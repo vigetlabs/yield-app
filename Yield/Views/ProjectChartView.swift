@@ -16,8 +16,7 @@ struct ProjectChartView: View {
     /// the number of projects in the chart). Every pair of projects ends up the
     /// same 360°/N apart — maximum possible separation. Sat/bright alternates so
     /// even a small N has brightness variation too.
-    private func color(for projectId: Int) -> Color {
-        let projects = projectList
+    private func color(for projectId: Int, in projects: [ProjectRef]) -> Color {
         guard let idx = projects.firstIndex(where: { $0.id == projectId }) else {
             return YieldColors.greenAccent  // shouldn't happen
         }
@@ -92,7 +91,7 @@ struct ProjectChartView: View {
         } else {
             VStack(alignment: .leading, spacing: 12) {
                 ZStack(alignment: .topTrailing) {
-                    chart(points: points)
+                    chart(points: points, allPoints: allPoints, projects: projects)
                         .frame(height: 200)
 
                     Button {
@@ -146,14 +145,16 @@ struct ProjectChartView: View {
     }
 
     @ViewBuilder
-    private func chart(points: [TimeComparisonViewModel.ChartPoint]) -> some View {
+    private func chart(
+        points: [TimeComparisonViewModel.ChartPoint],
+        allPoints: [TimeComparisonViewModel.ChartPoint],
+        projects: [ProjectRef]
+    ) -> some View {
         // Use the full (unfiltered) series to set the Y-axis upper bound so the
         // chart's vertical scale stays constant when a project is isolated —
         // otherwise zeroed-out non-isolated points shrink the total per-day
         // peak and the axis rescales downward.
-        let upper = yMax(for: viewModel.chartSeries)
-
-        let projects = projectList
+        let upper = yMax(for: allPoints)
         let days = viewModel.chartDays
 
         // Use numeric x-values (day indices) rather than String categories so the
@@ -184,7 +185,7 @@ struct ProjectChartView: View {
         }
         .chartForegroundStyleScale(
             domain: projects.map(\.name),
-            range: projects.map { color(for: $0.id) }
+            range: projects.map { color(for: $0.id, in: projects) }
         )
         .chartYScale(domain: 0...upper)
         .chartXScale(domain: 0...upperX)
@@ -253,7 +254,7 @@ struct ProjectChartView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(color(for: project.id))
+                            .fill(color(for: project.id, in: projects))
                             .frame(width: 7, height: 7)
                         Text(project.name)
                             .font(YieldFonts.dmSans(10))
@@ -328,7 +329,7 @@ struct ProjectChartView: View {
             }
             .chartForegroundStyleScale(
                 domain: projects.map(\.name),
-                range: projects.map { color(for: $0.id) }
+                range: projects.map { color(for: $0.id, in: projects) }
             )
             .chartYScale(domain: 0...upper)
             .chartXScale(domain: 0...upperX)
@@ -379,7 +380,7 @@ struct ProjectChartView: View {
                 ForEach(projects) { project in
                     HStack(spacing: 8) {
                         Circle()
-                            .fill(color(for: project.id))
+                            .fill(color(for: project.id, in: projects))
                             .frame(width: 8, height: 8)
                         Text(project.name)
                             .font(.system(size: 12))
@@ -390,7 +391,7 @@ struct ProjectChartView: View {
             }
         }
         .padding(24)
-        .background(Color(red: 0.102, green: 0.106, blue: 0.110))  // YieldColors.background
+        .background(YieldColors.background)
     }
 
     @MainActor

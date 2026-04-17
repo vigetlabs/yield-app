@@ -204,15 +204,16 @@ final class TimeComparisonViewModel {
     private var elapsedTimer: Timer?
     /// Projects we've already notified (or explicitly suppressed) for the
     /// current week. Sticky across timer stop/start cycles — only cleared on
-    /// week rollover (see `notifiedWeekStart`). Prevents duplicate "Time's up!"
+    /// week rollover (see `currentWeekStart`). Prevents duplicate "Time's up!"
     /// alerts when a user starts, stops, or restarts a timer on a project that
     /// is already over budget.
     private var notifiedProjectIds: Set<String> = []
-    /// Week-start date associated with the current `notifiedProjectIds`.
-    /// When the user crosses into a new week we reset the set so fresh budget
-    /// notifications can fire again.
-    private var notifiedWeekStart: Date?
     private var idleNotificationSent: Bool = false
+
+    /// Week-start date (Monday) for both the soft-refresh cache and the
+    /// notification suppression set. When the week rolls over we clear both
+    /// so stale data doesn't leak across weeks.
+    private var currentWeekStart: Date?
 
     // Cached state from last hard refresh — used by softRefresh() to avoid
     // re-fetching Forecast data and non-today Harvest entries every minute.
@@ -922,6 +923,7 @@ final class TimeComparisonViewModel {
 
             // Cache everything needed for a future soft refresh
             cachedHarvestUserId = user.id
+            currentWeekStart = weekBounds.start
             cachedWeekEntries = entries
             cachedForecastBookings = bookedByForecastProject
             cachedProjectMap = projectMap
@@ -1134,9 +1136,9 @@ final class TimeComparisonViewModel {
             // over project doesn't re-fire the notification. The previous
             // behavior dropped IDs for any non-tracking project and caused
             // exactly that bug.
-            if notifiedWeekStart != weekBounds.start {
+            if currentWeekStart != weekBounds.start {
                 notifiedProjectIds.removeAll()
-                notifiedWeekStart = weekBounds.start
+                currentWeekStart = weekBounds.start
             }
             if statuses.contains(where: { $0.isTracking }) {
                 startElapsedTimer()
@@ -1153,8 +1155,13 @@ final class TimeComparisonViewModel {
     func softRefresh() async {
         guard isConfigured else { return }
 
-        // If we haven't done a hard refresh yet, do one instead
-        guard let userId = cachedHarvestUserId, !cachedForecastBookings.isEmpty else {
+        // If we haven't done a hard refresh yet, or the week rolled over since
+        // the cache was built, fall back to a full refresh so we don't mix
+        // stale forecast bookings / old-week entries with the new week's data.
+        guard let userId = cachedHarvestUserId,
+              !cachedForecastBookings.isEmpty,
+              currentWeekStart == DateHelpers.currentWeekBounds().start
+        else {
             await refresh()
             return
         }

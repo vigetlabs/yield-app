@@ -74,8 +74,12 @@ final class APIClient {
         queryItems: [URLQueryItem]? = nil,
         body: [String: Any]? = nil
     ) async throws -> T {
-        let token = try await tokenProvider()
-        return try await performRequest(endpoint, method: method, queryItems: queryItems, body: body, token: token)
+        let (data, _) = try await execute(endpoint, method: method, queryItems: queryItems, body: body)
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            throw APIError.decodingError(error)
+        }
     }
 
     /// Fire-and-forget request that discards the response body (e.g. DELETE)
@@ -85,51 +89,18 @@ final class APIClient {
         queryItems: [URLQueryItem]? = nil,
         body: [String: Any]? = nil
     ) async throws {
-        let token = try await tokenProvider()
-        guard var components = URLComponents(string: baseURL + endpoint) else {
-            throw APIError.noData
-        }
-        components.queryItems = queryItems
-
-        guard let url = components.url else {
-            throw APIError.noData
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue(accountId, forHTTPHeaderField: accountHeader)
-        request.setValue("Yield (menubar)", forHTTPHeaderField: "User-Agent")
-
-        if let body {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        }
-
-        let (_, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.noData
-        }
-
-        switch httpResponse.statusCode {
-        case 200...299:
-            break
-        case 401, 403:
-            throw APIError.unauthorized
-        case 429:
-            throw APIError.rateLimited
-        default:
-            throw APIError.serverError(httpResponse.statusCode)
-        }
+        _ = try await execute(endpoint, method: method, queryItems: queryItems, body: body)
     }
 
-    private func performRequest<T: Decodable>(
+    /// Shared request pipeline: build URL, set headers, send, check status.
+    private func execute(
         _ endpoint: String,
         method: String,
         queryItems: [URLQueryItem]?,
-        body: [String: Any]?,
-        token: String
-    ) async throws -> T {
+        body: [String: Any]?
+    ) async throws -> (Data, HTTPURLResponse) {
+        let token = try await tokenProvider()
+
         guard var components = URLComponents(string: baseURL + endpoint) else {
             throw APIError.noData
         }
@@ -138,6 +109,7 @@ final class APIClient {
         guard let url = components.url else {
             throw APIError.noData
         }
+
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -166,10 +138,6 @@ final class APIClient {
             throw APIError.serverError(httpResponse.statusCode)
         }
 
-        do {
-            return try decoder.decode(T.self, from: data)
-        } catch {
-            throw APIError.decodingError(error)
-        }
+        return (data, httpResponse)
     }
 }
