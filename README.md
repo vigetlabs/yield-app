@@ -23,7 +23,7 @@ Unzip, drag Yield to your Applications folder, and launch. It'll take root in yo
 - 💤 **Idle detection** — Alerts you when you've been idle, with options to continue, stop, or keep the time.
 - 🔔 **Booked-hours notifications** — Get a nudge when you hit your target on a project so you know when to move on.
 - 📂 **Recent & Forecasted views** — Toggle between projects with recent time entries and upcoming projects booked in Forecast.
-- 🔄 **Auto-refresh** — Data refreshes every 5 minutes. Active timers tick locally so numbers always feel current.
+- 🔄 **Auto-refresh** — Lightweight refresh every minute picks up timer changes; full refresh on menu open syncs Forecast data. Active timers tick locally so numbers always feel current.
 - 🚀 **Automatic updates** — Checks for new versions daily and prompts you to install them.
 
 ## 🚜 Getting started
