@@ -423,11 +423,19 @@ final class TimeComparisonViewModel {
         let idleMinutes = UserDefaults.standard.integer(forKey: "idleMinutes")
         let thresholdSeconds = Double(max(idleMinutes, 1)) * 60.0
 
-        // Get system-wide idle time (seconds since last keyboard/mouse/trackpad event)
-        let idleSeconds = CGEventSource.secondsSinceLastEventType(
-            .combinedSessionState,
-            eventType: CGEventType(rawValue: ~0) ?? .mouseMoved
-        )
+        // Get system-wide idle time — shortest idle across major input types.
+        // CGEventType(rawValue: ~0) (kCGAnyInputEventType) returns nil in
+        // Swift because the enum has no case for that raw value, so we check
+        // each input family individually and take the minimum (most recent).
+        let idleSeconds: TimeInterval = [
+            CGEventType.mouseMoved,
+            CGEventType.leftMouseDown,
+            CGEventType.rightMouseDown,
+            CGEventType.keyDown,
+            CGEventType.scrollWheel,
+        ].map {
+            CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: $0)
+        }.min() ?? 0
 
         if idleSeconds >= thresholdSeconds {
             if !idleNotificationSent {
