@@ -19,6 +19,7 @@ struct NewTimerFormView: View {
     @State private var isLogging = false
     @State private var isSaving = false
     @State private var spentDate: Date = Date()
+    @State private var duplicateConfirmEntries: [TimeEntryInfo]?
 
     init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -49,6 +50,16 @@ struct NewTimerFormView: View {
 
     private var canStart: Bool {
         selectedProjectId != nil && selectedTaskId != nil && !isStarting && !isLogging
+    }
+
+    /// Today's existing entries for the currently selected project.
+    private var existingTodayEntries: [TimeEntryInfo] {
+        guard let projectId = selectedProjectId else { return [] }
+        let todayString = DateHelpers.dateFormatter.string(from: Date())
+        guard let project = viewModel.projectStatuses.first(where: {
+            $0.harvestProjectId == projectId
+        }) else { return [] }
+        return project.timeEntries.filter { $0.date == todayString }
     }
 
     private var canLog: Bool {
@@ -124,6 +135,11 @@ struct NewTimerFormView: View {
             }
             .padding(16)
 
+            // Duplicate timer confirmation
+            if let entries = duplicateConfirmEntries {
+                duplicateConfirmBanner(entries: entries)
+            }
+
             // Actions
             HStack(spacing: 8) {
                 if isEditing {
@@ -137,13 +153,13 @@ struct NewTimerFormView: View {
                     .opacity(canStart && !isSaving ? 1 : 0.5)
                 } else if isSpentDateToday {
                     Button {
-                        Task { await startTimer() }
+                        requestStartTimer()
                     } label: {
                         Text("Start Timer")
                     }
                     .buttonStyle(.greenOutlined)
-                    .disabled(!canStart)
-                    .opacity(canStart ? 1 : 0.5)
+                    .disabled(!canStart || duplicateConfirmEntries != nil)
+                    .opacity(canStart && duplicateConfirmEntries == nil ? 1 : 0.5)
                 }
 
                 Button("Cancel") {
@@ -261,6 +277,7 @@ struct NewTimerFormView: View {
     private func selectProject(_ project: TimeComparisonViewModel.TimerProjectOption) {
         selectedProjectId = project.harvestProjectId
         selectedTaskId = nil
+        duplicateConfirmEntries = nil
         availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
         if availableTasks.count == 1 {
             selectedTaskId = availableTasks.first?.id
@@ -269,6 +286,20 @@ struct NewTimerFormView: View {
 
     private var enteredHours: Double {
         Double(timeHours) + Double(timeMinutes) / 60.0
+    }
+
+    /// Check for existing today entries before starting a timer. If the
+    /// selected project already has time logged today, show a confirmation
+    /// so the user can choose to resume the existing entry instead.
+    private func requestStartTimer() {
+        let existing = existingTodayEntries
+        if existing.isEmpty {
+            Task { await startTimer() }
+        } else {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                duplicateConfirmEntries = existing
+            }
+        }
     }
 
     private func startTimer() async {
@@ -315,6 +346,76 @@ struct NewTimerFormView: View {
         )
         isSaving = false
         onDismiss()
+    }
+
+    // MARK: - Duplicate Confirmation
+
+    private func duplicateConfirmBanner(entries: [TimeEntryInfo]) -> some View {
+        let totalHours = entries.reduce(0.0) { $0 + $1.hours }
+        let projectName = selectedProject?.projectName ?? "This project"
+        let hasRunning = entries.contains(where: { $0.isRunning })
+        let h = Int(totalHours)
+        let m = Int((totalHours - Double(h)) * 60)
+        let timeStr = "\(h)h \(String(format: "%02d", m))m"
+        let message = hasRunning
+            ? "\(projectName) has a timer running (\(timeStr) today)."
+            : "\(projectName) already has \(timeStr) logged today."
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(YieldColors.yellowAccent)
+                Text(message)
+                    .font(YieldFonts.dmSans(11))
+                    .foregroundStyle(YieldColors.textPrimary)
+                    .lineLimit(2)
+            }
+
+            HStack(spacing: 8) {
+                // Resume the most recent entry — only when no timer is already running
+                if !hasRunning {
+                    Button {
+                        let mostRecent = entries.max(by: { ($0.id) < ($1.id) })
+                        guard let entryId = mostRecent?.id else { return }
+                        Task {
+                            isStarting = true
+                            await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false)
+                            isStarting = false
+                            onDismiss()
+                        }
+                    } label: {
+                        Text("Resume existing")
+                    }
+                    .buttonStyle(.greenOutlined)
+                }
+
+                Button {
+                    Task { await startTimer() }
+                } label: {
+                    Text("New entry")
+                }
+                .buttonStyle(.yieldBordered)
+
+                Button {
+                    onDismiss()
+                } label: {
+                    Text("Cancel")
+                }
+                .buttonStyle(.yieldBordered)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(YieldColors.yellowFaint)
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
+        .overlay(
+            RoundedRectangle(cornerRadius: YieldRadius.dropdown)
+                .strokeBorder(YieldColors.yellowAccent.opacity(0.3), lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 }
 
