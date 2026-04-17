@@ -3,6 +3,27 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.8.2</title>
+      <sparkle:version>24</sparkle:version>
+      <sparkle:shortVersionString>0.9.8.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Duplicate timer guard</strong> — when starting a timer on a project + task that already has time logged today, a confirmation banner lets you resume the existing entry or create a new one</li>
+          <li><strong>PNG chart export</strong> — save your weekly time chart as a PNG image via the download button in the chart header</li>
+          <li><strong>Smoother animations</strong> — project task lists expand with an accordion drawer instead of fading in; timer banner no longer flashes when switching to the chart tab</li>
+          <li><strong>Fixed idle detection</strong> — now tracks keyboard, clicks, and scroll activity (previously only tracked mouse movement due to a Swift enum bridging bug)</li>
+          <li>Fixed duplicate over-budget notifications when stopping and restarting a timer on a project already over its hours</li>
+          <li>Internal refactoring: consolidated API client, reduced redundant chart computations, merged week-tracking state</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.8.2/Yield-0.9.8.2.zip"
+        sparkle:edSignature="6okXL8a+1wQX5JRpHq6skttu2BW5ULz4Ku0hoRM4z8HigpixdeAurQyl60wiO8aUVS8oDIJ4YqZqJfVQYa9QCQ=="
+        length="2089425"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.8.1</title>
       <sparkle:version>23</sparkle:version>
       <sparkle:shortVersionString>0.9.8.1</sparkle:shortVersionString>
