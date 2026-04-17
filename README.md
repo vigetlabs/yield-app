@@ -13,8 +13,11 @@ Unzip, drag Yield to your Applications folder, and launch. It'll take root in yo
 ## ✨ Features
 
 - 📊 **At-a-glance weekly overview** — Every project with color-coded progress bars showing logged vs. booked hours. Green when under budget, red when over.
+- 📈 **Weekly time chart** — Stacked area chart showing hours by project across the week. Click a legend row to isolate a single project, or export as PNG.
 - ⏱️ **Live timer controls** — Start, stop, pause, and resume Harvest timers without leaving the menu bar.
-- ✏️ **Create & edit time entries** — Log time with project and task dropdowns grouped by client. Edit or delete entries inline.
+- ✏️ **Create & edit time entries** — Log time with project and task dropdowns grouped by client. Edit or delete entries inline. Start a timer with pre-filled hours for catch-up tracking.
+- 📅 **Log time to any day** — Add time entries to past days in the current week, not just today.
+- ⚠️ **Duplicate timer guard** — When starting a timer on a project that already has time logged today, choose to resume the existing entry or create a new one.
 - 📈 **Smart progress tracking** — Progress bars visualize overage when you exceed your budget. The remaining label flips to "over this week" in red.
 - 🎛️ **Menu bar gauge** — An adaptive icon that rotates based on your weekly progress. Shows active timer info or time remaining at a glance.
 - 💤 **Idle detection** — Alerts you when you've been idle, with options to continue, stop, or keep the time.
