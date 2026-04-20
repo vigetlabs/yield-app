@@ -112,6 +112,9 @@ struct YieldApp: App {
         case .timer:
             symbolName = "timer"
             rotationProgress = nil
+        case .timeOff:
+            symbolName = "moon.zzz.fill"
+            rotationProgress = nil
         case .error:
             symbolName = "exclamationmark.triangle"
             rotationProgress = nil

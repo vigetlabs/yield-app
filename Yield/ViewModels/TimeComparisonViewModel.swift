@@ -32,7 +32,8 @@ final class TimeComparisonViewModel {
     /// display it generically.
     struct TimeOffBlock {
         let totalHours: Double
-        let dayLabels: [String]  // e.g. ["Mon", "Tue"]
+        let dayLabels: [String]        // e.g. ["Mon", "Tue"] — all affected weekdays
+        let fullDayLabels: Set<String> // subset that are full-day blocks (allocation == 0)
     }
     var weekLabel: String = ""
     var lastUpdated: Date? = nil
@@ -264,7 +265,20 @@ final class TimeComparisonViewModel {
         case gaugeUnder(progress: Double)  // booked timer, under budget (rotates)
         case gaugeOver                     // booked timer, over budget
         case timer                         // unbooked timer running
+        case timeOff                       // full day of PTO today, no timer
         case error                         // API error
+    }
+
+    /// True when today is a full day of Forecast time off (allocation=0) and
+    /// there's no active/paused timer. Used to swap the menu bar icon for a
+    /// "you're off today" signal.
+    var isFullDayOffToday: Bool {
+        guard let block = timeOffBlock else { return false }
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        // Calendar weekday: Sun=1, Mon=2, ..., Sat=7
+        let labels = [nil, "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        guard weekday >= 1, weekday <= 7, let label = labels[weekday] else { return false }
+        return block.fullDayLabels.contains(label)
     }
 
     /// The project containing the paused entry, if any
@@ -328,6 +342,8 @@ final class TimeComparisonViewModel {
             let progress = min(project.loggedHours / project.bookedHours, 1.0)
             return .gaugeUnder(progress: progress)
         }
+
+        if isFullDayOffToday { return .timeOff }
 
         return .calendar
     }
@@ -623,27 +639,35 @@ final class TimeComparisonViewModel {
 
         var totalHours = 0.0
         var affectedDays: Set<Int> = []  // weekday indices 0–4 relative to Mon
+        var fullDays: Set<Int> = []      // subset that had any allocation=0 assignment
 
         for assignment in assignments where assignment.projectId == timeOffProjectId {
             guard let aStart = DateHelpers.dateFormatter.date(from: assignment.startDate),
                   let aEnd = DateHelpers.dateFormatter.date(from: assignment.endDate) else { continue }
 
             let allocationSeconds = assignment.allocation ?? 0
-            let hoursPerDay = allocationSeconds > 0
-                ? Double(allocationSeconds) / 3600.0
-                : defaultFullDayHours
+            let isFullDay = allocationSeconds == 0
+            let hoursPerDay = isFullDay
+                ? defaultFullDayHours
+                : Double(allocationSeconds) / 3600.0
 
             for dayOffset in 0..<5 {  // Mon–Fri
                 guard let day = calendar.date(byAdding: .day, value: dayOffset, to: weekStart),
                       day >= aStart, day <= aEnd, day <= weekEnd else { continue }
                 affectedDays.insert(dayOffset)
                 totalHours += hoursPerDay
+                if isFullDay { fullDays.insert(dayOffset) }
             }
         }
 
         guard !affectedDays.isEmpty else { return nil }
         let sortedLabels = affectedDays.sorted().map { dayLabels[$0] }
-        return TimeOffBlock(totalHours: totalHours, dayLabels: sortedLabels)
+        let fullDayLabels = Set(fullDays.map { dayLabels[$0] })
+        return TimeOffBlock(
+            totalHours: totalHours,
+            dayLabels: sortedLabels,
+            fullDayLabels: fullDayLabels
+        )
     }
 
     private func stopElapsedTimer() {
