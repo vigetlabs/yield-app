@@ -3,6 +3,26 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.8.3</title>
+      <sparkle:version>25</sparkle:version>
+      <sparkle:shortVersionString>0.9.8.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Time Off awareness</strong> — a new read-only row at the bottom of the project list surfaces Forecast time-off bookings for the current week (affected days + total hours)</li>
+          <li><strong>Out-of-office menu bar icon</strong> — on a full-day PTO day with no timer running, the menu bar icon changes to 🌙💤 so you know the app knows you're off</li>
+          <li>Time entries inside a project drawer now sort Monday → Friday (oldest first) instead of Friday → Monday</li>
+          <li>New/Edit time entry header now shows the weekday: "Mon, Apr 20" instead of just "Apr 20"</li>
+          <li>Fixed collapsed project drawers swallowing right-clicks intended for rows below them</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.8.3/Yield-0.9.8.3.zip"
+        sparkle:edSignature="qws+PB4tfLA2KiNpiHuzP78EYGIlXBRuDQkTUP3mTG7PfQ7kgIcuJ/ukRrcq0/aVpvolZ+igUecEzMDMLIRMCA=="
+        length="2108849"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.8.2</title>
       <sparkle:version>24</sparkle:version>
       <sparkle:shortVersionString>0.9.8.2</sparkle:shortVersionString>
