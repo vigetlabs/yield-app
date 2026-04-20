@@ -17,12 +17,22 @@ final class TimeComparisonViewModel {
     var totalUnbookedLogged: Double = 0
     var totalTodayLogged: Double = 0
     var dailyHours: [DayHours] = []
+    var timeOffBlock: TimeOffBlock? = nil
 
     struct DayHours: Identifiable {
         let id: String          // date string YYYY-MM-DD
         let dayLabel: String    // "Mon", "Tue", etc.
         let hours: Double
         let isToday: Bool
+    }
+
+    /// Summary of Forecast time-off bookings for the current week. Forecast
+    /// treats all time off (vacation, sick, holiday, etc.) as a single
+    /// undeletable "Time Off" project with no type discriminator, so we
+    /// display it generically.
+    struct TimeOffBlock {
+        let totalHours: Double
+        let dayLabels: [String]  // e.g. ["Mon", "Tue"]
     }
     var weekLabel: String = ""
     var lastUpdated: Date? = nil
@@ -221,6 +231,7 @@ final class TimeComparisonViewModel {
     private var cachedForecastBookings: [Int: Double] = [:]
     private var cachedProjectMap: [Int: ForecastProject] = [:]
     private var cachedClientMap: [Int: ForecastClient] = [:]
+    private var cachedTimeOffBlock: TimeOffBlock?
     private var cachedHarvestUserId: Int?
 
     enum AuthMode {
@@ -587,6 +598,54 @@ final class TimeComparisonViewModel {
         }
     }
 
+    /// Summarize time-off assignments that fall within the current week.
+    /// Returns nil when no matching assignments exist (or no "Time Off"
+    /// project was found in Forecast).
+    ///
+    /// Forecast conventions we handle:
+    /// - Full-day time off → `allocation == 0` with a date range. We assume
+    ///   a standard 8h workday so the hours total still reads sensibly,
+    ///   especially when mixed with partial-day blocks in the same week.
+    /// - Partial-day time off → `allocation` holds seconds-per-day. We sum
+    ///   it directly.
+    /// - Weekends are skipped because they're not work days.
+    private static func computeTimeOffBlock(
+        assignments: [ForecastAssignment],
+        timeOffProjectId: Int?,
+        weekStart: Date,
+        weekEnd: Date
+    ) -> TimeOffBlock? {
+        guard let timeOffProjectId else { return nil }
+
+        let calendar = Calendar.current
+        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+        let defaultFullDayHours = 8.0
+
+        var totalHours = 0.0
+        var affectedDays: Set<Int> = []  // weekday indices 0–4 relative to Mon
+
+        for assignment in assignments where assignment.projectId == timeOffProjectId {
+            guard let aStart = DateHelpers.dateFormatter.date(from: assignment.startDate),
+                  let aEnd = DateHelpers.dateFormatter.date(from: assignment.endDate) else { continue }
+
+            let allocationSeconds = assignment.allocation ?? 0
+            let hoursPerDay = allocationSeconds > 0
+                ? Double(allocationSeconds) / 3600.0
+                : defaultFullDayHours
+
+            for dayOffset in 0..<5 {  // Mon–Fri
+                guard let day = calendar.date(byAdding: .day, value: dayOffset, to: weekStart),
+                      day >= aStart, day <= aEnd, day <= weekEnd else { continue }
+                affectedDays.insert(dayOffset)
+                totalHours += hoursPerDay
+            }
+        }
+
+        guard !affectedDays.isEmpty else { return nil }
+        let sortedLabels = affectedDays.sorted().map { dayLabels[$0] }
+        return TimeOffBlock(totalHours: totalHours, dayLabels: sortedLabels)
+    }
+
     private func stopElapsedTimer() {
         elapsedTimer?.invalidate()
         elapsedTimer = nil
@@ -915,10 +974,24 @@ final class TimeComparisonViewModel {
             let projectMap = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
             let clientMap = Dictionary(uniqueKeysWithValues: clients.map { ($0.id, $0) })
 
-            // Aggregate booked hours by Forecast project ID (moved from below)
+            // Forecast represents time off as a single undeletable project
+            // literally named "Time Off" — identify it by name so we can
+            // surface those assignments separately from real project work.
+            let timeOffProjectId = projects.first(where: { $0.name == "Time Off" })?.id
+
+            // Aggregate booked hours by Forecast project ID, splitting out
+            // time off into its own per-day collection for a bottom-of-list
+            // summary row.
             var bookedByForecastProject: [Int: Double] = [:]
+            let timeOffBlock = Self.computeTimeOffBlock(
+                assignments: allAssignments,
+                timeOffProjectId: timeOffProjectId,
+                weekStart: weekBounds.start,
+                weekEnd: weekBounds.end
+            )
             for assignment in allAssignments {
-                guard let projectId = assignment.projectId else { continue }
+                guard let projectId = assignment.projectId,
+                      projectId != timeOffProjectId else { continue }
                 let weekdays = DateHelpers.countOverlappingWeekdays(
                     assignmentStart: assignment.startDate,
                     assignmentEnd: assignment.endDate,
@@ -936,12 +1009,14 @@ final class TimeComparisonViewModel {
             cachedForecastBookings = bookedByForecastProject
             cachedProjectMap = projectMap
             cachedClientMap = clientMap
+            cachedTimeOffBlock = timeOffBlock
 
             applyRefreshedData(
                 entries: entries,
                 bookedByForecastProject: bookedByForecastProject,
                 projectMap: projectMap,
-                clientMap: clientMap
+                clientMap: clientMap,
+                timeOffBlock: timeOffBlock
             )
 
         } catch {
@@ -973,7 +1048,8 @@ final class TimeComparisonViewModel {
         entries: [HarvestTimeEntry],
         bookedByForecastProject: [Int: Double],
         projectMap: [Int: ForecastProject],
-        clientMap: [Int: ForecastClient]
+        clientMap: [Int: ForecastClient],
+        timeOffBlock: TimeOffBlock?
     ) {
         let weekBounds = DateHelpers.currentWeekBounds()
         let todayString = DateHelpers.dateFormatter.string(from: Date())
@@ -1138,6 +1214,7 @@ final class TimeComparisonViewModel {
 
             weekLabel = DateHelpers.formattedWeekRange()
             lastUpdated = Date()
+            self.timeOffBlock = timeOffBlock
 
             // Reset budget-notification state on week rollover. Within a week
             // the set is sticky so stopping/restarting a timer on an already-
@@ -1193,7 +1270,8 @@ final class TimeComparisonViewModel {
                 entries: merged,
                 bookedByForecastProject: cachedForecastBookings,
                 projectMap: cachedProjectMap,
-                clientMap: cachedClientMap
+                clientMap: cachedClientMap,
+                timeOffBlock: cachedTimeOffBlock
             )
             // Intentionally not updating lastRefreshAt — that tracks hard refreshes
             // only, so menu-open still gets a full refresh after a soft one.

@@ -187,6 +187,11 @@ struct MenuBarContentView: View {
                         }
                     )
                 }
+
+                // Always pinned to the bottom of the list — informational only.
+                if let timeOff = viewModel.timeOffBlock {
+                    TimeOffRowView(block: timeOff)
+                }
             }
         }
     }

@@ -12,6 +12,7 @@
 		12764D69F0D5F8224898949E /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BD4C5582428B3456F726D2 /* DesignTokens.swift */; };
 		1581C711C6C01278186D9AD1 /* YieldApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 138C505A4936EA5B2A5B16FD /* YieldApp.swift */; };
 		1777566CD97D2CB223E29E5D /* TimerBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0E8E50D8DEBFD70A32D925 /* TimerBannerView.swift */; };
+		1F625C8CFBDABCD6BBAD3BC1 /* TimeOffRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */; };
 		232E3E8034BF33986F220DD0 /* ProjectChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */; };
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
 		428D5AEC2E6086C0999F9F7E /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */; };
@@ -68,6 +69,7 @@
 		C28B33F4048310D0D6B01D7C /* YieldButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YieldButtonStyles.swift; sourceTree = "<group>"; };
 		C54F1249B6E2997187DDBD28 /* HarvestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestService.swift; sourceTree = "<group>"; };
 		C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Medium.ttf"; sourceTree = "<group>"; };
+		D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOffRowView.swift; sourceTree = "<group>"; };
 		DB799247D52776862953EA20 /* Yield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yield.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		E6AE4314E6BA70459850E000 /* Yield.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Yield.entitlements; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 				78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */,
 				FF707BC7919EFF060031F5B9 /* SettingsView.swift */,
 				81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */,
+				D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */,
 				3B0E8E50D8DEBFD70A32D925 /* TimerBannerView.swift */,
 			);
 			path = Views;
@@ -308,6 +311,7 @@
 				EE882AB59C60F5BAE74C3B8A /* SettingsView.swift in Sources */,
 				A718514604B129BD1665B93E /* StatusIndicator.swift in Sources */,
 				8F63E1C0A91D89249020D891 /* TimeComparisonViewModel.swift in Sources */,
+				1F625C8CFBDABCD6BBAD3BC1 /* TimeOffRowView.swift in Sources */,
 				1777566CD97D2CB223E29E5D /* TimerBannerView.swift in Sources */,
 				1581C711C6C01278186D9AD1 /* YieldApp.swift in Sources */,
 				7E6180F06F7AE91E39C7261E /* YieldButtonStyles.swift in Sources */,

@@ -53,6 +53,11 @@ struct ProjectRowView: View {
             }
             .frame(maxHeight: isExpanded ? .infinity : 0, alignment: .top)
             .clipped()
+            // Clipped content still captures hit tests in SwiftUI, so collapsed
+            // task rows can swallow right-clicks on views rendered below (e.g.
+            // the Time Off row), showing their Edit/Delete Timer menu by
+            // surprise. Disable hit testing while collapsed to prevent that.
+            .allowsHitTesting(isExpanded)
         }
         .overlay(alignment: .bottom) {
             Rectangle()
