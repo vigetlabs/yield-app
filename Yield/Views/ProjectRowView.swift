@@ -310,6 +310,10 @@ struct TaskEntryRowView: View {
                 }
             }
             .contentShape(Rectangle())
+            .onTapGesture(count: 2) {
+                guard !isHarvestDown else { return }
+                onEditEntry?()
+            }
 
             // Play/stop button (only for today's entries)
             if isToday {
