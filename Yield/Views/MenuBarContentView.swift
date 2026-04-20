@@ -110,6 +110,12 @@ struct MenuBarContentView: View {
                     .padding(.vertical, 8)
             }
 
+            // Time Off summary — pinned above the timer banner so the "you
+            // have PTO this week" signal lives at the top of the panel.
+            if let timeOff = viewModel.timeOffBlock, viewModel.selectedTab != .chart {
+                TimeOffRowView(block: timeOff)
+            }
+
             // Timer banner / inactive slot — kept in the view tree so timer
             // start/stop transitions play normally. On the chart tab the
             // container collapses to zero height instead of removing the view
@@ -186,11 +192,6 @@ struct MenuBarContentView: View {
                             }
                         }
                     )
-                }
-
-                // Always pinned to the bottom of the list — informational only.
-                if let timeOff = viewModel.timeOffBlock {
-                    TimeOffRowView(block: timeOff)
                 }
             }
         }
