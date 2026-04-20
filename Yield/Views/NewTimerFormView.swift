@@ -33,9 +33,15 @@ struct NewTimerFormView: View {
     private var isSpentDateToday: Bool { Calendar.current.isDateInToday(spentDate) }
     private var spentDateString: String { DateHelpers.dateFormatter.string(from: spentDate) }
 
+    private static let headerDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEE, MMM d"
+        return f
+    }()
+
     private var headerTitle: String {
         let prefix = isEditing ? "Edit time entry" : "New time entry"
-        return "\(prefix): \(DateHelpers.displayFormatter.string(from: spentDate))"
+        return "\(prefix): \(Self.headerDateFormatter.string(from: spentDate))"
     }
 
     struct TaskOption: Identifiable, Hashable {
