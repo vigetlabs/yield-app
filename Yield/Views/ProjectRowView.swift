@@ -14,6 +14,13 @@ struct ProjectRowView: View {
 
     private var hasEntries: Bool { !project.timeEntries.isEmpty }
 
+    /// Today's effective hours on this project (includes live-ticking offset
+    /// while a timer is running on it). Used to drive the today segment in
+    /// the expanded day-by-day bar so it updates in real time.
+    private var effectiveTodayHours: Double {
+        project.todayHours + (project.isTracking ? effectiveLoggedHours - project.loggedHours : 0)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             projectHeader
@@ -37,10 +44,28 @@ struct ProjectRowView: View {
                     .disabled(isHarvestDown)
                 }
 
-            // Accordion drawer: entries are always in the view tree but their
-            // container height animates between 0 and natural. clipped() hides
-            // overflow so they're revealed top-to-bottom as the height grows.
+            // Accordion drawer: day-by-day breakdown bar at the top, then the
+            // project's time entries. Always in the view tree so the container
+            // can animate between 0 and natural height; clipped() hides
+            // overflow so contents reveal top-to-bottom as the height grows.
             VStack(spacing: 0) {
+                if project.isForecasted || !project.timeEntries.isEmpty {
+                    SegmentedProgressBarView(
+                        entries: project.timeEntries,
+                        todayEffectiveHours: effectiveTodayHours,
+                        booked: project.bookedHours,
+                        isDrawerExpanded: isExpanded
+                    )
+                    // Left padding matches the task-entry text indent (32)
+                    // so the bar aligns with the rows below it. Top padding
+                    // doubled (20) so there's room for the hover tooltip to
+                    // float above the bar without being clipped.
+                    .padding(.leading, 32)
+                    .padding(.trailing, 16)
+                    .padding(.top, 20)
+                    .padding(.bottom, 10)
+                }
+
                 ForEach(project.timeEntries) { entry in
                     TaskEntryRowView(entry: entry, isHarvestDown: isHarvestDown, onToggleTimer: {
                         onToggleEntryTimer?(entry.id, entry.isRunning)
@@ -233,6 +258,139 @@ struct ProgressBarView: View {
                 .animation(.easeInOut(duration: 0.4), value: bookedFill)
         }
         .clipShape(RoundedRectangle(cornerRadius: YieldRadius.progressBar))
+    }
+}
+
+// MARK: - Segmented Progress Bar (expanded day-by-day view)
+
+/// Full-width progress bar broken into per-day segments. Each visible
+/// segment's width is proportional to that day's hours vs. the weekly
+/// booked budget, so empty days show no segment and the gaps between
+/// segments visually separate days. Day labels sit underneath each
+/// segment. Clicking anywhere in the parent collapses this view.
+struct SegmentedProgressBarView: View {
+    let entries: [TimeEntryInfo]
+    let todayEffectiveHours: Double
+    let booked: Double
+    let isDrawerExpanded: Bool
+
+    /// Scales every segment width from 0 → 1. Animated to 1 when the parent
+    /// drawer opens and snapped back to 0 when it closes, giving a "fill
+    /// sweep" on each open without playing the animation in reverse when
+    /// the drawer collapses (clipped content doesn't need to animate).
+    @State private var fillProgress: Double = 0
+
+    private struct DayFill: Identifiable {
+        let id: String          // date string
+        let label: String       // "Mon", etc.
+        let hours: Double
+        let isToday: Bool
+    }
+
+    private static let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    /// One entry per day of the current week. Today's hours are replaced
+    /// with `todayEffectiveHours` so the live-ticking timer shows up.
+    private var days: [DayFill] {
+        let weekStart = DateHelpers.currentWeekBounds().start
+        let todayString = DateHelpers.dateFormatter.string(from: Date())
+        let calendar = Calendar.current
+
+        // Sum hours per date from the entries
+        var hoursByDate: [String: Double] = [:]
+        for entry in entries {
+            hoursByDate[entry.date, default: 0] += entry.hours
+        }
+
+        var result: [DayFill] = []
+        for i in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: i, to: weekStart) else { continue }
+            let dateStr = DateHelpers.dateFormatter.string(from: date)
+            let isToday = dateStr == todayString
+            let hours = isToday ? todayEffectiveHours : (hoursByDate[dateStr] ?? 0)
+            result.append(DayFill(id: dateStr, label: Self.dayLabels[i], hours: hours, isToday: isToday))
+        }
+        return result
+    }
+
+    /// Only weekdays with logged time (plus today, even if zero, so the
+    /// current day is always represented).
+    private var activeDays: [DayFill] {
+        days.filter { $0.hours > 0 || $0.isToday }
+    }
+
+    private var totalHours: Double { days.reduce(0) { $0 + $1.hours } }
+
+    var body: some View {
+        GeometryReader { geo in
+            segmentedBar(totalWidth: geo.size.width)
+        }
+        .frame(height: 8)
+        .onChange(of: isDrawerExpanded) { _, expanded in
+            if expanded {
+                withAnimation(.easeOut(duration: 0.6).delay(0.1)) {
+                    fillProgress = 1
+                }
+            } else {
+                // Wait until the drawer's close animation (0.2s) finishes
+                // before snapping the fill back to 0, so the bar stays
+                // visible during the close and the reset happens while
+                // the drawer is already clipped out of view.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    fillProgress = 0
+                }
+            }
+        }
+    }
+
+    /// Over budget when booked is positive and total logged exceeds it.
+    /// Mirrors ProgressBarView's semantics so the two stay in sync.
+    private var isOver: Bool {
+        booked > 0 && totalHours > booked
+    }
+
+    private var barColor: Color {
+        isOver ? YieldStatusColors.over : YieldStatusColors.under
+    }
+
+    private var backgroundColor: Color {
+        isOver ? YieldStatusColors.over.opacity(0.4) : YieldColors.surfaceActive
+    }
+
+    @ViewBuilder
+    private func segmentedBar(totalWidth: CGFloat) -> some View {
+        let denominator = max(booked, totalHours, 0.0001)
+        ZStack(alignment: .leading) {
+            // Background — over color (dim) when past budget, matches the
+            // mini ProgressBarView treatment.
+            Rectangle()
+                .fill(backgroundColor)
+
+            // Per-day filled segments, separated by 2px gaps. Widths are
+            // scaled by fillProgress (0→1) so the bar "sweeps" in when the
+            // drawer opens. Native .help() tooltip reveals day + hours on
+            // hover.
+            HStack(spacing: 2) {
+                ForEach(activeDays) { day in
+                    let fullWidth = CGFloat(day.hours / denominator) * totalWidth
+                    let w = max(fullWidth * fillProgress, 0)
+                    Rectangle()
+                        .fill(barColor)
+                        .frame(width: w)
+                        .opacity(day.isToday ? 1.0 : 0.75)
+                        .help("\(day.label): \(formatHMColon(day.hours))")
+                }
+            }
+        }
+        .frame(height: 8)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    /// Format hours as "H:MM" (e.g. 3.25 → "3:15"). Tooltip-friendly.
+    private func formatHMColon(_ hours: Double) -> String {
+        let h = Int(hours)
+        let m = Int(round((hours - Double(h)) * 60))
+        return "\(h):\(String(format: "%02d", m))"
     }
 }
 
