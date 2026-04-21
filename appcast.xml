@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.8.4</title>
+      <sparkle:version>26</sparkle:version>
+      <sparkle:shortVersionString>0.9.8.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Day-by-day segmented bar</strong> — expanding a project's drawer now shows a full-width bar at the top broken into per-day segments, with each segment sized proportionally to that day's hours. Today's segment is at full brightness; past days are slightly dimmed. Animates in when the drawer opens. Hover a segment for a tooltip like "Mon: 3:15".</li>
+          <li><strong>Double-click to edit</strong> — double-clicking a time entry in a project drawer opens the edit form, as a quicker alternative to the right-click menu.</li>
+          <li>Moved the Time Off summary row to the very top of the panel (above the active timer banner) so it's always visible without scrolling.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.8.4/Yield-0.9.8.4.zip"
+        sparkle:edSignature="LxlaJyKtpe+N8DKyCSP/mRZRPgv2o022bv/KZjLkzCpNPDhhmBtbzJaVfXce4QjgRiFLdsTjTDwjF/btw/slCg=="
+        length="2123442"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.8.3</title>
       <sparkle:version>25</sparkle:version>
       <sparkle:shortVersionString>0.9.8.3</sparkle:shortVersionString>
