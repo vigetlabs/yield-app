@@ -259,6 +259,10 @@ struct MenuBarContentView: View {
                     .font(YieldFonts.titleMedium)
                     .foregroundStyle(YieldColors.textPrimary)
                     .frame(height: 22)
+                    // Newsreader's optical center sits a hair above the
+                    // frame's geometric center. Nudge down so the text reads
+                    // as aligned with the surrounding 22pt-tall buttons.
+                    .offset(y: 1)
 
                 // Return-to-current pill — only appears when viewing a
                 // non-current week.
