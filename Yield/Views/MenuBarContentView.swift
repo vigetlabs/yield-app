@@ -162,6 +162,11 @@ struct MenuBarContentView: View {
                 }
             }
         }
+        // Cross-fade the Time Off row, timer banner, and project list
+        // whenever we swap data via week navigation or a refresh lands.
+        // Rows with stable IDs re-render in place; new/removed rows fade.
+        .animation(.easeInOut(duration: 0.22), value: viewModel.weekOffset)
+        .animation(.easeInOut(duration: 0.22), value: viewModel.displayedFilteredStatuses.map(\.id))
     }
 
     /// Timer banner area — extracted so the contentView stays readable

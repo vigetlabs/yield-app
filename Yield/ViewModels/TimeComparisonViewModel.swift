@@ -1680,7 +1680,7 @@ final class TimeComparisonViewModel {
             }
 
             statuses.append(ProjectStatus(
-                id: "forecast-\(forecastProjectId)-\(offset)",
+                id: "forecast-\(forecastProjectId)",
                 clientName: clientName,
                 projectName: projectName,
                 bookedHours: bookedHours,
@@ -1701,7 +1701,7 @@ final class TimeComparisonViewModel {
             let projectName = harvestProjectNames[harvestProjectId] ?? "Unknown Project"
             let clientName = harvestClientNames[harvestProjectId]
             statuses.append(ProjectStatus(
-                id: "harvest-\(harvestProjectId)-\(offset)",
+                id: "harvest-\(harvestProjectId)",
                 clientName: clientName,
                 projectName: projectName,
                 bookedHours: 0,
