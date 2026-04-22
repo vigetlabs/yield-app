@@ -3,6 +3,29 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.9.0</title>
+      <sparkle:version>27</sparkle:version>
+      <sparkle:shortVersionString>0.9.9.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Look ahead and look back</strong> — new chevron controls next to the week label let you step forward and backward through weeks. Past weeks show what you tracked (read-only, with drawers and the day-by-day bar); future weeks show what's booked in Forecast. A "This Week" pill returns you to the current week.</li>
+          <li><strong>Tighter network dropout handling</strong> — 20-second request timeout so airplane mode and captive portals fail fast, a reachability listener that refreshes the moment the machine reconnects, and exponential backoff so long outages don't hammer the API. The menu bar icon and Time Off row now also react to connectivity loss.</li>
+          <li>Week label uses a compact Americanized format: "Apr 20 – 26, 2026" same-month, "Apr 27 – May 3, 2026" cross-month, "Dec 29, 2025 – Jan 4, 2026" cross-year.</li>
+          <li>Time Off row formats as days + hours + minutes (8h = 1d), skipping zero components: "3d", "1d 4h", "4h 30m".</li>
+          <li>New/Edit time entry header reads "Today, Apr 21" when the spent date is today.</li>
+          <li>"Forecasted" tab renamed to "Booked" and the panel widened to 540pt to give the week label breathing room alongside the tab toggle.</li>
+          <li>Smoother week-to-week transitions — content cross-fades instead of popping when you navigate.</li>
+          <li>Under the hood: parallelized fetches, cached person/user IDs, cleaned-up view-model encapsulation, and a codebase-wide quality pass.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.9.0/Yield-0.9.9.0.zip"
+        sparkle:edSignature="LbYjbew8r3yu3+Plgb2f6lX02IxshdluHTPdeRsSRx9UmlpR3sEOrf/eymatpT0XJGDd/0zLdSQ+5PVCbmeJBw=="
+        length="2218885"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.8.4</title>
       <sparkle:version>26</sparkle:version>
       <sparkle:shortVersionString>0.9.8.4</sparkle:shortVersionString>
