@@ -272,11 +272,12 @@ final class TimeComparisonViewModel {
     }
 
     var displayedTimeOff: TimeOffBlock? {
-        // While we're offline, hide the Time Off row. It's a forward-looking
-        // Forecast value that can shift without the user reloading, so
-        // showing a cached value alongside an offline banner could give
-        // the impression the booking is still live.
-        guard !hasConnectivityError else { return nil }
+        // While we're showing a service-error banner, hide the Time Off row.
+        // It's forward-looking Forecast data and a stale value next to the
+        // banner would read as current. Gating on serviceErrors (rather
+        // than any transient connectivity blip) avoids flickering the row
+        // in and out during brief soft-refresh failures.
+        guard serviceErrors.isEmpty else { return nil }
         if weekOffset == 0 { return timeOffBlock }
         if let snap = weekSnapshots[weekOffset] { return snap.timeOff }
         return transitionSnapshot.timeOff
@@ -547,26 +548,34 @@ final class TimeComparisonViewModel {
         // timer state changes made outside the app. Hard refresh happens on
         // menu open and manual refresh, so no need for a periodic hard refresh.
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            self.activeRefreshTask?.cancel()
-            self.activeRefreshTask = Task { @MainActor in
-                await self.softRefresh()
-            }
+            self?.triggerSoftRefresh()
         }
 
         // Fire an immediate refresh when network connectivity comes back
         // instead of waiting up to a full minute for the next timer tick.
+        // A reconnect is strong evidence that prior failures were caused by
+        // the now-resolved outage, so reset both the deadline and the
+        // failure counter — otherwise the *next* failure would jump
+        // straight to the 15-minute backoff tier.
         networkMonitor.start { [weak self] in
             guard let self else { return }
-            self.softRefreshBackoffUntil = nil  // clear any in-progress backoff
-            self.activeRefreshTask?.cancel()
-            self.activeRefreshTask = Task { @MainActor in
-                await self.softRefresh()
-            }
+            self.softRefreshBackoffUntil = nil
+            self.consecutiveSoftFailures = 0
+            self.triggerSoftRefresh()
         }
 
         activeRefreshTask = Task { @MainActor in
             await refresh()
+        }
+    }
+
+    /// Cancels any in-flight refresh and starts a new soft-refresh task.
+    /// Shared by the 60s tick and the NWPathMonitor reconnect callback.
+    @MainActor
+    private func triggerSoftRefresh() {
+        activeRefreshTask?.cancel()
+        activeRefreshTask = Task { @MainActor in
+            await self.softRefresh()
         }
     }
 
@@ -585,12 +594,12 @@ final class TimeComparisonViewModel {
         elapsedTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
-                // Don't advance the local tick while we're offline — the
-                // server-side timer state is unknown, so accumulating
-                // phantom hours would mislead the user. The offset will
-                // resume bumping once the next successful refresh confirms
-                // the timer is still running.
-                guard !self.hasConnectivityError else { return }
+                // Don't advance the local tick while Harvest is confirmed
+                // unreachable — the server-side timer state is unknown and
+                // accumulating phantom hours would mislead the user. A
+                // Forecast-only failure is fine; Harvest data is still
+                // fresh.
+                guard !self.isHarvestDown else { return }
                 self.elapsedOffset += 1.0 / 60.0  // add 1 minute in hours
                 self.checkBookedHoursReached()
                 self.checkIdleTime()
@@ -1751,24 +1760,26 @@ final class TimeComparisonViewModel {
         )
     }
 
+    /// URL loading error codes that indicate a transport-layer
+    /// connectivity problem (as opposed to a server/API error). Single
+    /// source of truth — consumed by both `isConnectivityError` and
+    /// `friendlyErrorMessage`.
+    private static let connectivityErrorCodes: Set<Int> = [
+        NSURLErrorNotConnectedToInternet,
+        NSURLErrorTimedOut,
+        NSURLErrorCannotFindHost,
+        NSURLErrorCannotConnectToHost,
+        NSURLErrorNetworkConnectionLost,
+        NSURLErrorDataNotAllowed,
+        NSURLErrorInternationalRoamingOff,
+    ]
+
     /// True when an error represents a transport-layer connectivity
-    /// problem rather than a server/API error — used to decide whether to
-    /// show an offline state vs. surface a real service error.
+    /// problem rather than a server/API error.
     private func isConnectivityError(_ error: Error) -> Bool {
         let nsError = error as NSError
         guard nsError.domain == NSURLErrorDomain else { return false }
-        switch nsError.code {
-        case NSURLErrorNotConnectedToInternet,
-             NSURLErrorTimedOut,
-             NSURLErrorCannotFindHost,
-             NSURLErrorCannotConnectToHost,
-             NSURLErrorNetworkConnectionLost,
-             NSURLErrorDataNotAllowed,
-             NSURLErrorInternationalRoamingOff:
-            return true
-        default:
-            return false
-        }
+        return Self.connectivityErrorCodes.contains(nsError.code)
     }
 
     /// Mark a fetch attempt as successful — clears the offline signal and
@@ -1806,6 +1817,8 @@ final class TimeComparisonViewModel {
             case NSURLErrorTimedOut:
                 return "Request timed out"
             case NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost:
+                return "Unable to connect"
+            case _ where Self.connectivityErrorCodes.contains(nsError.code):
                 return "Unable to connect"
             default:
                 return "Network error"

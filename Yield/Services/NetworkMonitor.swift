@@ -11,12 +11,18 @@ final class NetworkMonitor {
     private let queue = DispatchQueue(label: "com.viget.yield.network-monitor")
     private var lastPathWasSatisfied: Bool = true  // optimistic default
     private var onReconnect: (() -> Void)?
+    private var isStarted: Bool = false
 
     /// Start monitoring. The callback fires on the main actor each time the
-    /// path transitions from unsatisfied → satisfied.
+    /// path transitions from unsatisfied → satisfied. Safe to call more
+    /// than once — subsequent calls replace the callback without starting
+    /// the underlying NWPathMonitor a second time (which Apple documents
+    /// as a programmer error).
     @MainActor
     func start(onReconnect: @escaping () -> Void) {
         self.onReconnect = onReconnect
+        guard !isStarted else { return }
+        isStarted = true
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self else { return }
             let satisfied = path.status == .satisfied
