@@ -17,6 +17,7 @@
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
 		428D5AEC2E6086C0999F9F7E /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */; };
 		42DB3888BEBE6DE88987C012 /* LookAheadRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCB0B20EC3D0FF46A1DA250 /* LookAheadRowView.swift */; };
+		43AA55D2394219B22349EECD /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */; };
 		539A827FDCADF80CA5457BFD /* DMSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */; };
 		544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F394448517841A11132011C /* IdleAlertView.swift */; };
 		5B4B7C7E70A2D03365410F96 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA30B681B3132D09F66457E /* Sparkle */; };
@@ -63,6 +64,7 @@
 		9128BE0471E69DB0E0878DA8 /* NewTimerFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTimerFormView.swift; sourceTree = "<group>"; };
 		9F394448517841A11132011C /* IdleAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertView.swift; sourceTree = "<group>"; };
 		9FE70177FE259AB1C37908F0 /* HarvestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestModels.swift; sourceTree = "<group>"; };
+		A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Italic.ttf"; sourceTree = "<group>"; };
 		B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectChartView.swift; sourceTree = "<group>"; };
 		B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastModels.swift; sourceTree = "<group>"; };
@@ -155,6 +157,7 @@
 				EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */,
 				C54F1249B6E2997187DDBD28 /* HarvestService.swift */,
 				7AC15EED42FBAABA8E309340 /* KeychainHelper.swift */,
+				A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */,
 				38C069FFB775F69282E721C8 /* OAuthService.swift */,
 			);
 			path = Services;
@@ -307,6 +310,7 @@
 				DAC3301F5AA18C5088CC521C /* KeychainHelper.swift in Sources */,
 				42DB3888BEBE6DE88987C012 /* LookAheadRowView.swift in Sources */,
 				7C1545B79A40F59B462C2BE3 /* MenuBarContentView.swift in Sources */,
+				43AA55D2394219B22349EECD /* NetworkMonitor.swift in Sources */,
 				C0BFE1EB7FE167CA2FBD34B4 /* NewTimerFormView.swift in Sources */,
 				6D46A5BB044C89897B4AB4D9 /* OAuthService.swift in Sources */,
 				232E3E8034BF33986F220DD0 /* ProjectChartView.swift in Sources */,

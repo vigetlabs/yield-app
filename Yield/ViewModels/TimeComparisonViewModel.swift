@@ -77,6 +77,26 @@ final class TimeComparisonViewModel {
     private(set) var errorMessage: String? = nil
     private(set) var serviceErrors: [ServiceError] = []
 
+    /// True when the most recent fetch attempt (hard or soft) failed due to
+    /// a connectivity problem. Drives the menu bar icon, "offline" signals,
+    /// freezing the elapsed timer, and hiding data that would go stale
+    /// silently (Time Off bar). Flipped back to false on any successful
+    /// fetch.
+    private(set) var hasConnectivityError: Bool = false
+
+    /// Count of consecutive failed soft refreshes. Used to back off the
+    /// polling cadence so a long outage doesn't hammer the API every 60s.
+    private var consecutiveSoftFailures: Int = 0
+
+    /// Earliest time the next soft refresh may fire. Set when backoff
+    /// extends beyond the normal 60s interval.
+    private var softRefreshBackoffUntil: Date?
+
+    /// Reachability monitor — triggers an immediate refresh when the
+    /// machine reconnects, so the UI catches up without waiting for the
+    /// next 60s tick.
+    private let networkMonitor = NetworkMonitor()
+
     #if DEBUG
     /// Set to simulate API failures for UI testing.
     /// Options: .harvest, .forecast, or both.
@@ -252,6 +272,11 @@ final class TimeComparisonViewModel {
     }
 
     var displayedTimeOff: TimeOffBlock? {
+        // While we're offline, hide the Time Off row. It's a forward-looking
+        // Forecast value that can shift without the user reloading, so
+        // showing a cached value alongside an offline banner could give
+        // the impression the booking is still live.
+        guard !hasConnectivityError else { return nil }
         if weekOffset == 0 { return timeOffBlock }
         if let snap = weekSnapshots[weekOffset] { return snap.timeOff }
         return transitionSnapshot.timeOff
@@ -445,6 +470,9 @@ final class TimeComparisonViewModel {
 
     var menuBarIcon: MenuBarIcon {
         if !serviceErrors.isEmpty { return .error }
+        // Any recent connectivity failure (hard or soft) also flips the
+        // icon to error so the user can see at a glance the data is stale.
+        if hasConnectivityError { return .error }
         guard lastUpdated != nil else { return .calendar }
 
         if let tracking = projectStatuses.first(where: { $0.isTracking }) {
@@ -525,6 +553,18 @@ final class TimeComparisonViewModel {
                 await self.softRefresh()
             }
         }
+
+        // Fire an immediate refresh when network connectivity comes back
+        // instead of waiting up to a full minute for the next timer tick.
+        networkMonitor.start { [weak self] in
+            guard let self else { return }
+            self.softRefreshBackoffUntil = nil  // clear any in-progress backoff
+            self.activeRefreshTask?.cancel()
+            self.activeRefreshTask = Task { @MainActor in
+                await self.softRefresh()
+            }
+        }
+
         activeRefreshTask = Task { @MainActor in
             await refresh()
         }
@@ -545,6 +585,12 @@ final class TimeComparisonViewModel {
         elapsedTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
+                // Don't advance the local tick while we're offline — the
+                // server-side timer state is unknown, so accumulating
+                // phantom hours would mislead the user. The offset will
+                // resume bumping once the next successful refresh confirms
+                // the timer is still running.
+                guard !self.hasConnectivityError else { return }
                 self.elapsedOffset += 1.0 / 60.0  // add 1 minute in hours
                 self.checkBookedHoursReached()
                 self.checkIdleTime()
@@ -1182,8 +1228,10 @@ final class TimeComparisonViewModel {
                 clientMap: clientMap,
                 timeOffBlock: timeOffBlock
             )
+            noteFetchSucceeded()
 
         } catch {
+            noteFetchFailed(error)
             if serviceErrors.isEmpty {
                 errorMessage = error.localizedDescription
             } else {
@@ -1404,6 +1452,10 @@ final class TimeComparisonViewModel {
     func softRefresh() async {
         guard isConfigured else { return }
 
+        // Respect backoff — if a recent attempt failed we skip until the
+        // cool-off period has elapsed.
+        if let until = softRefreshBackoffUntil, Date() < until { return }
+
         // If we haven't done a hard refresh yet, or the week rolled over since
         // the cache was built, fall back to a full refresh so we don't mix
         // stale forecast bookings / old-week entries with the new week's data.
@@ -1437,12 +1489,29 @@ final class TimeComparisonViewModel {
                 clientMap: cachedClientMap,
                 timeOffBlock: cachedTimeOffBlock
             )
+            noteFetchSucceeded()
             // Intentionally not updating lastRefreshAt — that tracks hard refreshes
             // only, so menu-open still gets a full refresh after a soft one.
         } catch {
-            // Silent — soft refresh failures shouldn't interrupt the user.
-            // The next hard refresh will surface any real issue.
+            noteFetchFailed(error)
+            scheduleSoftRefreshBackoff()
         }
+    }
+
+    /// Exponential backoff after consecutive soft-refresh failures so a
+    /// long outage doesn't hammer the API every 60s. Resets to 0 on any
+    /// successful fetch. Cadence: 60s → 2m → 5m → 15m → 15m …
+    @MainActor
+    private func scheduleSoftRefreshBackoff() {
+        consecutiveSoftFailures += 1
+        let extraSeconds: TimeInterval
+        switch consecutiveSoftFailures {
+        case 1: extraSeconds = 0          // next 60s tick as normal
+        case 2: extraSeconds = 60         // wait ~2 min total
+        case 3: extraSeconds = 4 * 60     // wait ~5 min total
+        default: extraSeconds = 14 * 60   // cap at ~15 min between attempts
+        }
+        softRefreshBackoffUntil = extraSeconds > 0 ? Date().addingTimeInterval(extraSeconds) : nil
     }
 
     // MARK: - Week look-ahead / look-back
@@ -1524,7 +1593,9 @@ final class TimeComparisonViewModel {
                 clients: resolvedClients
             )
             weekSnapshots[offset] = snapshot
+            noteFetchSucceeded()
         } catch {
+            noteFetchFailed(error)
             otherWeekError = friendlyErrorMessage(error)
         }
     }
@@ -1680,13 +1751,49 @@ final class TimeComparisonViewModel {
         )
     }
 
+    /// True when an error represents a transport-layer connectivity
+    /// problem rather than a server/API error — used to decide whether to
+    /// show an offline state vs. surface a real service error.
+    private func isConnectivityError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else { return false }
+        switch nsError.code {
+        case NSURLErrorNotConnectedToInternet,
+             NSURLErrorTimedOut,
+             NSURLErrorCannotFindHost,
+             NSURLErrorCannotConnectToHost,
+             NSURLErrorNetworkConnectionLost,
+             NSURLErrorDataNotAllowed,
+             NSURLErrorInternationalRoamingOff:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Mark a fetch attempt as successful — clears the offline signal and
+    /// resets the soft-refresh backoff. Called after every successful fetch
+    /// path (hard refresh, soft refresh, fetchWeek).
+    @MainActor
+    private func noteFetchSucceeded() {
+        hasConnectivityError = false
+        consecutiveSoftFailures = 0
+        softRefreshBackoffUntil = nil
+    }
+
+    /// Mark a fetch attempt as failed due to connectivity, so the UI can
+    /// signal staleness. No-op for non-connectivity errors.
+    @MainActor
+    private func noteFetchFailed(_ error: Error) {
+        guard isConnectivityError(error) else { return }
+        hasConnectivityError = true
+    }
+
     private func friendlyErrorMessage(_ error: Error) -> String {
         if let apiError = error as? APIError {
             switch apiError {
             case .serverError(let code) where (500...599).contains(code):
                 return "Service unavailable (HTTP \(code))"
-            case .networkError:
-                return "Unable to connect"
             default:
                 return apiError.localizedDescription
             }

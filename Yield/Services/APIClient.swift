@@ -5,7 +5,6 @@ enum APIError: LocalizedError {
     case rateLimited
     case serverError(Int)
     case decodingError(Error)
-    case networkError(Error)
     case noData
     case notConfigured
 
@@ -31,8 +30,6 @@ enum APIError: LocalizedError {
                 }
             }
             return "Failed to parse response: \(error.localizedDescription)"
-        case .networkError(let error):
-            return "Network error: \(error.localizedDescription)"
         case .noData:
             return "No data received from server."
         case .notConfigured:
@@ -47,7 +44,20 @@ final class APIClient {
     let accountId: String
     private let tokenProvider: () async throws -> String
 
-    private let session = URLSession.shared
+    /// Shared URLSession with tightened timeouts. URLSession.shared defaults
+    /// to a 60s request timeout — far too long for a menu bar app where the
+    /// user is staring at a spinner. 20s is long enough to accommodate slow
+    /// mobile networks while failing fast on airplane mode / captive
+    /// portals / wifi dropouts.
+    private static let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 20
+        config.timeoutIntervalForResource = 60
+        config.waitsForConnectivity = false
+        return URLSession(configuration: config)
+    }()
+
+    private var session: URLSession { Self.session }
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
         d.keyDecodingStrategy = .convertFromSnakeCase
