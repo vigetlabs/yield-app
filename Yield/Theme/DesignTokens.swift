@@ -117,7 +117,7 @@ enum YieldRadius {
 // MARK: - Dimensions
 
 enum YieldDimensions {
-    static let panelWidth: CGFloat = 480
+    static let panelWidth: CGFloat = 540
     static let progressBarWidth: CGFloat = 104
     static let progressBarHeight: CGFloat = 4
     static let timerButtonSize: CGFloat = 24

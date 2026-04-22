@@ -33,15 +33,26 @@ struct NewTimerFormView: View {
     private var isSpentDateToday: Bool { Calendar.current.isDateInToday(spentDate) }
     private var spentDateString: String { DateHelpers.dateFormatter.string(from: spentDate) }
 
+    /// "Mon, Apr 21" — used when the spent date isn't today.
     private static let headerDateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "EEE, MMM d"
         return f
     }()
 
+    /// "Apr 21" — day-of-week is replaced by "Today" when applicable.
+    private static let headerMonthDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
     private var headerTitle: String {
         let prefix = isEditing ? "Edit time entry" : "New time entry"
-        return "\(prefix): \(Self.headerDateFormatter.string(from: spentDate))"
+        let dateLabel = isSpentDateToday
+            ? "Today, \(Self.headerMonthDayFormatter.string(from: spentDate))"
+            : Self.headerDateFormatter.string(from: spentDate)
+        return "\(prefix): \(dateLabel)"
     }
 
     struct TaskOption: Identifiable, Hashable {

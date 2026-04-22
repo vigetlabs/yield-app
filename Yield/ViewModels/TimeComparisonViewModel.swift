@@ -19,6 +19,44 @@ final class TimeComparisonViewModel {
     var dailyHours: [DayHours] = []
     var timeOffBlock: TimeOffBlock? = nil
 
+    /// Week offset: 0 = current week (default), <0 = past, >0 = future.
+    /// Current-week data stays in `projectStatuses` / `timeOffBlock` / etc.
+    /// and keeps auto-refreshing in the background. Other weeks are fetched
+    /// on demand and cached in `weekSnapshots`.
+    var weekOffset: Int = 0
+
+    /// Cached snapshots for non-current weeks, keyed by weekOffset.
+    var weekSnapshots: [Int: WeekSnapshot] = [:]
+
+    /// Loading + error state for non-current week fetches. Kept separate
+    /// from `isLoading` / `errorMessage` so the current-week state isn't
+    /// disturbed when a look-ahead/back fetch is in flight.
+    var isLoadingOtherWeek: Bool = false
+    var otherWeekError: String? = nil
+
+    /// Snapshot of the previously-displayed week, captured just before each
+    /// navigation. Used as a fallback for the project list / time off / day
+    /// bar while the new week's data is loading — prevents the UI from
+    /// blanking out during the fetch. The week label isn't held (it updates
+    /// immediately so the user sees which week they're heading to).
+    private struct TransitionSnapshot {
+        var statuses: [ProjectStatus] = []
+        var timeOff: TimeOffBlock? = nil
+        var dailyHours: [DayHours] = []
+    }
+    private var transitionSnapshot: TransitionSnapshot = TransitionSnapshot()
+
+    /// A read-only snapshot of a past or future week's project bookings +
+    /// time off. Past weeks include logged hours; future weeks have only
+    /// booked hours with zero logged.
+    struct WeekSnapshot {
+        let weekOffset: Int
+        let weekLabel: String
+        let statuses: [ProjectStatus]
+        let timeOff: TimeOffBlock?
+        let dailyHours: [DayHours]
+    }
+
     struct DayHours: Identifiable {
         let id: String          // date string YYYY-MM-DD
         let dayLabel: String    // "Mon", "Tue", etc.
@@ -188,6 +226,92 @@ final class TimeComparisonViewModel {
         case .chart:
             return []  // chart tab renders its own view; list is hidden
         }
+    }
+
+    // MARK: - Week navigation
+
+    var isViewingOtherWeek: Bool { weekOffset != 0 }
+
+    /// Statuses to render for the currently displayed week. For offset 0
+    /// this is the live current-week data; for other offsets it's the
+    /// cached snapshot, or the previous week's data (held during the
+    /// fetch) if the cache isn't populated yet.
+    var displayedStatuses: [ProjectStatus] {
+        if weekOffset == 0 { return projectStatuses }
+        if let snap = weekSnapshots[weekOffset] { return snap.statuses }
+        return transitionSnapshot.statuses
+    }
+
+    /// Display statuses filtered by tab / week context.
+    /// - Current week: respects the Recent / Forecasted tab selection.
+    /// - Future weeks: only booked projects (no logged time exists yet).
+    /// - Past weeks: all projects, booked or logged-only, so tracked-
+    ///   unbooked work is still visible when reviewing.
+    var displayedFilteredStatuses: [ProjectStatus] {
+        if weekOffset == 0 { return filteredStatuses }
+        if weekOffset > 0 {
+            return displayedStatuses.filter { $0.bookedHours > 0 }
+        }
+        return displayedStatuses  // past: show everything
+    }
+
+    var displayedTimeOff: TimeOffBlock? {
+        if weekOffset == 0 { return timeOffBlock }
+        if let snap = weekSnapshots[weekOffset] { return snap.timeOff }
+        return transitionSnapshot.timeOff
+    }
+
+    /// Week label always reflects the current offset immediately, even
+    /// while the new week is loading — so the user sees where they're
+    /// navigating to.
+    var displayedWeekLabel: String {
+        if weekOffset == 0 { return weekLabel }
+        return weekSnapshots[weekOffset]?.weekLabel
+            ?? DateHelpers.formattedWeekRange(offset: weekOffset)
+    }
+
+    var displayedDailyHours: [DayHours] {
+        if weekOffset == 0 { return dailyHours }
+        if let snap = weekSnapshots[weekOffset] { return snap.dailyHours }
+        return transitionSnapshot.dailyHours
+    }
+
+    /// Capture the currently-displayed data so it can be held on screen
+    /// while the next week's fetch is in flight.
+    private func captureTransitionSnapshot() {
+        transitionSnapshot = TransitionSnapshot(
+            statuses: displayedStatuses,
+            timeOff: displayedTimeOff,
+            dailyHours: displayedDailyHours
+        )
+    }
+
+    @MainActor
+    func advanceWeek() {
+        captureTransitionSnapshot()
+        weekOffset += 1
+        otherWeekError = nil
+        if weekSnapshots[weekOffset] == nil {
+            Task { await fetchWeek(offset: weekOffset) }
+        }
+    }
+
+    @MainActor
+    func goBackWeek() {
+        captureTransitionSnapshot()
+        weekOffset -= 1
+        otherWeekError = nil
+        if weekSnapshots[weekOffset] == nil {
+            Task { await fetchWeek(offset: weekOffset) }
+        }
+    }
+
+    @MainActor
+    func returnToCurrentWeek() {
+        // No transition capture — current-week data (projectStatuses etc.)
+        // is always populated, so there's nothing to hold.
+        weekOffset = 0
+        otherWeekError = nil
     }
 
     /// The currently tracking project, if any
@@ -1303,6 +1427,220 @@ final class TimeComparisonViewModel {
             // Silent — soft refresh failures shouldn't interrupt the user.
             // The next hard refresh will surface any real issue.
         }
+    }
+
+    // MARK: - Week look-ahead / look-back
+
+    /// Fetch Forecast assignments (always) + Harvest time entries (for past
+    /// weeks only) for the target week offset, then build and cache a
+    /// WeekSnapshot. Future weeks skip the Harvest fetch since there are
+    /// no logged entries yet.
+    @MainActor
+    func fetchWeek(offset: Int) async {
+        guard offset != 0 else { return }
+        guard isConfigured, let (harvestService, forecastService) = makeServices() else {
+            otherWeekError = "API credentials not configured."
+            return
+        }
+
+        isLoadingOtherWeek = true
+        otherWeekError = nil
+        defer { isLoadingOtherWeek = false }
+
+        let bounds = DateHelpers.weekBounds(offset: offset)
+        let startStr = DateHelpers.dateFormatter.string(from: bounds.start)
+        let endStr = DateHelpers.dateFormatter.string(from: bounds.end)
+
+        do {
+            // Forecast person (needed for /assignments lookup) — reuse the
+            // cached maps when available, fall back to /projects + /clients.
+            let person = try await forecastService.getCurrentPerson()
+            let projects = cachedProjectMap.isEmpty
+                ? try await forecastService.getProjects()
+                : Array(cachedProjectMap.values)
+            let clients = cachedClientMap.isEmpty
+                ? try await forecastService.getClients()
+                : Array(cachedClientMap.values)
+
+            let assignments = try await forecastService.getAssignments(
+                personId: person.id,
+                startDate: startStr,
+                endDate: endStr
+            )
+
+            // Past weeks also need Harvest time entries
+            var entries: [HarvestTimeEntry] = []
+            if offset < 0 {
+                let user = try await harvestService.getCurrentUser()
+                entries = try await harvestService.getTimeEntries(
+                    userId: user.id,
+                    from: startStr,
+                    to: endStr
+                )
+            }
+
+            let snapshot = Self.buildSnapshot(
+                offset: offset,
+                weekBounds: bounds,
+                entries: entries,
+                assignments: assignments,
+                projects: projects,
+                clients: clients
+            )
+            weekSnapshots[offset] = snapshot
+        } catch {
+            otherWeekError = friendlyErrorMessage(error)
+        }
+    }
+
+    /// Pure function that builds a WeekSnapshot from raw fetched data.
+    /// Mirrors the current-week pipeline in applyRefreshedData but without
+    /// touching any instance state.
+    private static func buildSnapshot(
+        offset: Int,
+        weekBounds: (start: Date, end: Date),
+        entries: [HarvestTimeEntry],
+        assignments: [ForecastAssignment],
+        projects: [ForecastProject],
+        clients: [ForecastClient]
+    ) -> WeekSnapshot {
+        let projectMap = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
+        let clientMap = Dictionary(uniqueKeysWithValues: clients.map { ($0.id, $0) })
+        let timeOffProjectId = projects.first(where: { $0.name == "Time Off" })?.id
+
+        // Aggregate booked hours by Forecast project ID (excluding time off)
+        var bookedByForecastProject: [Int: Double] = [:]
+        for assignment in assignments {
+            guard let projectId = assignment.projectId,
+                  projectId != timeOffProjectId else { continue }
+            let weekdays = DateHelpers.countOverlappingWeekdays(
+                assignmentStart: assignment.startDate,
+                assignmentEnd: assignment.endDate,
+                weekStart: weekBounds.start,
+                weekEnd: weekBounds.end
+            )
+            let hoursPerDay = Double(assignment.allocation ?? 0) / 3600.0
+            bookedByForecastProject[projectId, default: 0] += hoursPerDay * Double(weekdays)
+        }
+
+        let timeOff = computeTimeOffBlock(
+            assignments: assignments,
+            timeOffProjectId: timeOffProjectId,
+            weekStart: weekBounds.start,
+            weekEnd: weekBounds.end
+        )
+
+        // Aggregate logged hours by Harvest project ID (empty for future weeks)
+        var loggedByHarvestProject: [Int: Double] = [:]
+        var harvestProjectNames: [Int: String] = [:]
+        var harvestClientNames: [Int: String] = [:]
+        var entriesByHarvestProject: [Int: [HarvestTimeEntry]] = [:]
+        for entry in entries {
+            entriesByHarvestProject[entry.project.id, default: []].append(entry)
+            loggedByHarvestProject[entry.project.id, default: 0] += entry.hours
+            harvestProjectNames[entry.project.id] = entry.project.name
+            if let client = entry.client {
+                harvestClientNames[entry.project.id] = client.name
+            }
+        }
+
+        // Build ProjectStatus list
+        var statuses: [ProjectStatus] = []
+        var processedHarvestIds: Set<Int> = []
+
+        // Forecasted projects first
+        for (forecastProjectId, bookedHours) in bookedByForecastProject {
+            let project = projectMap[forecastProjectId]
+            if project?.harvestId == nil { continue }
+            let projectName = project?.name ?? "Unknown Project"
+            let clientName = project?.clientId.flatMap { clientMap[$0]?.name }
+
+            var logged: Double = 0
+            var harvestId: Int? = nil
+            if let hId = project?.harvestId {
+                harvestId = hId
+                logged = loggedByHarvestProject[hId] ?? 0
+                processedHarvestIds.insert(hId)
+            }
+
+            statuses.append(ProjectStatus(
+                id: "forecast-\(forecastProjectId)-\(offset)",
+                clientName: clientName,
+                projectName: projectName,
+                bookedHours: bookedHours,
+                loggedHours: logged,
+                todayHours: 0,           // non-current weeks don't have "today"
+                isTracking: false,       // past/future weeks never have running timers
+                harvestProjectId: harvestId,
+                todayEntryId: nil,
+                lastTaskId: nil,
+                lastTrackedAt: nil,
+                timeEntries: makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? [])
+            ))
+        }
+
+        // Harvest-only projects (past weeks only — logged without a Forecast booking)
+        for (harvestProjectId, loggedHours) in loggedByHarvestProject {
+            if processedHarvestIds.contains(harvestProjectId) { continue }
+            let projectName = harvestProjectNames[harvestProjectId] ?? "Unknown Project"
+            let clientName = harvestClientNames[harvestProjectId]
+            statuses.append(ProjectStatus(
+                id: "harvest-\(harvestProjectId)-\(offset)",
+                clientName: clientName,
+                projectName: projectName,
+                bookedHours: 0,
+                loggedHours: loggedHours,
+                todayHours: 0,
+                isTracking: false,
+                harvestProjectId: harvestProjectId,
+                todayEntryId: nil,
+                lastTaskId: nil,
+                lastTrackedAt: nil,
+                timeEntries: makeEntryInfos(from: entriesByHarvestProject[harvestProjectId] ?? [])
+            ))
+        }
+
+        // Sort: forecasted projects first (alphabetical by client/project),
+        // then logged-only Harvest projects by name.
+        statuses.sort { a, b in
+            if (a.bookedHours > 0) != (b.bookedHours > 0) { return a.bookedHours > 0 }
+            let aClient = a.clientName ?? ""
+            let bClient = b.clientName ?? ""
+            if aClient != bClient {
+                return aClient.localizedCaseInsensitiveCompare(bClient) == .orderedAscending
+            }
+            return a.projectName.localizedCaseInsensitiveCompare(b.projectName) == .orderedAscending
+        }
+
+        // Daily hours breakdown for the header's weekday mini-bar. Future
+        // weeks will be all zeros (no logged time yet) but we populate the
+        // day labels anyway.
+        let calendar = Calendar.current
+        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        var hoursByDate: [String: Double] = [:]
+        for entry in entries {
+            hoursByDate[entry.spentDate, default: 0] += entry.hours
+        }
+        var dailyHours: [DayHours] = []
+        for i in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: i, to: weekBounds.start) else { continue }
+            let dateStr = DateHelpers.dateFormatter.string(from: date)
+            let isToday = calendar.isDateInToday(date)
+            dailyHours.append(DayHours(
+                id: dateStr,
+                dayLabel: dayLabels[i],
+                hours: hoursByDate[dateStr] ?? 0,
+                isToday: isToday
+            ))
+        }
+
+        return WeekSnapshot(
+            weekOffset: offset,
+            weekLabel: DateHelpers.formattedWeekRange(offset: offset),
+            statuses: statuses,
+            timeOff: timeOff,
+            dailyHours: dailyHours
+        )
     }
 
     private func friendlyErrorMessage(_ error: Error) -> String {

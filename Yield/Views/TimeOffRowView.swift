@@ -49,9 +49,20 @@ struct TimeOffRowView: View {
         }
     }
 
+    /// Format with 8h = 1d, skipping any zero components so we read "3d"
+    /// instead of "3d 0h 0m", "1d 4h" instead of "1d 4h 0m", etc.
     private func formatHours(_ hours: Double) -> String {
-        let h = Int(hours)
-        let m = Int((hours - Double(h)) * 60)
-        return "\(h)h \(String(format: "%02d", m))m"
+        let totalMinutes = Int(round(hours * 60))
+        let minutesPerDay = 8 * 60
+        let d = totalMinutes / minutesPerDay
+        let remainder = totalMinutes % minutesPerDay
+        let h = remainder / 60
+        let m = remainder % 60
+
+        var parts: [String] = []
+        if d > 0 { parts.append("\(d)d") }
+        if h > 0 { parts.append("\(h)h") }
+        if m > 0 { parts.append("\(m)m") }
+        return parts.isEmpty ? "0m" : parts.joined(separator: " ")
     }
 }

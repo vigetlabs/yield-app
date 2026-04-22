@@ -112,53 +112,20 @@ struct MenuBarContentView: View {
 
             // Time Off summary — pinned above the timer banner so the "you
             // have PTO this week" signal lives at the top of the panel.
-            if let timeOff = viewModel.timeOffBlock, viewModel.selectedTab != .chart {
+            if let timeOff = viewModel.displayedTimeOff, viewModel.selectedTab != .chart {
                 TimeOffRowView(block: timeOff)
             }
 
-            // Timer banner / inactive slot — kept in the view tree so timer
-            // start/stop transitions play normally. On the chart tab the
-            // container collapses to zero height instead of removing the view
-            // (which would trigger the removal transition during tab switch).
-            VStack(spacing: 0) {
-                if viewModel.isTimerBannerVisible {
-                    TimerBannerView(
-                        viewModel: viewModel,
-                        onEditEntry: { entry in
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                editingEntry = entry
-                            }
-                        },
-                        onDeleteEntry: { entry in
-                            Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
-                        }
-                    )
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                } else {
-                    // Inactive timer slot — subtle green gradient bar
-                    Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    YieldColors.greenAccent.opacity(0.15),
-                                    Color.clear,
-                                ],
-                                startPoint: .leading,
-                                endPoint: UnitPoint(x: 0.7, y: 0.5)
-                            )
-                        )
-                        .frame(height: 16)
-                        .overlay(alignment: .bottom) {
-                            Rectangle()
-                                .fill(YieldColors.border)
-                                .frame(height: 1)
-                        }
-                }
+            // Timer banner / inactive slot — only shown for the current
+            // week; hidden on past/future weeks since no timer state is
+            // meaningful there.
+            if !viewModel.isViewingOtherWeek {
+                timerBannerSlot
             }
-            .frame(maxHeight: viewModel.selectedTab != .chart ? .infinity : 0, alignment: .top)
-            .clipped()
 
-            if viewModel.selectedTab == .chart {
+            if viewModel.isViewingOtherWeek {
+                otherWeekList
+            } else if viewModel.selectedTab == .chart {
                 ProjectChartView(viewModel: viewModel)
             } else if viewModel.filteredStatuses.isEmpty {
                 Text("No projects found for this week.")
@@ -197,16 +164,110 @@ struct MenuBarContentView: View {
         }
     }
 
+    /// Timer banner area — extracted so the contentView stays readable
+    /// and we can skip rendering it entirely for non-current weeks.
+    @ViewBuilder
+    private var timerBannerSlot: some View {
+        VStack(spacing: 0) {
+            if viewModel.isTimerBannerVisible {
+                TimerBannerView(
+                    viewModel: viewModel,
+                    onEditEntry: { entry in
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            editingEntry = entry
+                        }
+                    },
+                    onDeleteEntry: { entry in
+                        Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
+                    }
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                YieldColors.greenAccent.opacity(0.15),
+                                Color.clear,
+                            ],
+                            startPoint: .leading,
+                            endPoint: UnitPoint(x: 0.7, y: 0.5)
+                        )
+                    )
+                    .frame(height: 16)
+                    .overlay(alignment: .bottom) {
+                        Rectangle()
+                            .fill(YieldColors.border)
+                            .frame(height: 1)
+                    }
+            }
+        }
+        .frame(maxHeight: viewModel.selectedTab != .chart ? .infinity : 0, alignment: .top)
+        .clipped()
+    }
+
+    /// Project list for past (read-only) or future (look-ahead) weeks.
+    @ViewBuilder
+    private var otherWeekList: some View {
+        if viewModel.isLoadingOtherWeek && viewModel.displayedFilteredStatuses.isEmpty {
+            HStack {
+                Spacer()
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(YieldColors.textSecondary)
+                Spacer()
+            }
+            .padding(24)
+        } else if let err = viewModel.otherWeekError {
+            Text(err)
+                .font(YieldFonts.dmSans(11))
+                .foregroundStyle(.red)
+                .padding(16)
+        } else if viewModel.displayedFilteredStatuses.isEmpty {
+            Text(viewModel.weekOffset > 0
+                ? "Nothing booked for this week yet."
+                : "No projects found for this week.")
+                .foregroundStyle(YieldColors.textSecondary)
+                .font(YieldFonts.dmSans(11))
+                .padding(16)
+        } else {
+            let weekStart = DateHelpers.weekBounds(offset: viewModel.weekOffset).start
+            ForEach(viewModel.displayedFilteredStatuses) { project in
+                if viewModel.weekOffset > 0 {
+                    LookAheadRowView(project: project)
+                } else {
+                    ProjectRowView(
+                        project: project,
+                        effectiveLoggedHours: project.loggedHours,
+                        isHarvestDown: viewModel.isHarvestDown,
+                        isReadOnly: true,
+                        weekStart: weekStart
+                    )
+                }
+            }
+        }
+    }
+
     // MARK: - Header
 
     private var headerView: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Text(viewModel.weekLabel)
+                weekNavControls
+
+                Text(viewModel.displayedWeekLabel)
                     .font(YieldFonts.titleMedium)
                     .foregroundStyle(YieldColors.textPrimary)
+                    .frame(height: 22)
 
-                if viewModel.isLoading {
+                // Return-to-current pill — only appears when viewing a
+                // non-current week.
+                if viewModel.isViewingOtherWeek {
+                    thisWeekPill
+                        .transition(.opacity)
+                }
+
+                if viewModel.isLoading || viewModel.isLoadingOtherWeek {
                     ProgressView()
                         .controlSize(.small)
                         .scaleEffect(0.85)
@@ -218,14 +279,23 @@ struct MenuBarContentView: View {
 
                 Spacer()
 
-                tabToggle
+                // Tab toggle only makes sense on the current week; past/
+                // future weeks render a single project list.
+                if !viewModel.isViewingOtherWeek {
+                    tabToggle
+                }
 
                 timerButton
             }
             .animation(.easeInOut(duration: 0.15), value: viewModel.isLoading)
+            .animation(.easeInOut(duration: 0.15), value: viewModel.isLoadingOtherWeek)
+            .animation(.easeInOut(duration: 0.15), value: viewModel.isViewingOtherWeek)
             .padding(16)
 
-            if !viewModel.dailyHours.isEmpty {
+            // Weekday mini-bar: shown for current and past weeks (past
+            // weeks display that week's logged totals, read-only). Hidden
+            // for future weeks — nothing logged yet.
+            if !viewModel.displayedDailyHours.isEmpty && viewModel.weekOffset <= 0 {
                 weekDayBar
                     .padding(.leading, 18)
                     .padding(.trailing, 16)
@@ -242,12 +312,17 @@ struct MenuBarContentView: View {
     // MARK: - Week Day Bar
 
     private var weekDayBar: some View {
-        let liveOffset = viewModel.projectStatuses.contains(where: { $0.isTracking }) ? viewModel.elapsedOffset : 0
+        // Live-ticking elapsed offset only applies to the current week.
+        let isCurrent = !viewModel.isViewingOtherWeek
+        let liveOffset = (isCurrent && viewModel.projectStatuses.contains(where: { $0.isTracking }))
+            ? viewModel.elapsedOffset : 0
+        let days = viewModel.displayedDailyHours
+        let weekTotal = days.reduce(0) { $0 + $1.hours } + liveOffset
 
         return HStack(spacing: 0) {
-            ForEach(viewModel.dailyHours) { day in
+            ForEach(days) { day in
                 let displayHours = day.hours + (day.isToday ? liveOffset : 0)
-                let isHovered = hoveredDayId == day.id
+                let isHovered = hoveredDayId == day.id && isCurrent
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 3) {
@@ -267,7 +342,7 @@ struct MenuBarContentView: View {
                             .font(YieldFonts.jetBrainsMono(10, weight: day.isToday ? .medium : .regular))
                             .foregroundStyle(day.isToday ? YieldColors.textPrimary : YieldColors.textSecondary)
 
-                        if day.isToday && viewModel.projectStatuses.contains(where: { $0.isTracking }) {
+                        if day.isToday && isCurrent && viewModel.projectStatuses.contains(where: { $0.isTracking }) {
                             Image(systemName: "clock")
                                 .font(.system(size: 7))
                                 .foregroundStyle(YieldColors.greenAccent)
@@ -277,12 +352,16 @@ struct MenuBarContentView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
                 .onHover { hovering in
+                    guard isCurrent else { return }
                     hoveredDayId = hovering ? day.id : (hoveredDayId == day.id ? nil : hoveredDayId)
                 }
                 .onTapGesture {
+                    // Adding time to a non-current week is out of scope for
+                    // the look-back view — past weeks are read-only.
+                    guard isCurrent else { return }
                     openNewTimerForm(for: day)
                 }
-                .help("Add Time")
+                .help(isCurrent ? "Add Time" : "")
             }
 
             // Week total
@@ -291,7 +370,7 @@ struct MenuBarContentView: View {
                     .font(YieldFonts.dmSans(9, weight: .semibold))
                     .foregroundStyle(YieldColors.textSecondary)
 
-                Text(formatDayHours(viewModel.totalLogged + viewModel.totalUnbookedLogged + liveOffset))
+                Text(formatDayHours(weekTotal))
                     .font(YieldFonts.jetBrainsMono(10, weight: .medium))
                     .foregroundStyle(YieldColors.textPrimary)
             }
@@ -314,6 +393,42 @@ struct MenuBarContentView: View {
         }
     }
 
+    /// Grouped back/forward chevron controls, styled to match the tab
+    /// toggle — filled subtle bg, no outer border, thin panel-colored seam
+    /// between the two buttons so they read as distinct halves.
+    private var weekNavControls: some View {
+        HStack(spacing: 0) {
+            HeaderIconButton(systemImage: "chevron.left", help: "Previous week") {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    viewModel.goBackWeek()
+                }
+            }
+
+            // 0.5pt = 1 physical pixel on Retina displays. 1pt renders as
+            // 2px on @2x which read as a visible gap rather than a seam.
+            Rectangle()
+                .fill(YieldColors.background)
+                .frame(width: 0.5, height: 22)
+
+            HeaderIconButton(systemImage: "chevron.right", help: "Next week") {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    viewModel.advanceWeek()
+                }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+    }
+
+    /// "This Week" pill — matches the nav chevrons' outlined, transparent-bg
+    /// treatment so the row of header controls reads cohesively.
+    private var thisWeekPill: some View {
+        HeaderTextButton(title: "This Week") {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                viewModel.returnToCurrentWeek()
+            }
+        }
+    }
+
     private var tabToggle: some View {
         HStack(spacing: 0) {
             ForEach(TimeComparisonViewModel.ProjectTab.allCases, id: \.self) { tab in
@@ -325,25 +440,21 @@ struct MenuBarContentView: View {
                 } label: {
                     tabLabel(tab, isSelected: isSelected)
                         .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .frame(height: 20)
-                        .background(isSelected
-                            ? Color(red: 0.184, green: 0.188, blue: 0.200)
-                            : Color(red: 0.141, green: 0.145, blue: 0.149))
+                        .frame(height: 22)
+                        .background(isSelected ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
                 }
                 .buttonStyle(.plain)
                 .help(tabHelp(tab))
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
-        .frame(height: 22)
     }
 
     @ViewBuilder
     private func tabLabel(_ tab: TimeComparisonViewModel.ProjectTab, isSelected: Bool) -> some View {
         switch tab {
         case .recent, .forecasted:
-            Text(tab == .recent ? "Recent" : "Forecasted")
+            Text(tab == .recent ? "Recent" : "Booked")
                 .font(isSelected
                     ? YieldFonts.dmSans(10, weight: .semibold)
                     : YieldFonts.dmSans(10, weight: .medium))
@@ -520,6 +631,59 @@ struct MenuBarContentView: View {
         }
     }
 
+}
+
+// MARK: - Header button primitives (shared look)
+
+/// Compact icon button inside the header's grouped nav control. Matches
+/// the tab-toggle aesthetic: filled `surfaceDefault` bg by default,
+/// `surfaceActive` on hover, no outer border.
+private struct HeaderIconButton: View {
+    let systemImage: String
+    let help: String
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(YieldColors.textSecondary)
+                .frame(width: 24, height: 22)
+                .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+        }
+    }
+}
+
+/// Compact text chip matching HeaderIconButton. Used for "This Week" so
+/// it sits in the same visual family as the tabs and nav chevrons.
+private struct HeaderTextButton: View {
+    let title: String
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(YieldFonts.labelButton)
+                .foregroundStyle(YieldColors.textPrimary)
+                .padding(.horizontal, 11)
+                .frame(height: 22)
+                .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+        }
+    }
 }
 
 // MARK: - Opaque Panel Background

@@ -9,6 +9,15 @@ struct ProjectRowView: View {
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
     var isHarvestDown: Bool = false
     var onStartTimerForProject: (() -> Void)? = nil
+    /// When true, all write interactions are suppressed — no play/stop
+    /// buttons, no context menus, no double-click-to-edit. Used for
+    /// rendering past weeks (Harvest "submits" those entries and locking
+    /// makes editing moot).
+    var isReadOnly: Bool = false
+    /// Monday of the week this row represents. Defaults to nil (current
+    /// week); set to a specific date when rendering a past-week snapshot
+    /// so the segmented bar aligns with that week's entries.
+    var weekStart: Date? = nil
     @State private var isExpanded: Bool = false
     @State private var isHovered: Bool = false
 
@@ -36,12 +45,14 @@ struct ProjectRowView: View {
                     }
                 }
                 .contextMenu {
-                    Button {
-                        onStartTimerForProject?()
-                    } label: {
-                        Label("Start Timer", systemImage: "play.fill")
+                    if !isReadOnly {
+                        Button {
+                            onStartTimerForProject?()
+                        } label: {
+                            Label("Start Timer", systemImage: "play.fill")
+                        }
+                        .disabled(isHarvestDown)
                     }
-                    .disabled(isHarvestDown)
                 }
 
             // Accordion drawer: day-by-day breakdown bar at the top, then the
@@ -54,7 +65,8 @@ struct ProjectRowView: View {
                         entries: project.timeEntries,
                         todayEffectiveHours: effectiveTodayHours,
                         booked: project.bookedHours,
-                        isDrawerExpanded: isExpanded
+                        isDrawerExpanded: isExpanded,
+                        weekStart: weekStart
                     )
                     // Left padding matches the task-entry text indent (32)
                     // so the bar aligns with the rows below it. Top padding
@@ -67,13 +79,20 @@ struct ProjectRowView: View {
                 }
 
                 ForEach(project.timeEntries) { entry in
-                    TaskEntryRowView(entry: entry, isHarvestDown: isHarvestDown, onToggleTimer: {
-                        onToggleEntryTimer?(entry.id, entry.isRunning)
-                    }, onEditEntry: {
-                        onEditEntry?(entry)
-                    }, onDeleteEntry: {
-                        onDeleteEntry?(entry)
-                    })
+                    TaskEntryRowView(
+                        entry: entry,
+                        isHarvestDown: isHarvestDown,
+                        isReadOnly: isReadOnly,
+                        onToggleTimer: {
+                            onToggleEntryTimer?(entry.id, entry.isRunning)
+                        },
+                        onEditEntry: {
+                            onEditEntry?(entry)
+                        },
+                        onDeleteEntry: {
+                            onDeleteEntry?(entry)
+                        }
+                    )
                 }
             }
             .frame(maxHeight: isExpanded ? .infinity : 0, alignment: .top)
@@ -273,6 +292,10 @@ struct SegmentedProgressBarView: View {
     let todayEffectiveHours: Double
     let booked: Double
     let isDrawerExpanded: Bool
+    /// Monday of the week this bar represents. Defaults to the current
+    /// week; pass a different value when rendering a past-week snapshot
+    /// so the day grid matches the entries' spent_date values.
+    var weekStart: Date? = nil
 
     /// Scales every segment width from 0 → 1. Animated to 1 when the parent
     /// drawer opens and snapped back to 0 when it closes, giving a "fill
@@ -289,10 +312,10 @@ struct SegmentedProgressBarView: View {
 
     private static let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-    /// One entry per day of the current week. Today's hours are replaced
+    /// One entry per day of the target week. Today's hours are replaced
     /// with `todayEffectiveHours` so the live-ticking timer shows up.
     private var days: [DayFill] {
-        let weekStart = DateHelpers.currentWeekBounds().start
+        let resolvedWeekStart = weekStart ?? DateHelpers.currentWeekBounds().start
         let todayString = DateHelpers.dateFormatter.string(from: Date())
         let calendar = Calendar.current
 
@@ -304,7 +327,7 @@ struct SegmentedProgressBarView: View {
 
         var result: [DayFill] = []
         for i in 0..<7 {
-            guard let date = calendar.date(byAdding: .day, value: i, to: weekStart) else { continue }
+            guard let date = calendar.date(byAdding: .day, value: i, to: resolvedWeekStart) else { continue }
             let dateStr = DateHelpers.dateFormatter.string(from: date)
             let isToday = dateStr == todayString
             let hours = isToday ? todayEffectiveHours : (hoursByDate[dateStr] ?? 0)
@@ -399,6 +422,7 @@ struct SegmentedProgressBarView: View {
 struct TaskEntryRowView: View {
     let entry: TimeEntryInfo
     var isHarvestDown: Bool = false
+    var isReadOnly: Bool = false
     var onToggleTimer: (() -> Void)? = nil
     var onEditEntry: (() -> Void)? = nil
     var onDeleteEntry: (() -> Void)? = nil
@@ -469,12 +493,12 @@ struct TaskEntryRowView: View {
             }
             .contentShape(Rectangle())
             .onTapGesture(count: 2) {
-                guard !isHarvestDown else { return }
+                guard !isHarvestDown, !isReadOnly else { return }
                 onEditEntry?()
             }
 
-            // Play/stop button (only for today's entries)
-            if isToday {
+            // Play/stop button (only for today's entries, hidden when read-only)
+            if isToday && !isReadOnly {
                 Button(action: { onToggleTimer?() }) {
                     Image(systemName: entry.isRunning ? "stop.fill" : "play.fill")
                         .font(.system(size: 10))
@@ -495,18 +519,20 @@ struct TaskEntryRowView: View {
             withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
         }
         .contextMenu {
-            Button {
-                onEditEntry?()
-            } label: {
-                Label("Edit Timer", systemImage: "pencil")
+            if !isReadOnly {
+                Button {
+                    onEditEntry?()
+                } label: {
+                    Label("Edit Timer", systemImage: "pencil")
+                }
+                .disabled(isHarvestDown)
+                Button(role: .destructive) {
+                    onDeleteEntry?()
+                } label: {
+                    Label("Delete Timer", systemImage: "trash")
+                }
+                .disabled(isHarvestDown)
             }
-            .disabled(isHarvestDown)
-            Button(role: .destructive) {
-                onDeleteEntry?()
-            } label: {
-                Label("Delete Timer", systemImage: "trash")
-            }
-            .disabled(isHarvestDown)
         }
         .overlay(alignment: .bottom) {
             Rectangle()

@@ -14,6 +14,27 @@ enum DateHelpers {
         return f
     }()
 
+    /// Day of month, no leading zero — e.g. "3", "27".
+    private static let dayOnlyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "d"
+        return f
+    }()
+
+    /// Short month + day — e.g. "Apr 27".
+    private static let monthDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
+    /// Short month + day + year — e.g. "Apr 27, 2026".
+    private static let monthDayYearFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d, yyyy"
+        return f
+    }()
+
     static func currentWeekBounds() -> (start: Date, end: Date) {
         let calendar = Calendar.current
         let today = Date()
@@ -37,12 +58,52 @@ enum DateHelpers {
     }
 
     static func formattedWeekRange() -> String {
-        let bounds = currentWeekBounds()
+        formatWeekRange(bounds: currentWeekBounds())
+    }
+
+    /// Compact American week range format:
+    ///   Same month:       "Apr 20 – 26, 2026"
+    ///   Crosses months:   "Apr 27 – May 3, 2026"
+    ///   Crosses year:     "Dec 29, 2025 – Jan 4, 2026"
+    static func formatWeekRange(bounds: (start: Date, end: Date)) -> String {
         let calendar = Calendar.current
-        let startStr = displayFormatter.string(from: bounds.start)
-        let endStr = displayFormatter.string(from: bounds.end)
-        let year = calendar.component(.year, from: bounds.start)
-        return "\(startStr) – \(endStr), \(year)"
+        let startMonth = calendar.component(.month, from: bounds.start)
+        let endMonth = calendar.component(.month, from: bounds.end)
+        let startYear = calendar.component(.year, from: bounds.start)
+        let endYear = calendar.component(.year, from: bounds.end)
+
+        if startYear != endYear {
+            // Full, explicit on both ends when the year flips.
+            let startFull = monthDayYearFormatter.string(from: bounds.start)
+            let endFull = monthDayYearFormatter.string(from: bounds.end)
+            return "\(startFull) – \(endFull)"
+        }
+        if startMonth != endMonth {
+            let startMD = monthDayFormatter.string(from: bounds.start)
+            let endMD = monthDayFormatter.string(from: bounds.end)
+            let year = startYear
+            return "\(startMD) – \(endMD), \(year)"
+        }
+        // Same month: show month once on the left, day range, year on the right.
+        let startMD = monthDayFormatter.string(from: bounds.start)
+        let endDay = dayOnlyFormatter.string(from: bounds.end)
+        return "\(startMD) – \(endDay), \(startYear)"
+    }
+
+    /// Week bounds for the week at `offset` weeks from the current week.
+    /// 0 = current week, -1 = last week, +1 = next week, etc.
+    static func weekBounds(offset: Int) -> (start: Date, end: Date) {
+        let current = currentWeekBounds()
+        guard offset != 0,
+              let start = Calendar.current.date(byAdding: .day, value: offset * 7, to: current.start),
+              let end = Calendar.current.date(byAdding: .day, value: offset * 7, to: current.end)
+        else { return current }
+        return (start, end)
+    }
+
+    /// Formatted week range label for an arbitrary week offset.
+    static func formattedWeekRange(offset: Int) -> String {
+        formatWeekRange(bounds: weekBounds(offset: offset))
     }
 
     /// Count weekdays (Mon-Fri) where an assignment overlaps with the current week

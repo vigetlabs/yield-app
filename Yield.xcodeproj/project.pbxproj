@@ -16,6 +16,7 @@
 		232E3E8034BF33986F220DD0 /* ProjectChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */; };
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
 		428D5AEC2E6086C0999F9F7E /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */; };
+		42DB3888BEBE6DE88987C012 /* LookAheadRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCB0B20EC3D0FF46A1DA250 /* LookAheadRowView.swift */; };
 		539A827FDCADF80CA5457BFD /* DMSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */; };
 		544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F394448517841A11132011C /* IdleAlertView.swift */; };
 		5B4B7C7E70A2D03365410F96 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA30B681B3132D09F66457E /* Sparkle */; };
@@ -47,6 +48,7 @@
 		04649DB88A000C743F3433D1 /* JetBrainsMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Medium.ttf"; sourceTree = "<group>"; };
 		0FD374FF50C57C8CDAC6FF39 /* Newsreader-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Newsreader-Italic.ttf"; sourceTree = "<group>"; };
 		138C505A4936EA5B2A5B16FD /* YieldApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YieldApp.swift; sourceTree = "<group>"; };
+		1DCB0B20EC3D0FF46A1DA250 /* LookAheadRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LookAheadRowView.swift; sourceTree = "<group>"; };
 		22A0F29CD8D3681B5AF53341 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		2C64919FC02138F05B504BF5 /* DateHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateHelpers.swift; sourceTree = "<group>"; };
 		38C069FFB775F69282E721C8 /* OAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthService.swift; sourceTree = "<group>"; };
@@ -163,6 +165,7 @@
 			children = (
 				82BA76EB59241974EF71AF53 /* DropdownPicker.swift */,
 				9F394448517841A11132011C /* IdleAlertView.swift */,
+				1DCB0B20EC3D0FF46A1DA250 /* LookAheadRowView.swift */,
 				C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */,
 				9128BE0471E69DB0E0878DA8 /* NewTimerFormView.swift */,
 				B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */,
@@ -302,6 +305,7 @@
 				C4E96F0745CED0E60BA91284 /* HarvestService.swift in Sources */,
 				544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */,
 				DAC3301F5AA18C5088CC521C /* KeychainHelper.swift in Sources */,
+				42DB3888BEBE6DE88987C012 /* LookAheadRowView.swift in Sources */,
 				7C1545B79A40F59B462C2BE3 /* MenuBarContentView.swift in Sources */,
 				C0BFE1EB7FE167CA2FBD34B4 /* NewTimerFormView.swift in Sources */,
 				6D46A5BB044C89897B4AB4D9 /* OAuthService.swift in Sources */,
