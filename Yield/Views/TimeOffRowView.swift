@@ -53,7 +53,7 @@ struct TimeOffRowView: View {
     /// instead of "3d 0h 0m", "1d 4h" instead of "1d 4h 0m", etc.
     private func formatHours(_ hours: Double) -> String {
         let totalMinutes = Int(round(hours * 60))
-        let minutesPerDay = 8 * 60
+        let minutesPerDay = Int(YieldConstants.workdayHours) * 60
         let d = totalMinutes / minutesPerDay
         let remainder = totalMinutes % minutesPerDay
         let h = remainder / 60

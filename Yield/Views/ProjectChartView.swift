@@ -176,10 +176,10 @@ struct ProjectChartView: View {
                 .interpolationMethod(.monotone)
             }
 
-            // 8-hour reference line (a workday). The label is rendered as a
-            // trailing Y-axis tick (below) so it sits outside the plot area to the
-            // right, mirroring how the leading tick labels sit outside on the left.
-            RuleMark(y: .value("Target", 8))
+            // Workday reference line. The label is rendered as a trailing
+            // Y-axis tick so it sits outside the plot area to the right,
+            // mirroring how the leading tick labels sit outside on the left.
+            RuleMark(y: .value("Target", YieldConstants.workdayHours))
                 .foregroundStyle(YieldColors.textSecondary.opacity(0.6))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
         }
@@ -323,7 +323,7 @@ struct ProjectChartView: View {
                     .interpolationMethod(.monotone)
                 }
 
-                RuleMark(y: .value("Target", 8))
+                RuleMark(y: .value("Target", YieldConstants.workdayHours))
                     .foregroundStyle(Color.white.opacity(0.4))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }

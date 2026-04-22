@@ -297,8 +297,8 @@ struct NewTimerFormView: View {
         selectedTaskId = nil
         duplicateConfirmEntries = nil
         availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
-        if availableTasks.count == 1 {
-            selectTask(availableTasks.first!.id)
+        if let onlyTask = availableTasks.first, availableTasks.count == 1 {
+            selectTask(onlyTask.id)
         }
     }
 

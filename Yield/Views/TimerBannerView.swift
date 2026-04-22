@@ -180,10 +180,4 @@ struct TimerBannerView: View {
         }
         return max(0, baseSeconds)
     }
-
-    private func formatTimer(_ totalSeconds: Int) -> String {
-        let h = totalSeconds / 3600
-        let m = (totalSeconds % 3600) / 60
-        return String(format: "%02d:%02d", h, m)
-    }
 }

@@ -11,28 +11,25 @@ final class TimeComparisonViewModel {
         elapsedTimer?.invalidate()
     }
 
-    var projectStatuses: [ProjectStatus] = []
-    var totalLogged: Double = 0
-    var totalBooked: Double = 0
-    var totalUnbookedLogged: Double = 0
-    var totalTodayLogged: Double = 0
-    var dailyHours: [DayHours] = []
-    var timeOffBlock: TimeOffBlock? = nil
+    private(set) var projectStatuses: [ProjectStatus] = []
+    private(set) var totalLogged: Double = 0
+    private(set) var totalBooked: Double = 0
+    private(set) var totalUnbookedLogged: Double = 0
+    private(set) var totalTodayLogged: Double = 0
+    private(set) var dailyHours: [DayHours] = []
+    private(set) var timeOffBlock: TimeOffBlock? = nil
 
-    /// Week offset: 0 = current week (default), <0 = past, >0 = future.
-    /// Current-week data stays in `projectStatuses` / `timeOffBlock` / etc.
-    /// and keeps auto-refreshing in the background. Other weeks are fetched
-    /// on demand and cached in `weekSnapshots`.
-    var weekOffset: Int = 0
+    /// Week offset: 0 = current week, <0 = past, >0 = future.
+    private(set) var weekOffset: Int = 0
 
     /// Cached snapshots for non-current weeks, keyed by weekOffset.
-    var weekSnapshots: [Int: WeekSnapshot] = [:]
+    private(set) var weekSnapshots: [Int: WeekSnapshot] = [:]
 
     /// Loading + error state for non-current week fetches. Kept separate
     /// from `isLoading` / `errorMessage` so the current-week state isn't
     /// disturbed when a look-ahead/back fetch is in flight.
-    var isLoadingOtherWeek: Bool = false
-    var otherWeekError: String? = nil
+    private(set) var isLoadingOtherWeek: Bool = false
+    private(set) var otherWeekError: String? = nil
 
     /// Snapshot of the previously-displayed week, captured just before each
     /// navigation. Used as a fallback for the project list / time off / day
@@ -74,11 +71,11 @@ final class TimeComparisonViewModel {
         let dayLabels: [String]        // e.g. ["Mon", "Tue"] — all affected weekdays
         let fullDayLabels: Set<String> // subset that are full-day blocks (allocation == 0)
     }
-    var weekLabel: String = ""
-    var lastUpdated: Date? = nil
-    var isLoading: Bool = false
-    var errorMessage: String? = nil
-    var serviceErrors: [ServiceError] = []
+    private(set) var weekLabel: String = ""
+    private(set) var lastUpdated: Date? = nil
+    private(set) var isLoading: Bool = false
+    private(set) var errorMessage: String? = nil
+    private(set) var serviceErrors: [ServiceError] = []
 
     #if DEBUG
     /// Set to simulate API failures for UI testing.
@@ -101,9 +98,9 @@ final class TimeComparisonViewModel {
     var isHarvestDown: Bool {
         serviceErrors.contains { $0.service == .harvest }
     }
-    var elapsedOffset: Double = 0  // hours elapsed locally since last API refresh
+    private(set) var elapsedOffset: Double = 0  // hours elapsed locally since last API refresh
     var selectedTab: ProjectTab = .recent
-    var pausedState: PausedTimerState? = nil
+    private(set) var pausedState: PausedTimerState? = nil
 
     enum ProjectTab: String, CaseIterable {
         case recent, forecasted, chart
@@ -216,7 +213,7 @@ final class TimeComparisonViewModel {
         }
     }
 
-    var idleAlertState: IdleAlertState? = nil
+    private(set) var idleAlertState: IdleAlertState? = nil
 
     var filteredStatuses: [ProjectStatus] {
         switch selectedTab {
@@ -382,7 +379,7 @@ final class TimeComparisonViewModel {
         authMode != .none
     }
 
-    enum MenuBarIcon {
+    enum MenuBarIcon: Equatable {
         case calendar                      // no timer running
         case gaugeUnder(progress: Double)  // booked timer, under budget (rotates)
         case gaugeOver                     // booked timer, over budget
@@ -514,6 +511,7 @@ final class TimeComparisonViewModel {
         }
     }
 
+    @MainActor
     func startAutoRefresh() {
         refreshTimer?.invalidate()
         activeRefreshTask?.cancel()
@@ -532,12 +530,14 @@ final class TimeComparisonViewModel {
         }
     }
 
+    @MainActor
     func stopAutoRefresh() {
         refreshTimer?.invalidate()
         refreshTimer = nil
         stopElapsedTimer()
     }
 
+    @MainActor
     private func startElapsedTimer() {
         elapsedTimer?.invalidate()
         elapsedOffset = 0
@@ -552,6 +552,7 @@ final class TimeComparisonViewModel {
         }
     }
 
+    @MainActor
     private func checkIdleTime() {
         let enabled = UserDefaults.standard.bool(forKey: "idleDetectionEnabled")
         guard enabled else {
@@ -685,6 +686,7 @@ final class TimeComparisonViewModel {
         notifiedProjectIds.insert(project.id)
     }
 
+    @MainActor
     private func checkBookedHoursReached() {
         for project in projectStatuses where project.isTracking {
             let effective = effectiveLoggedHours(for: project)
@@ -697,6 +699,7 @@ final class TimeComparisonViewModel {
         }
     }
 
+    @MainActor
     private func sendBookedHoursNotification(for project: ProjectStatus) {
         let content = UNMutableNotificationContent()
         content.title = "Time's up!"
@@ -757,7 +760,7 @@ final class TimeComparisonViewModel {
 
         let calendar = Calendar.current
         let dayLabels = Array(DateHelpers.weekdayLabels.prefix(5))  // Mon–Fri
-        let defaultFullDayHours = 8.0
+        let defaultFullDayHours = YieldConstants.workdayHours
 
         var totalHours = 0.0
         var affectedDays: Set<Int> = []  // weekday indices 0–4 relative to Mon
@@ -792,6 +795,7 @@ final class TimeComparisonViewModel {
         )
     }
 
+    @MainActor
     private func stopElapsedTimer() {
         elapsedTimer?.invalidate()
         elapsedTimer = nil
@@ -1073,22 +1077,30 @@ final class TimeComparisonViewModel {
         let weekBounds = DateHelpers.currentWeekBounds()
 
         do {
-            // Fetch Harvest data
-            let user: HarvestUserResponse
+            // Fetch Harvest data. User ID is account-stable so we reuse the
+            // cached one when available and only hit /users/me on the first
+            // refresh of a session (or if the cache was cleared).
+            let userId: Int
             let entries: [HarvestTimeEntry]
             do {
-                user = try await harvestService.getCurrentUser()
+                if let cachedId = cachedHarvestUserId {
+                    userId = cachedId
+                } else {
+                    let user = try await harvestService.getCurrentUser()
+                    userId = user.id
+                    cachedHarvestUserId = user.id
 
-                // Backfill user name if missing (e.g. after cache clear)
-                if AppState.shared.oAuthService.userName == nil {
-                    let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
-                    if !name.isEmpty {
-                        UserDefaults.standard.set(name, forKey: "oauthUserName")
+                    // Backfill user name if missing (e.g. after cache clear).
+                    if AppState.shared.oAuthService.userName == nil {
+                        let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
+                        if !name.isEmpty {
+                            UserDefaults.standard.set(name, forKey: "oauthUserName")
+                        }
                     }
                 }
 
                 entries = try await harvestService.getTimeEntries(
-                    userId: user.id,
+                    userId: userId,
                     from: weekDates.start,
                     to: weekDates.end
                 )
@@ -1125,10 +1137,9 @@ final class TimeComparisonViewModel {
             let projectMap = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
             let clientMap = Dictionary(uniqueKeysWithValues: clients.map { ($0.id, $0) })
 
-            // Forecast represents time off as a single undeletable project
-            // literally named "Time Off" — identify it by name so we can
-            // surface those assignments separately from real project work.
-            let timeOffProjectId = projects.first(where: { $0.name == "Time Off" })?.id
+            // Identify Forecast's built-in time-off project by name so we
+            // can surface those assignments separately from real work.
+            let timeOffProjectId = projects.first(where: { $0.name == YieldConstants.timeOffProjectName })?.id
 
             // Aggregate booked hours by Forecast project ID, splitting out
             // time off into its own per-day collection for a bottom-of-list
@@ -1153,8 +1164,9 @@ final class TimeComparisonViewModel {
                 bookedByForecastProject[projectId, default: 0] += hoursPerDay * Double(weekdays)
             }
 
-            // Cache everything needed for a future soft refresh
-            cachedHarvestUserId = user.id
+            // Cache everything needed for a future soft refresh. userId
+            // was either freshly fetched above or already matched the cache.
+            cachedHarvestUserId = userId
             cachedForecastPersonId = person.id
             currentWeekStart = weekBounds.start
             cachedWeekEntries = entries
@@ -1530,7 +1542,7 @@ final class TimeComparisonViewModel {
     ) -> WeekSnapshot {
         let projectMap = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
         let clientMap = Dictionary(uniqueKeysWithValues: clients.map { ($0.id, $0) })
-        let timeOffProjectId = projects.first(where: { $0.name == "Time Off" })?.id
+        let timeOffProjectId = projects.first(where: { $0.name == YieldConstants.timeOffProjectName })?.id
 
         // Aggregate booked hours by Forecast project ID (excluding time off)
         var bookedByForecastProject: [Int: Double] = [:]

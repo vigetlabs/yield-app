@@ -89,9 +89,36 @@ struct YieldApp: App {
 
     }
 
+    /// Memoization key for `composedMenuBarImage`. MenuBarIcon is already
+    /// Equatable so this gets automatic synthesis.
+    private struct MenuBarImageKey: Equatable {
+        let label: String
+        let icon: TimeComparisonViewModel.MenuBarIcon
+        let isTracking: Bool
+    }
+
+    /// Process-global cache for the composed menu bar image. SwiftUI re-runs
+    /// the MenuBarExtra label closure on every observable mutation (timer
+    /// tick, each refresh), but the rendered image only changes when the
+    /// label text, icon, or tracking dot does. Without this cache we'd
+    /// allocate an NSImage + re-render an SF Symbol + measure attributed
+    /// strings multiple times per minute even when nothing visibly changed.
+    private static var cache: (key: MenuBarImageKey, image: NSImage)?
+
     /// Compose the full menu bar image: [tracking dot] [time text] [state icon]
     /// Draws into a single NSImage so MenuBarExtra renders it reliably.
     private func composedMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, isTracking: Bool) -> NSImage {
+        let key = MenuBarImageKey(label: label, icon: icon, isTracking: isTracking)
+        if let cached = Self.cache, cached.key == key {
+            return cached.image
+        }
+
+        let image = renderMenuBarImage(label: label, icon: icon, isTracking: isTracking)
+        Self.cache = (key, image)
+        return image
+    }
+
+    private func renderMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, isTracking: Bool) -> NSImage {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         let textColor = NSColor.black
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
