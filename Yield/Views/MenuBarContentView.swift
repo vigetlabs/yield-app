@@ -231,7 +231,7 @@ struct MenuBarContentView: View {
                 .font(YieldFonts.dmSans(11))
                 .padding(16)
         } else {
-            let weekStart = DateHelpers.weekBounds(offset: viewModel.weekOffset).start
+            let weekStart = viewModel.weekSnapshots[viewModel.weekOffset]?.weekStart
             ForEach(viewModel.displayedFilteredStatuses) { project in
                 if viewModel.weekOffset > 0 {
                     LookAheadRowView(project: project)
@@ -279,8 +279,6 @@ struct MenuBarContentView: View {
 
                 Spacer()
 
-                // Tab toggle only makes sense on the current week; past/
-                // future weeks render a single project list.
                 if !viewModel.isViewingOtherWeek {
                     tabToggle
                 }
@@ -292,9 +290,8 @@ struct MenuBarContentView: View {
             .animation(.easeInOut(duration: 0.15), value: viewModel.isViewingOtherWeek)
             .padding(16)
 
-            // Weekday mini-bar: shown for current and past weeks (past
-            // weeks display that week's logged totals, read-only). Hidden
-            // for future weeks — nothing logged yet.
+            // Weekday mini-bar: shown for current and past weeks; hidden
+            // for future weeks since nothing's logged yet.
             if !viewModel.displayedDailyHours.isEmpty && viewModel.weekOffset <= 0 {
                 weekDayBar
                     .padding(.leading, 18)
@@ -356,8 +353,6 @@ struct MenuBarContentView: View {
                     hoveredDayId = hovering ? day.id : (hoveredDayId == day.id ? nil : hoveredDayId)
                 }
                 .onTapGesture {
-                    // Adding time to a non-current week is out of scope for
-                    // the look-back view — past weeks are read-only.
                     guard isCurrent else { return }
                     openNewTimerForm(for: day)
                 }

@@ -310,7 +310,6 @@ struct SegmentedProgressBarView: View {
         let isToday: Bool
     }
 
-    private static let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
     /// One entry per day of the target week. Today's hours are replaced
     /// with `todayEffectiveHours` so the live-ticking timer shows up.
@@ -331,7 +330,7 @@ struct SegmentedProgressBarView: View {
             let dateStr = DateHelpers.dateFormatter.string(from: date)
             let isToday = dateStr == todayString
             let hours = isToday ? todayEffectiveHours : (hoursByDate[dateStr] ?? 0)
-            result.append(DayFill(id: dateStr, label: Self.dayLabels[i], hours: hours, isToday: isToday))
+            result.append(DayFill(id: dateStr, label: DateHelpers.weekdayLabels[i], hours: hours, isToday: isToday))
         }
         return result
     }

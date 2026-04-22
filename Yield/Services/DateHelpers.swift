@@ -8,11 +8,9 @@ enum DateHelpers {
         return f
     }()
 
-    static let displayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        return f
-    }()
+    /// Short weekday labels, Monday-first. Used everywhere we need to label
+    /// day-of-week cells (chart axis, weekday mini-bar, time-off breakdown).
+    static let weekdayLabels: [String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
     /// Day of month, no leading zero — e.g. "3", "27".
     private static let dayOnlyFormatter: DateFormatter = {

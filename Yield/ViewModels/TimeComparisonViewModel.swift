@@ -52,6 +52,7 @@ final class TimeComparisonViewModel {
     struct WeekSnapshot {
         let weekOffset: Int
         let weekLabel: String
+        let weekStart: Date
         let statuses: [ProjectStatus]
         let timeOff: TimeOffBlock?
         let dailyHours: [DayHours]
@@ -162,7 +163,7 @@ final class TimeComparisonViewModel {
     private func chartWeekDays() -> [(date: String, label: String)] {
         let calendar = Calendar.current
         let weekStart = DateHelpers.currentWeekBounds().start
-        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let dayLabels = DateHelpers.weekdayLabels
 
         var allDays: [(date: String, label: String)] = []
         for i in 0..<7 {
@@ -245,14 +246,12 @@ final class TimeComparisonViewModel {
     /// Display statuses filtered by tab / week context.
     /// - Current week: respects the Recent / Forecasted tab selection.
     /// - Future weeks: only booked projects (no logged time exists yet).
-    /// - Past weeks: all projects, booked or logged-only, so tracked-
-    ///   unbooked work is still visible when reviewing.
+    /// - Past weeks: all projects, booked or logged-only.
     var displayedFilteredStatuses: [ProjectStatus] {
-        if weekOffset == 0 { return filteredStatuses }
-        if weekOffset > 0 {
-            return displayedStatuses.filter { $0.bookedHours > 0 }
-        }
-        return displayedStatuses  // past: show everything
+        guard weekOffset != 0 else { return filteredStatuses }
+        return weekOffset > 0
+            ? displayedStatuses.filter { $0.bookedHours > 0 }
+            : displayedStatuses
     }
 
     var displayedTimeOff: TimeOffBlock? {
@@ -308,8 +307,6 @@ final class TimeComparisonViewModel {
 
     @MainActor
     func returnToCurrentWeek() {
-        // No transition capture — current-week data (projectStatuses etc.)
-        // is always populated, so there's nothing to hold.
         weekOffset = 0
         otherWeekError = nil
     }
@@ -358,6 +355,7 @@ final class TimeComparisonViewModel {
     private var cachedClientMap: [Int: ForecastClient] = [:]
     private var cachedTimeOffBlock: TimeOffBlock?
     private var cachedHarvestUserId: Int?
+    private var cachedForecastPersonId: Int?
 
     enum AuthMode {
         case oauth, pat, none
@@ -758,7 +756,7 @@ final class TimeComparisonViewModel {
         guard let timeOffProjectId else { return nil }
 
         let calendar = Calendar.current
-        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+        let dayLabels = Array(DateHelpers.weekdayLabels.prefix(5))  // Mon–Fri
         let defaultFullDayHours = 8.0
 
         var totalHours = 0.0
@@ -1056,6 +1054,11 @@ final class TimeComparisonViewModel {
         }
         lastRefreshAt = Date()
 
+        // A hard refresh invalidates any cached non-current-week snapshots
+        // too (they'd now be stale, and we should avoid the dictionary
+        // growing indefinitely as the user browses weeks).
+        weekSnapshots.removeAll(keepingCapacity: true)
+
         isLoading = true
         errorMessage = nil
         serviceErrors = []
@@ -1152,6 +1155,7 @@ final class TimeComparisonViewModel {
 
             // Cache everything needed for a future soft refresh
             cachedHarvestUserId = user.id
+            cachedForecastPersonId = person.id
             currentWeekStart = weekBounds.start
             cachedWeekEntries = entries
             cachedForecastBookings = bookedByForecastProject
@@ -1345,7 +1349,7 @@ final class TimeComparisonViewModel {
                 hoursByDate[entry.spentDate, default: 0] += entry.hours
             }
             let calendar = Calendar.current
-            let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            let dayLabels = DateHelpers.weekdayLabels
             var days: [DayHours] = []
             for i in 0..<7 {
                 guard let date = calendar.date(byAdding: .day, value: i, to: weekBounds.start) else { continue }
@@ -1452,40 +1456,60 @@ final class TimeComparisonViewModel {
         let endStr = DateHelpers.dateFormatter.string(from: bounds.end)
 
         do {
-            // Forecast person (needed for /assignments lookup) — reuse the
-            // cached maps when available, fall back to /projects + /clients.
-            let person = try await forecastService.getCurrentPerson()
-            let projects = cachedProjectMap.isEmpty
-                ? try await forecastService.getProjects()
-                : Array(cachedProjectMap.values)
-            let clients = cachedClientMap.isEmpty
-                ? try await forecastService.getClients()
-                : Array(cachedClientMap.values)
+            // Fan out prerequisite lookups so cold-cache fetches don't
+            // serialize: person + (optionally) /projects + /clients for
+            // Forecast, and the Harvest user lookup for past weeks. The
+            // person and user IDs are account-stable, so cached values are
+            // used when available.
+            async let personId: Int = {
+                if let id = cachedForecastPersonId { return id }
+                let person = try await forecastService.getCurrentPerson()
+                cachedForecastPersonId = person.id
+                return person.id
+            }()
+            async let projects: [ForecastProject] = {
+                if !cachedProjectMap.isEmpty { return Array(cachedProjectMap.values) }
+                return try await forecastService.getProjects()
+            }()
+            async let clients: [ForecastClient] = {
+                if !cachedClientMap.isEmpty { return Array(cachedClientMap.values) }
+                return try await forecastService.getClients()
+            }()
+            async let harvestUserId: Int? = {
+                guard offset < 0 else { return nil }
+                if let id = cachedHarvestUserId { return id }
+                let user = try await harvestService.getCurrentUser()
+                cachedHarvestUserId = user.id
+                return user.id
+            }()
 
-            let assignments = try await forecastService.getAssignments(
-                personId: person.id,
+            let resolvedPersonId = try await personId
+            let resolvedProjects = try await projects
+            let resolvedClients = try await clients
+            let resolvedHarvestUserId = try await harvestUserId
+
+            // Now issue the per-week lookups concurrently.
+            async let assignments = forecastService.getAssignments(
+                personId: resolvedPersonId,
                 startDate: startStr,
                 endDate: endStr
             )
-
-            // Past weeks also need Harvest time entries
-            var entries: [HarvestTimeEntry] = []
-            if offset < 0 {
-                let user = try await harvestService.getCurrentUser()
-                entries = try await harvestService.getTimeEntries(
-                    userId: user.id,
+            async let entries: [HarvestTimeEntry] = {
+                guard let uid = resolvedHarvestUserId else { return [] }
+                return try await harvestService.getTimeEntries(
+                    userId: uid,
                     from: startStr,
                     to: endStr
                 )
-            }
+            }()
 
             let snapshot = Self.buildSnapshot(
                 offset: offset,
                 weekBounds: bounds,
-                entries: entries,
-                assignments: assignments,
-                projects: projects,
-                clients: clients
+                entries: try await entries,
+                assignments: try await assignments,
+                projects: resolvedProjects,
+                clients: resolvedClients
             )
             weekSnapshots[offset] = snapshot
         } catch {
@@ -1569,8 +1593,8 @@ final class TimeComparisonViewModel {
                 projectName: projectName,
                 bookedHours: bookedHours,
                 loggedHours: logged,
-                todayHours: 0,           // non-current weeks don't have "today"
-                isTracking: false,       // past/future weeks never have running timers
+                todayHours: 0,
+                isTracking: false,
                 harvestProjectId: harvestId,
                 todayEntryId: nil,
                 lastTaskId: nil,
@@ -1579,7 +1603,7 @@ final class TimeComparisonViewModel {
             ))
         }
 
-        // Harvest-only projects (past weeks only — logged without a Forecast booking)
+        // Harvest-only projects — logged without a Forecast booking
         for (harvestProjectId, loggedHours) in loggedByHarvestProject {
             if processedHarvestIds.contains(harvestProjectId) { continue }
             let projectName = harvestProjectNames[harvestProjectId] ?? "Unknown Project"
@@ -1616,7 +1640,7 @@ final class TimeComparisonViewModel {
         // weeks will be all zeros (no logged time yet) but we populate the
         // day labels anyway.
         let calendar = Calendar.current
-        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let dayLabels = DateHelpers.weekdayLabels
         var hoursByDate: [String: Double] = [:]
         for entry in entries {
             hoursByDate[entry.spentDate, default: 0] += entry.hours
@@ -1637,6 +1661,7 @@ final class TimeComparisonViewModel {
         return WeekSnapshot(
             weekOffset: offset,
             weekLabel: DateHelpers.formattedWeekRange(offset: offset),
+            weekStart: weekBounds.start,
             statuses: statuses,
             timeOff: timeOff,
             dailyHours: dailyHours
