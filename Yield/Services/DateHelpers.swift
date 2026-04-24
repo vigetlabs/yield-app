@@ -33,6 +33,22 @@ enum DateHelpers {
         return f
     }()
 
+    /// Build the seven (date, YYYY-MM-DD) pairs for a week starting at
+    /// `weekStart`. Used anywhere we need to iterate a week's days in
+    /// order and look up entries by date string. Force-unwraps the
+    /// per-day `calendar.date(byAdding:)` calls because `(0..<7)` with a
+    /// Gregorian calendar can't fail — silently dropping days would
+    /// produce off-by-one rendering with no signal.
+    static func weekDays(starting weekStart: Date) -> [(date: Date, str: String)] {
+        let calendar = Calendar.current
+        return (0..<7).map { i in
+            guard let day = calendar.date(byAdding: .day, value: i, to: weekStart) else {
+                preconditionFailure("calendar.date(byAdding:) failed for offset \(i)")
+            }
+            return (day, dateFormatter.string(from: day))
+        }
+    }
+
     static func currentWeekBounds() -> (start: Date, end: Date) {
         let calendar = Calendar.current
         let today = Date()

@@ -204,6 +204,10 @@ final class OAuthService {
         UserDefaults.standard.removeObject(forKey: "oauthHarvestAccountId")
         UserDefaults.standard.removeObject(forKey: "oauthForecastAccountId")
         UserDefaults.standard.removeObject(forKey: "oauthUserName")
+        // Forecast's Time Off project ID is account-specific. Clearing it
+        // here prevents the first refresh after a re-login from scoping
+        // the "Everyone" query against a stale ID from the prior account.
+        UserDefaults.standard.removeObject(forKey: "forecastTimeOffProjectId")
         authError = nil
     }
 

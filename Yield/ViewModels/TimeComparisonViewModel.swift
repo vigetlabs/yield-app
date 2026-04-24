@@ -1508,19 +1508,14 @@ final class TimeComparisonViewModel {
             }
             let calendar = Calendar.current
             let dayLabels = DateHelpers.weekdayLabels
-            var days: [DayHours] = []
-            for i in 0..<7 {
-                guard let date = calendar.date(byAdding: .day, value: i, to: weekBounds.start) else { continue }
-                let dateStr = DateHelpers.dateFormatter.string(from: date)
-                let isToday = calendar.isDateInToday(date)
-                days.append(DayHours(
-                    id: dateStr,
+            dailyHours = DateHelpers.weekDays(starting: weekBounds.start).enumerated().map { i, day in
+                DayHours(
+                    id: day.str,
                     dayLabel: dayLabels[i],
-                    hours: hoursByDate[dateStr] ?? 0,
-                    isToday: isToday
-                ))
+                    hours: hoursByDate[day.str] ?? 0,
+                    isToday: calendar.isDateInToday(day.date)
+                )
             }
-            dailyHours = days
 
             weekLabel = DateHelpers.formattedWeekRange()
             lastUpdated = Date()
@@ -1835,14 +1830,7 @@ final class TimeComparisonViewModel {
         //   day off" convention) are treated as a standard 8h day.
         let calendar = Calendar.current
         let dayLabels = DateHelpers.weekdayLabels
-
-        // Pre-compute the seven (date, dateStr) pairs once so the
-        // per-assignment loop below doesn't re-add days and re-format
-        // dates N × 7 times.
-        let weekDays: [(date: Date, str: String)] = (0..<7).compactMap { i in
-            guard let day = calendar.date(byAdding: .day, value: i, to: weekBounds.start) else { return nil }
-            return (day, DateHelpers.dateFormatter.string(from: day))
-        }
+        let weekDays = DateHelpers.weekDays(starting: weekBounds.start)
 
         var hoursByDate: [String: Double] = [:]
         if offset > 0 {
