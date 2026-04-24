@@ -10,14 +10,25 @@ struct LookAheadRowView: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
-            // Left colored line — same white hairline used on booked rows so
+            // Left colored line — pink for prospective (no Harvest link
+            // yet), otherwise the white hairline used on booked rows so
             // the visual rhythm matches the current-week list.
             Rectangle()
-                .fill(Color.white.opacity(0.7))
+                .fill(project.harvestProjectId == nil
+                    ? YieldStatusColors.prospective
+                    : Color.white.opacity(0.7))
                 .frame(width: 2)
                 .frame(maxHeight: .infinity)
 
             HStack {
+                // Forecast notes icon — leading. Hover for the full text.
+                if let notes = project.forecastNotes {
+                    Image(systemName: "text.page")
+                        .font(.system(size: 12))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .help(notes)
+                }
+
                 // Client + project name
                 VStack(alignment: .leading, spacing: 6) {
                     if let clientName = project.clientName {
@@ -39,15 +50,6 @@ struct LookAheadRowView: View {
                     .font(YieldFonts.monoSmall)
                     .foregroundStyle(YieldColors.textSecondary)
                     .fixedSize()
-
-                // Forecast notes icon — hover for the full text.
-                if let notes = project.forecastNotes {
-                    Image(systemName: "text.page")
-                        .font(.system(size: 12))
-                        .foregroundStyle(YieldColors.textSecondary)
-                        .help(notes)
-                        .padding(.leading, 8)
-                }
             }
             .padding(.leading, 16)
             .padding(.trailing, 16)

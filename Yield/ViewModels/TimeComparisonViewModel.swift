@@ -235,14 +235,42 @@ final class TimeComparisonViewModel {
 
     private(set) var idleAlertState: IdleAlertState? = nil
 
+    /// Current-week day filter. When non-nil, the project list hides
+    /// unbooked projects that didn't log time on that day; booked
+    /// (forecasted) projects always show regardless. Set by tapping a
+    /// day cell in the weekday mini-bar; cleared by tapping the same day
+    /// again or tapping the "Week" total. Date string format: YYYY-MM-DD.
+    private(set) var dayFilter: String? = nil
+
+    @MainActor
+    func toggleDayFilter(_ date: String) {
+        dayFilter = (dayFilter == date) ? nil : date
+    }
+
+    @MainActor
+    func clearDayFilter() {
+        dayFilter = nil
+    }
+
     var filteredStatuses: [ProjectStatus] {
+        let byTab: [ProjectStatus]
         switch selectedTab {
         case .recent:
-            return projectStatuses
+            byTab = projectStatuses
         case .forecasted:
-            return projectStatuses.filter { $0.bookedHours > 0 }
+            byTab = projectStatuses.filter { $0.bookedHours > 0 }
         case .chart:
             return []  // chart tab renders its own view; list is hidden
+        }
+        // Day-filter guard: validate the filter date is still within the
+        // current week (protects against a lingering filter after a week
+        // rollover). If stale, treat as unfiltered.
+        guard let dayFilter,
+              dailyHours.contains(where: { $0.id == dayFilter })
+        else { return byTab }
+        return byTab.filter { project in
+            if project.bookedHours > 0 { return true }
+            return project.timeEntries.contains { $0.date == dayFilter }
         }
     }
 
@@ -378,6 +406,10 @@ final class TimeComparisonViewModel {
     private var cachedClientMap: [Int: ForecastClient] = [:]
     private var cachedTimeOffBlock: TimeOffBlock?
     private var cachedForecastNotes: [Int: String] = [:]
+    /// The Forecast Time Off project ID, cached from the first successful
+    /// refresh. Used to scope the "Everyone" (company holidays) query
+    /// server-side so the response size doesn't scale with org headcount.
+    private var cachedTimeOffProjectId: Int?
     private var cachedHarvestUserId: Int?
     private var cachedForecastPersonId: Int?
 
@@ -498,7 +530,26 @@ final class TimeComparisonViewModel {
     }
 
     func effectiveLoggedHours(for project: ProjectStatus) -> Double {
-        project.loggedHours + (project.isTracking ? elapsedOffset : 0)
+        // With a day filter active, the displayed hours should reflect
+        // only that day's tracked time. Live-ticking elapsed offset only
+        // counts when today is the filtered day and this project is the
+        // one tracking.
+        if let dayFilter {
+            let dayHours = project.timeEntries
+                .filter { $0.date == dayFilter }
+                .reduce(0) { $0 + $1.hours }
+            let todayString = DateHelpers.dateFormatter.string(from: Date())
+            let includeElapsed = project.isTracking && dayFilter == todayString
+            return dayHours + (includeElapsed ? elapsedOffset : 0)
+        }
+        return project.loggedHours + (project.isTracking ? elapsedOffset : 0)
+    }
+
+    /// Entries to show in the expanded drawer / segmented bar for a given
+    /// project. Filtered to the selected day when a day filter is active.
+    func visibleEntries(for project: ProjectStatus) -> [TimeEntryInfo] {
+        guard let dayFilter else { return project.timeEntries }
+        return project.timeEntries.filter { $0.date == dayFilter }
     }
 
     /// Format a "tracked / budget" pair: "7:50 / 8:00"
@@ -1213,11 +1264,22 @@ final class TimeComparisonViewModel {
                 projects = try await forecastProjects
                 clients = try await forecastClients
 
-                allAssignments = try await forecastService.getAssignments(
+                // Fan out the personal assignments query and the
+                // "Everyone" query in parallel. Forecast stores company
+                // holidays / org-wide time off as assignments with
+                // person_id == null, which the person-scoped query
+                // doesn't return — so we pull them separately and merge.
+                async let personal = forecastService.getAssignments(
                     personId: person.id,
                     startDate: weekDates.start,
                     endDate: weekDates.end
                 )
+                async let everyone = forecastService.getEveryoneAssignments(
+                    startDate: weekDates.start,
+                    endDate: weekDates.end,
+                    restrictToProjectId: cachedTimeOffProjectId
+                )
+                allAssignments = try await personal + (try await everyone)
             } catch {
                 serviceErrors.append(ServiceError(service: .forecast, message: friendlyErrorMessage(error)))
                 throw error
@@ -1229,7 +1291,11 @@ final class TimeComparisonViewModel {
 
             // Identify Forecast's built-in time-off project by name so we
             // can surface those assignments separately from real work.
+            // Cache the ID so the next refresh's "Everyone" query can
+            // scope to just this project server-side (keeps the response
+            // size bounded regardless of org headcount).
             let timeOffProjectId = projects.first(where: { $0.name == YieldConstants.timeOffProjectName })?.id
+            cachedTimeOffProjectId = timeOffProjectId
 
             // Aggregate booked hours by Forecast project ID, splitting out
             // time off into its own per-day collection for a bottom-of-list
@@ -1358,8 +1424,11 @@ final class TimeComparisonViewModel {
             // Start with Forecast projects (booked), skip non-Harvest projects (e.g. Time Off)
             for (forecastProjectId, bookedHours) in bookedByForecastProject {
                 let project = projectMap[forecastProjectId]
-                // Skip Forecast-only projects with no Harvest link (Time Off, PTO, etc.)
-                if project?.harvestId == nil { continue }
+                // Time Off is already filtered out of bookedByForecastProject
+                // upstream, so this loop only sees real projects. Projects
+                // without a Harvest link (prospective / proposal-stage)
+                // still appear — they show booked hours but can't have
+                // logged time tracked against them.
                 let projectName = project?.name ?? "Unknown Project"
                 let clientName = project?.clientId.flatMap { clientMap[$0]?.name }
                 var logged: Double = 0
@@ -1600,11 +1669,18 @@ final class TimeComparisonViewModel {
             let resolvedClients = try await clients
             let resolvedHarvestUserId = try await harvestUserId
 
-            // Now issue the per-week lookups concurrently.
-            async let assignments = forecastService.getAssignments(
+            // Now issue the per-week lookups concurrently. We fetch both
+            // the person-scoped assignments AND the company-wide
+            // "Everyone" assignments (e.g. holidays) and merge.
+            async let personalAssignments = forecastService.getAssignments(
                 personId: resolvedPersonId,
                 startDate: startStr,
                 endDate: endStr
+            )
+            async let everyoneAssignments = forecastService.getEveryoneAssignments(
+                startDate: startStr,
+                endDate: endStr,
+                restrictToProjectId: cachedTimeOffProjectId
             )
             async let entries: [HarvestTimeEntry] = {
                 guard let uid = resolvedHarvestUserId else { return [] }
@@ -1615,11 +1691,14 @@ final class TimeComparisonViewModel {
                 )
             }()
 
+            let resolvedAssignments = try await personalAssignments + (try await everyoneAssignments)
+
+
             let snapshot = Self.buildSnapshot(
                 offset: offset,
                 weekBounds: bounds,
                 entries: try await entries,
-                assignments: try await assignments,
+                assignments: resolvedAssignments,
                 projects: resolvedProjects,
                 clients: resolvedClients
             )
@@ -1690,10 +1769,11 @@ final class TimeComparisonViewModel {
         var statuses: [ProjectStatus] = []
         var processedHarvestIds: Set<Int> = []
 
-        // Forecasted projects first
+        // Forecasted projects first. Prospective / proposal-stage
+        // projects (no Harvest link yet) are still included — they show
+        // booked hours but have no logged time.
         for (forecastProjectId, bookedHours) in bookedByForecastProject {
             let project = projectMap[forecastProjectId]
-            if project?.harvestId == nil { continue }
             let projectName = project?.name ?? "Unknown Project"
             let clientName = project?.clientId.flatMap { clientMap[$0]?.name }
 
@@ -1746,14 +1826,39 @@ final class TimeComparisonViewModel {
         // then logged-only Harvest projects by name.
         statuses.sort(by: projectSortOrder)
 
-        // Daily hours breakdown for the header's weekday mini-bar. Future
-        // weeks will be all zeros (no logged time yet) but we populate the
-        // day labels anyway.
+        // Daily hours breakdown for the header's weekday mini-bar.
+        // - Past weeks / current (offset ≤ 0): sum of Harvest entries
+        //   per day — i.e. tracked time.
+        // - Future weeks (offset > 0): sum of Forecast assignment
+        //   allocations per day, INCLUDING time off (holidays, PTO) so
+        //   the daily and week totals reflect the full booked picture.
+        //   Time-off assignments with allocation=0 (Forecast's "full
+        //   day off" convention) are treated as a standard 8h day.
         let calendar = Calendar.current
         let dayLabels = DateHelpers.weekdayLabels
         var hoursByDate: [String: Double] = [:]
-        for entry in entries {
-            hoursByDate[entry.spentDate, default: 0] += entry.hours
+        if offset > 0 {
+            let fullDayHours = YieldConstants.workdayHours
+            for assignment in assignments {
+                guard assignment.projectId != nil,
+                      let aStart = DateHelpers.dateFormatter.date(from: assignment.startDate),
+                      let aEnd = DateHelpers.dateFormatter.date(from: assignment.endDate) else { continue }
+                let allocationSeconds = assignment.allocation ?? 0
+                let isTimeOff = assignment.projectId == timeOffProjectId
+                let hoursPerDay = (isTimeOff && allocationSeconds == 0)
+                    ? fullDayHours
+                    : Double(allocationSeconds) / 3600.0
+                for i in 0..<7 {
+                    guard let day = calendar.date(byAdding: .day, value: i, to: weekBounds.start),
+                          day >= aStart, day <= aEnd, day <= weekBounds.end else { continue }
+                    let dateStr = DateHelpers.dateFormatter.string(from: day)
+                    hoursByDate[dateStr, default: 0] += hoursPerDay
+                }
+            }
+        } else {
+            for entry in entries {
+                hoursByDate[entry.spentDate, default: 0] += entry.hours
+            }
         }
         var dailyHours: [DayHours] = []
         for i in 0..<7 {

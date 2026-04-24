@@ -101,8 +101,11 @@ extension YieldFonts {
 
 enum YieldStatusColors {
     static let under = YieldColors.greenAccent
-    static let over = Color(red: 0.941, green: 0.365, blue: 0.157)    // #F05D28
+    static let over = Color(red: 0.941, green: 0.365, blue: 0.157)       // #F05D28
     static let unbooked = Color.white.opacity(0.3)
+    /// Prospective / proposal-stage Forecast projects — booked but not
+    /// yet linked to a Harvest project. Used as the status line color.
+    static let prospective = Color(red: 0.941, green: 0.365, blue: 0.627) // #F05DA0
 }
 
 enum YieldRadius {

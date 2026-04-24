@@ -35,7 +35,6 @@ struct MenuBarContentView: View {
     @State private var preselectedProjectId: Int? = nil
     @State private var newTimerTargetDate: Date? = nil
     @State private var showSettings = false
-    @State private var hoveredDayId: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -137,6 +136,7 @@ struct MenuBarContentView: View {
                     ProjectRowView(
                         project: project,
                         effectiveLoggedHours: viewModel.effectiveLoggedHours(for: project),
+                        visibleEntries: viewModel.visibleEntries(for: project),
                         onToggleTimer: {
                             Task { await viewModel.toggleTimer(for: project) }
                         },
@@ -299,9 +299,9 @@ struct MenuBarContentView: View {
             .animation(.easeInOut(duration: 0.15), value: viewModel.isViewingOtherWeek)
             .padding(16)
 
-            // Weekday mini-bar: shown for current and past weeks; hidden
-            // for future weeks since nothing's logged yet.
-            if !viewModel.displayedDailyHours.isEmpty && viewModel.weekOffset <= 0 {
+            // Weekday mini-bar: past/current weeks show tracked hours per
+            // day; future weeks show scheduled (Forecast-booked) hours.
+            if !viewModel.displayedDailyHours.isEmpty {
                 weekDayBar
                     .padding(.leading, 18)
                     .padding(.trailing, 16)
@@ -328,25 +328,17 @@ struct MenuBarContentView: View {
         return HStack(spacing: 0) {
             ForEach(days) { day in
                 let displayHours = day.hours + (day.isToday ? liveOffset : 0)
-                let isHovered = hoveredDayId == day.id && isCurrent
+                let isFiltered = isCurrent && viewModel.dayFilter == day.id
 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 3) {
-                        Text(day.dayLabel)
-                            .font(YieldFonts.dmSans(9, weight: day.isToday ? .semibold : .medium))
-                            .foregroundStyle(day.isToday ? YieldColors.textPrimary : YieldColors.textSecondary)
-
-                        if isHovered {
-                            Image(systemName: "plus")
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundStyle(YieldColors.textPrimary)
-                        }
-                    }
+                    Text(day.dayLabel)
+                        .font(YieldFonts.dmSans(9, weight: (day.isToday || isFiltered) ? .semibold : .medium))
+                        .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
 
                     HStack(spacing: 2) {
                         Text(formatDayHours(displayHours))
-                            .font(YieldFonts.jetBrainsMono(10, weight: day.isToday ? .medium : .regular))
-                            .foregroundStyle(day.isToday ? YieldColors.textPrimary : YieldColors.textSecondary)
+                            .font(YieldFonts.jetBrainsMono(10, weight: (day.isToday || isFiltered) ? .medium : .regular))
+                            .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
 
                         if day.isToday && isCurrent && viewModel.projectStatuses.contains(where: { $0.isTracking }) {
                             Image(systemName: "clock")
@@ -356,19 +348,23 @@ struct MenuBarContentView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(isFiltered ? YieldColors.surfaceActive : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
                 .contentShape(Rectangle())
-                .onHover { hovering in
-                    guard isCurrent else { return }
-                    hoveredDayId = hovering ? day.id : (hoveredDayId == day.id ? nil : hoveredDayId)
-                }
                 .onTapGesture {
                     guard isCurrent else { return }
-                    openNewTimerForm(for: day)
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.toggleDayFilter(day.id)
+                    }
                 }
-                .help(isCurrent ? "Add Time" : "")
+                .help(isCurrent
+                    ? (isFiltered ? "Show all projects" : "Show only \(day.dayLabel)")
+                    : "")
             }
 
-            // Week total
+            // Week total — doubles as "clear filter" when a day is filtered.
             VStack(alignment: .trailing, spacing: 4) {
                 Text("Week")
                     .font(YieldFonts.dmSans(9, weight: .semibold))
@@ -379,6 +375,16 @@ struct MenuBarContentView: View {
                     .foregroundStyle(YieldColors.textPrimary)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard isCurrent, viewModel.dayFilter != nil else { return }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    viewModel.clearDayFilter()
+                }
+            }
+            .help(isCurrent && viewModel.dayFilter != nil ? "Show all projects" : "")
         }
     }
 
@@ -386,15 +392,6 @@ struct MenuBarContentView: View {
         let h = Int(hours)
         let m = Int((hours - Double(h)) * 60)
         return String(format: "%d:%02d", h, m)
-    }
-
-    private func openNewTimerForm(for day: TimeComparisonViewModel.DayHours) {
-        guard !viewModel.isHarvestDown else { return }
-        let date = DateHelpers.dateFormatter.date(from: day.id) ?? Date()
-        withAnimation(.easeInOut(duration: 0.2)) {
-            newTimerTargetDate = date
-            showNewTimerForm = true
-        }
     }
 
     /// Grouped back/forward chevron controls, styled to match the tab

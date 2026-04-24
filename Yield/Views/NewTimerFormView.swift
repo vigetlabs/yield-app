@@ -256,12 +256,18 @@ struct NewTimerFormView: View {
             Spacer()
         }
         .task {
-            // Initialize spent date: edit mode uses the entry's date, create mode uses
-            // the targetDate (from a day-cell click) or today.
+            // Initialize spent date. Priority:
+            //   1. Edit mode → entry's own date
+            //   2. Explicit targetDate parameter
+            //   3. Active weekday filter → pre-fill the filtered day
+            //   4. Today (default)
             if let entry = editingEntry, let parsed = DateHelpers.dateFormatter.date(from: entry.date) {
                 spentDate = parsed
             } else if let target = targetDate {
                 spentDate = target
+            } else if let filter = viewModel.dayFilter,
+                      let parsed = DateHelpers.dateFormatter.date(from: filter) {
+                spentDate = parsed
             }
 
             await loadProjects()

@@ -3,6 +3,10 @@ import SwiftUI
 struct ProjectRowView: View {
     let project: ProjectStatus
     var effectiveLoggedHours: Double
+    /// Entries to render in the drawer + day-by-day bar. Defaults to the
+    /// project's full week of entries; the parent passes a filtered list
+    /// when a day filter is active in the weekday mini-bar.
+    var visibleEntries: [TimeEntryInfo]? = nil
     var onToggleTimer: (() -> Void)? = nil
     var onToggleEntryTimer: ((Int, Bool) -> Void)? = nil
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
@@ -21,7 +25,8 @@ struct ProjectRowView: View {
     @State private var isExpanded: Bool = false
     @State private var isHovered: Bool = false
 
-    private var hasEntries: Bool { !project.timeEntries.isEmpty }
+    private var entries: [TimeEntryInfo] { visibleEntries ?? project.timeEntries }
+    private var hasEntries: Bool { !entries.isEmpty }
 
     /// Today's effective hours on this project (includes live-ticking offset
     /// while a timer is running on it). Used to drive the today segment in
@@ -45,7 +50,10 @@ struct ProjectRowView: View {
                     }
                 }
                 .contextMenu {
-                    if !isReadOnly {
+                    // Hide "Start Timer" for prospective / proposal-stage
+                    // projects that have no Harvest link — you can't track
+                    // time to them yet.
+                    if !isReadOnly, project.harvestProjectId != nil {
                         Button {
                             onStartTimerForProject?()
                         } label: {
@@ -60,9 +68,9 @@ struct ProjectRowView: View {
             // can animate between 0 and natural height; clipped() hides
             // overflow so contents reveal top-to-bottom as the height grows.
             VStack(spacing: 0) {
-                if project.isForecasted || !project.timeEntries.isEmpty {
+                if project.isForecasted || !entries.isEmpty {
                     SegmentedProgressBarView(
-                        entries: project.timeEntries,
+                        entries: entries,
                         todayEffectiveHours: effectiveTodayHours,
                         booked: project.bookedHours,
                         isDrawerExpanded: isExpanded,
@@ -78,7 +86,7 @@ struct ProjectRowView: View {
                     .padding(.bottom, 10)
                 }
 
-                ForEach(project.timeEntries) { entry in
+                ForEach(entries) { entry in
                     TaskEntryRowView(
                         entry: entry,
                         isHarvestDown: isHarvestDown,
@@ -119,6 +127,16 @@ struct ProjectRowView: View {
 
             // Project details + time
             HStack {
+                // Forecast notes icon — leading. Only shown when the
+                // project has assignment notes this week; hover to reveal
+                // the full text in a native tooltip.
+                if let notes = project.forecastNotes {
+                    Image(systemName: "text.page")
+                        .font(.system(size: 12))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .help(notes)
+                }
+
                 // Left: client, name, remaining
                 VStack(alignment: .leading, spacing: 6) {
                     // Client name
@@ -170,17 +188,6 @@ struct ProjectRowView: View {
                         )
                     }
                 }
-
-                // Forecast notes icon — rightmost. Only shown when the
-                // project has assignment notes this week; hover the icon
-                // to reveal the full text in a native tooltip.
-                if let notes = project.forecastNotes {
-                    Image(systemName: "text.page")
-                        .font(.system(size: 12))
-                        .foregroundStyle(YieldColors.textSecondary)
-                        .help(notes)
-                        .padding(.leading, 8)
-                }
             }
             .padding(.leading, 16)
             .padding(.trailing, 16)
@@ -192,9 +199,19 @@ struct ProjectRowView: View {
 
     private var statusLine: some View {
         Rectangle()
-            .fill(project.isForecasted ? Color.white.opacity(0.7) : Color.clear)
+            .fill(statusLineColor)
             .frame(width: 2)
             .frame(maxHeight: .infinity)
+    }
+
+    /// Color of the leading status line.
+    /// - Clear: project has no booking (Harvest-only tracked time)
+    /// - Pink: prospective / proposal-stage (booked but no Harvest link)
+    /// - White: normal booked project
+    private var statusLineColor: Color {
+        guard project.isForecasted else { return .clear }
+        if project.harvestProjectId == nil { return YieldStatusColors.prospective }
+        return Color.white.opacity(0.7)
     }
 
     // MARK: - Time Label
