@@ -50,14 +50,14 @@ struct ProjectRowView: View {
                     }
                 }
                 .contextMenu {
-                    // Hide "Start Timer" for prospective / proposal-stage
-                    // projects that have no Harvest link — you can't track
-                    // time to them yet.
+                    // Hide for prospective / proposal-stage projects that
+                    // have no Harvest link — you can't track time to them
+                    // yet.
                     if !isReadOnly, project.harvestProjectId != nil {
                         Button {
                             onStartTimerForProject?()
                         } label: {
-                            Label("Start Timer", systemImage: "play.fill")
+                            Label("Add Time", systemImage: "play.fill")
                         }
                         .disabled(isHarvestDown)
                     }
