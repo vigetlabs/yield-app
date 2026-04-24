@@ -3,6 +3,22 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.10.4</title>
+      <sparkle:version>32</sparkle:version>
+      <sparkle:shortVersionString>0.9.10.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Second pass at the tall-tooltip bug — 0.9.10.3's normalization missed the specific invisible characters actually showing up in one Forecast account. Switched to Unicode's standard "default-ignorable" classification (catches every variation selector, bidi mark, tag character, and formatting code). Also deduped identical notes across multiple assignments, and capped the tooltip at 30 lines as a safety net.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.10.4/Yield-0.9.10.4.zip"
+        sparkle:edSignature="JcUOwrERz4d+bXNTjkGuVUolRH8RwzbVG9zdr+tqoCDSTGCftIe1kwWXYr1B9FFuIlTxTk11cYePTvppoK4wAQ=="
+        length="2264807"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.10.3</title>
       <sparkle:version>31</sparkle:version>
       <sparkle:shortVersionString>0.9.10.3</sparkle:shortVersionString>
