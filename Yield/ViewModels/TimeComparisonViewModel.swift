@@ -1198,10 +1198,19 @@ final class TimeComparisonViewModel {
         }
         lastRefreshAt = Date()
 
-        // A hard refresh invalidates any cached non-current-week snapshots
-        // too (they'd now be stale, and we should avoid the dictionary
-        // growing indefinitely as the user browses weeks).
+        // A hard refresh invalidates the cached non-current-week snapshots
+        // (they'd now be stale, and we should avoid the dictionary growing
+        // indefinitely as the user browses weeks) — but preserve the
+        // currently-viewed week's snapshot so the UI keeps showing its
+        // data until the triggered refetch at the end of this function
+        // lands. Without this, `displayedStatuses` would fall through to
+        // `transitionSnapshot`, flashing the user to current-week data on
+        // a non-current-week view.
+        let preservedSnapshot = weekSnapshots[weekOffset]
         weekSnapshots.removeAll(keepingCapacity: true)
+        if weekOffset != 0, let preservedSnapshot {
+            weekSnapshots[weekOffset] = preservedSnapshot
+        }
 
         isLoading = true
         errorMessage = nil
@@ -1366,6 +1375,15 @@ final class TimeComparisonViewModel {
         #endif
 
         isLoading = false
+
+        // If the user is viewing a non-current week, refetch that week
+        // now — `refresh()` only repopulates current-week state, so
+        // without this the viewed snapshot would stay stale (or, on a
+        // cold cache, fall through to current-week data in
+        // `transitionSnapshot`).
+        if weekOffset != 0 {
+            Task { await fetchWeek(offset: weekOffset) }
+        }
     }
 
     /// Rebuild projectStatuses and derived view state from entries + Forecast data.
