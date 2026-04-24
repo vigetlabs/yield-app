@@ -132,7 +132,7 @@ struct ProjectRowView: View {
                 // the full text in a native tooltip.
                 if let notes = project.forecastNotes {
                     Image(systemName: "text.page")
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                         .foregroundStyle(YieldColors.textSecondary)
                         .help(notes)
                 }
