@@ -806,6 +806,20 @@ final class TimeComparisonViewModel {
     /// - Partial-day time off → `allocation` holds seconds-per-day. We sum
     ///   it directly.
     /// - Weekends are skipped because they're not work days.
+    /// Shared project sort: booked (scheduled) projects before logged-
+    /// only ones, then alphabetical by client name, then project name.
+    /// Deliberately stable — no tracking or recency component — so the
+    /// list doesn't reshuffle between refreshes.
+    static func projectSortOrder(_ a: ProjectStatus, _ b: ProjectStatus) -> Bool {
+        if (a.bookedHours > 0) != (b.bookedHours > 0) { return a.bookedHours > 0 }
+        let aClient = a.clientName ?? ""
+        let bClient = b.clientName ?? ""
+        if aClient != bClient {
+            return aClient.localizedCaseInsensitiveCompare(bClient) == .orderedAscending
+        }
+        return a.projectName.localizedCaseInsensitiveCompare(b.projectName) == .orderedAscending
+    }
+
     /// Aggregate non-empty assignment notes by project ID. Multiple
     /// assignments against the same project (e.g. split across days) get
     /// their notes joined with a blank line between. Time-off and
@@ -1311,7 +1325,6 @@ final class TimeComparisonViewModel {
             var runningHarvestProjectIds: Set<Int> = []
             var todayEntryByProject: [Int: HarvestTimeEntry] = [:]  // today's entry per project
             var latestEntryByProject: [Int: HarvestTimeEntry] = [:]  // any entry (for task ID)
-            var latestUpdatedAt: [Int: String] = [:]  // most recent updatedAt per project
             var entriesByHarvestProject: [Int: [HarvestTimeEntry]] = [:]
 
             for entry in entries {
@@ -1335,14 +1348,6 @@ final class TimeComparisonViewModel {
                 // Track latest entry overall (for task ID when creating new entries)
                 if latestEntryByProject[entry.project.id] == nil {
                     latestEntryByProject[entry.project.id] = entry
-                }
-                // Track most recent updatedAt per project
-                if let existing = latestUpdatedAt[entry.project.id] {
-                    if entry.updatedAt > existing {
-                        latestUpdatedAt[entry.project.id] = entry.updatedAt
-                    }
-                } else {
-                    latestUpdatedAt[entry.project.id] = entry.updatedAt
                 }
             }
 
@@ -1386,7 +1391,6 @@ final class TimeComparisonViewModel {
                     harvestProjectId: harvestId,
                     todayEntryId: todayEntry?.id,
                     lastTaskId: (latestEntry ?? todayEntry)?.taskAssignment?.task?.id,
-                    lastTrackedAt: harvestId.flatMap { latestUpdatedAt[$0] },
                     timeEntries: Self.makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? []),
                     forecastNotes: notesByForecastProject[forecastProjectId]
                 ))
@@ -1410,29 +1414,16 @@ final class TimeComparisonViewModel {
                     harvestProjectId: harvestProjectId,
                     todayEntryId: todayEntry?.id,
                     lastTaskId: (latestEntry ?? todayEntry)?.taskAssignment?.task?.id,
-                    lastTrackedAt: latestUpdatedAt[harvestProjectId],
                     timeEntries: Self.makeEntryInfos(from: entriesByHarvestProject[harvestProjectId] ?? []),
                     forecastNotes: nil
                 ))
             }
 
-            // Sort: currently tracking first, then by most recently tracked, then untracked by name
-            statuses.sort { a, b in
-                // Currently tracking always comes first
-                if a.isTracking != b.isTracking {
-                    return a.isTracking
-                }
-                // Both have been tracked — sort by most recent activity
-                if let aTime = a.lastTrackedAt, let bTime = b.lastTrackedAt {
-                    return aTime > bTime
-                }
-                // Tracked before untracked
-                if (a.lastTrackedAt != nil) != (b.lastTrackedAt != nil) {
-                    return a.lastTrackedAt != nil
-                }
-                // Neither tracked — sort by project name
-                return a.projectName.localizedCaseInsensitiveCompare(b.projectName) == .orderedAscending
-            }
+            // Sort: booked projects before logged-only, then alphabetical
+            // by client then project name. Deliberately stable — we don't
+            // sort by tracking or recency so the order doesn't shuffle
+            // between refreshes (or while a timer auto-saves).
+            statuses.sort(by: Self.projectSortOrder)
 
             projectStatuses = statuses
             let booked = statuses.filter { $0.bookedHours > 0 }
@@ -1725,7 +1716,6 @@ final class TimeComparisonViewModel {
                 harvestProjectId: harvestId,
                 todayEntryId: nil,
                 lastTaskId: nil,
-                lastTrackedAt: nil,
                 timeEntries: makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? []),
                 forecastNotes: notesByForecastProject[forecastProjectId]
             ))
@@ -1747,7 +1737,6 @@ final class TimeComparisonViewModel {
                 harvestProjectId: harvestProjectId,
                 todayEntryId: nil,
                 lastTaskId: nil,
-                lastTrackedAt: nil,
                 timeEntries: makeEntryInfos(from: entriesByHarvestProject[harvestProjectId] ?? []),
                 forecastNotes: nil
             ))
@@ -1755,15 +1744,7 @@ final class TimeComparisonViewModel {
 
         // Sort: forecasted projects first (alphabetical by client/project),
         // then logged-only Harvest projects by name.
-        statuses.sort { a, b in
-            if (a.bookedHours > 0) != (b.bookedHours > 0) { return a.bookedHours > 0 }
-            let aClient = a.clientName ?? ""
-            let bClient = b.clientName ?? ""
-            if aClient != bClient {
-                return aClient.localizedCaseInsensitiveCompare(bClient) == .orderedAscending
-            }
-            return a.projectName.localizedCaseInsensitiveCompare(b.projectName) == .orderedAscending
-        }
+        statuses.sort(by: projectSortOrder)
 
         // Daily hours breakdown for the header's weekday mini-bar. Future
         // weeks will be all zeros (no logged time yet) but we populate the

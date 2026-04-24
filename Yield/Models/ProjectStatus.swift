@@ -22,7 +22,6 @@ struct ProjectStatus: Identifiable {
     let harvestProjectId: Int?
     let todayEntryId: Int?      // today's time entry (restart this if it exists)
     let lastTaskId: Int?        // task ID from most recent entry (for creating new entries)
-    let lastTrackedAt: String?  // ISO 8601 timestamp of most recent entry update
     let timeEntries: [TimeEntryInfo]
     /// Concatenated non-empty notes from all of this week's Forecast
     /// assignments for this project (nil if none). Multiple assignments
