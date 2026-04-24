@@ -3,6 +3,22 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.10.1</title>
+      <sparkle:version>29</sparkle:version>
+      <sparkle:shortVersionString>0.9.10.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix the Forecast notes icon not rendering on macOS 14 (Sonoma) — it was using an SF Symbol that only shipped in macOS 15.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.10.1/Yield-0.9.10.1.zip"
+        sparkle:edSignature="4hlz6w3+Ka231IWSzbqG13EX8IZ0EuyjBY2KlxP5HOm72l5h1nYGPbVJLatBPDVZEkjFXIzIsMVPVOq1cWRLDA=="
+        length="2247698"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.10.0</title>
       <sparkle:version>28</sparkle:version>
       <sparkle:shortVersionString>0.9.10.0</sparkle:shortVersionString>
