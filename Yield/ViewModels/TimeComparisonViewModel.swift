@@ -899,18 +899,32 @@ final class TimeComparisonViewModel {
     }
 
     /// Clean up a single Forecast assignment note for tooltip rendering.
-    /// Strips every Unicode "default-ignorable" scalar (zero-width,
-    /// bidi, soft hyphen, variation selectors, tag characters, BOM,
-    /// etc.) from the raw text — those pass whitespace trimming but
-    /// SwiftUI Text still allots a line for them, which produces the
-    /// "tall popover, one line of text" bug. Then splits on newlines,
-    /// trims each line, collapses runs of blanks to at most one, and
-    /// drops leading/trailing blanks.
+    /// Strips every non-rendering scalar — Unicode categories Cc
+    /// (Control), Cf (Format), Co (Private Use), Cn (Unassigned), Cs
+    /// (Surrogate) — plus anything flagged Default_Ignorable_Code_Point
+    /// (catches Mn / Lo invisibles like combining grapheme joiner and
+    /// Hangul fillers). Without this, notes pasted from word processors
+    /// or carrying zero-width / bidi / private-use chars render as
+    /// absurdly tall popovers with a single visible line.
+    ///
+    /// Newlines (Cc LF/CR/NEL, Zl line sep, Zp paragraph sep) are
+    /// preserved as structural delimiters; we split on them right after.
+    /// Then each line gets whitespace-trimmed, runs of blank lines
+    /// collapse to at most one, and leading/trailing blanks drop.
     private static func normalizeNote(_ raw: String) -> String {
         var filteredScalars = String.UnicodeScalarView()
-        for scalar in raw.unicodeScalars
-        where !scalar.properties.isDefaultIgnorableCodePoint {
-            filteredScalars.append(scalar)
+        for scalar in raw.unicodeScalars {
+            if CharacterSet.newlines.contains(scalar) {
+                filteredScalars.append(scalar)
+                continue
+            }
+            switch scalar.properties.generalCategory {
+            case .control, .format, .privateUse, .unassigned, .surrogate:
+                continue
+            default:
+                if scalar.properties.isDefaultIgnorableCodePoint { continue }
+                filteredScalars.append(scalar)
+            }
         }
         let filtered = String(filteredScalars)
 
