@@ -882,12 +882,30 @@ final class TimeComparisonViewModel {
         for assignment in assignments {
             guard let projectId = assignment.projectId,
                   projectId != timeOffProjectId,
-                  let note = assignment.notes?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !note.isEmpty
+                  let raw = assignment.notes
             else { continue }
+            let note = normalizeNote(raw)
+            guard !note.isEmpty else { continue }
             collected[projectId, default: []].append(note)
         }
         return collected.mapValues { $0.joined(separator: "\n\n") }
+    }
+
+    /// Clean up a single Forecast assignment note for tooltip rendering.
+    /// Trims each line individually, collapses runs of blank lines to at
+    /// most one, and strips leading/trailing blanks. Without this, notes
+    /// with many embedded newlines render as absurdly tall popovers —
+    /// the outer-only `trimmingCharacters` can't touch internal blanks.
+    private static func normalizeNote(_ raw: String) -> String {
+        var compressed: [String] = []
+        for rawLine in raw.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty, compressed.last?.isEmpty == true { continue }
+            compressed.append(line)
+        }
+        while compressed.first?.isEmpty == true { compressed.removeFirst() }
+        while compressed.last?.isEmpty == true { compressed.removeLast() }
+        return compressed.joined(separator: "\n")
     }
 
     private static func computeTimeOffBlock(
