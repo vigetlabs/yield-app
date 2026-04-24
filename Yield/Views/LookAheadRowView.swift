@@ -39,6 +39,15 @@ struct LookAheadRowView: View {
                     .font(YieldFonts.monoSmall)
                     .foregroundStyle(YieldColors.textSecondary)
                     .fixedSize()
+
+                // Forecast notes icon — hover for the full text.
+                if let notes = project.forecastNotes {
+                    Image(systemName: "text.page")
+                        .font(.system(size: 12))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .help(notes)
+                        .padding(.leading, 8)
+                }
             }
             .padding(.leading, 16)
             .padding(.trailing, 16)

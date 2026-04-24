@@ -377,6 +377,7 @@ final class TimeComparisonViewModel {
     private var cachedProjectMap: [Int: ForecastProject] = [:]
     private var cachedClientMap: [Int: ForecastClient] = [:]
     private var cachedTimeOffBlock: TimeOffBlock?
+    private var cachedForecastNotes: [Int: String] = [:]
     private var cachedHarvestUserId: Int?
     private var cachedForecastPersonId: Int?
 
@@ -805,6 +806,26 @@ final class TimeComparisonViewModel {
     /// - Partial-day time off → `allocation` holds seconds-per-day. We sum
     ///   it directly.
     /// - Weekends are skipped because they're not work days.
+    /// Aggregate non-empty assignment notes by project ID. Multiple
+    /// assignments against the same project (e.g. split across days) get
+    /// their notes joined with a blank line between. Time-off and
+    /// projectless assignments are skipped.
+    private static func aggregateNotesByProject(
+        assignments: [ForecastAssignment],
+        timeOffProjectId: Int?
+    ) -> [Int: String] {
+        var collected: [Int: [String]] = [:]
+        for assignment in assignments {
+            guard let projectId = assignment.projectId,
+                  projectId != timeOffProjectId,
+                  let note = assignment.notes?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !note.isEmpty
+            else { continue }
+            collected[projectId, default: []].append(note)
+        }
+        return collected.mapValues { $0.joined(separator: "\n\n") }
+    }
+
     private static func computeTimeOffBlock(
         assignments: [ForecastAssignment],
         timeOffProjectId: Int?,
@@ -1206,6 +1227,10 @@ final class TimeComparisonViewModel {
                 weekStart: weekBounds.start,
                 weekEnd: weekBounds.end
             )
+            let notesByForecastProject = Self.aggregateNotesByProject(
+                assignments: allAssignments,
+                timeOffProjectId: timeOffProjectId
+            )
             for assignment in allAssignments {
                 guard let projectId = assignment.projectId,
                       projectId != timeOffProjectId else { continue }
@@ -1229,13 +1254,15 @@ final class TimeComparisonViewModel {
             cachedProjectMap = projectMap
             cachedClientMap = clientMap
             cachedTimeOffBlock = timeOffBlock
+            cachedForecastNotes = notesByForecastProject
 
             applyRefreshedData(
                 entries: entries,
                 bookedByForecastProject: bookedByForecastProject,
                 projectMap: projectMap,
                 clientMap: clientMap,
-                timeOffBlock: timeOffBlock
+                timeOffBlock: timeOffBlock,
+                notesByForecastProject: notesByForecastProject
             )
             noteFetchSucceeded()
 
@@ -1270,7 +1297,8 @@ final class TimeComparisonViewModel {
         bookedByForecastProject: [Int: Double],
         projectMap: [Int: ForecastProject],
         clientMap: [Int: ForecastClient],
-        timeOffBlock: TimeOffBlock?
+        timeOffBlock: TimeOffBlock?,
+        notesByForecastProject: [Int: String]
     ) {
         let weekBounds = DateHelpers.currentWeekBounds()
         let todayString = DateHelpers.dateFormatter.string(from: Date())
@@ -1359,7 +1387,8 @@ final class TimeComparisonViewModel {
                     todayEntryId: todayEntry?.id,
                     lastTaskId: (latestEntry ?? todayEntry)?.taskAssignment?.task?.id,
                     lastTrackedAt: harvestId.flatMap { latestUpdatedAt[$0] },
-                    timeEntries: Self.makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? [])
+                    timeEntries: Self.makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? []),
+                    forecastNotes: notesByForecastProject[forecastProjectId]
                 ))
             }
 
@@ -1382,7 +1411,8 @@ final class TimeComparisonViewModel {
                     todayEntryId: todayEntry?.id,
                     lastTaskId: (latestEntry ?? todayEntry)?.taskAssignment?.task?.id,
                     lastTrackedAt: latestUpdatedAt[harvestProjectId],
-                    timeEntries: Self.makeEntryInfos(from: entriesByHarvestProject[harvestProjectId] ?? [])
+                    timeEntries: Self.makeEntryInfos(from: entriesByHarvestProject[harvestProjectId] ?? []),
+                    forecastNotes: nil
                 ))
             }
 
@@ -1496,7 +1526,8 @@ final class TimeComparisonViewModel {
                 bookedByForecastProject: cachedForecastBookings,
                 projectMap: cachedProjectMap,
                 clientMap: cachedClientMap,
-                timeOffBlock: cachedTimeOffBlock
+                timeOffBlock: cachedTimeOffBlock,
+                notesByForecastProject: cachedForecastNotes
             )
             noteFetchSucceeded()
             // Intentionally not updating lastRefreshAt — that tracks hard refreshes
@@ -1645,6 +1676,10 @@ final class TimeComparisonViewModel {
             weekStart: weekBounds.start,
             weekEnd: weekBounds.end
         )
+        let notesByForecastProject = aggregateNotesByProject(
+            assignments: assignments,
+            timeOffProjectId: timeOffProjectId
+        )
 
         // Aggregate logged hours by Harvest project ID (empty for future weeks)
         var loggedByHarvestProject: [Int: Double] = [:]
@@ -1691,7 +1726,8 @@ final class TimeComparisonViewModel {
                 todayEntryId: nil,
                 lastTaskId: nil,
                 lastTrackedAt: nil,
-                timeEntries: makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? [])
+                timeEntries: makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? []),
+                forecastNotes: notesByForecastProject[forecastProjectId]
             ))
         }
 
@@ -1712,7 +1748,8 @@ final class TimeComparisonViewModel {
                 todayEntryId: nil,
                 lastTaskId: nil,
                 lastTrackedAt: nil,
-                timeEntries: makeEntryInfos(from: entriesByHarvestProject[harvestProjectId] ?? [])
+                timeEntries: makeEntryInfos(from: entriesByHarvestProject[harvestProjectId] ?? []),
+                forecastNotes: nil
             ))
         }
 

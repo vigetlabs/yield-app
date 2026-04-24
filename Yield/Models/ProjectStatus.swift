@@ -24,6 +24,10 @@ struct ProjectStatus: Identifiable {
     let lastTaskId: Int?        // task ID from most recent entry (for creating new entries)
     let lastTrackedAt: String?  // ISO 8601 timestamp of most recent entry update
     let timeEntries: [TimeEntryInfo]
+    /// Concatenated non-empty notes from all of this week's Forecast
+    /// assignments for this project (nil if none). Multiple assignments
+    /// with notes are joined with a blank line between them.
+    let forecastNotes: String?
 
     var delta: Double { loggedHours - bookedHours }
 
