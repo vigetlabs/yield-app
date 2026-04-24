@@ -3,6 +3,22 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.10.3</title>
+      <sparkle:version>31</sparkle:version>
+      <sparkle:shortVersionString>0.9.10.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix Forecast notes tooltip rendering as a very tall box with a single line of text floating inside — internal blank lines in a note now collapse to at most one, and leading/trailing blanks get stripped.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.10.3/Yield-0.9.10.3.zip"
+        sparkle:edSignature="gArzZUItmN0Li5txrkrliM1f9uHhw5S6RnZl6UGj7bOby7i+dox9F2009K4DAGUPBiBRobWCX/w7mc4d9ppcAw=="
+        length="2262892"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.10.2</title>
       <sparkle:version>30</sparkle:version>
       <sparkle:shortVersionString>0.9.10.2</sparkle:shortVersionString>
