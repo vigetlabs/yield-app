@@ -3,6 +3,28 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.10.0</title>
+      <sparkle:version>28</sparkle:version>
+      <sparkle:shortVersionString>0.9.10.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Day-of-week filter + look-ahead</strong> — filter the project list by day of the week to see just what's booked (or tracked) on that day. A new look-ahead section surfaces expected hours, company holidays, and prospective bookings for the days still ahead this week.</li>
+          <li><strong>Add time to any day of the current week</strong> — the new-timer form now lets you target any day in the current week, not just today.</li>
+          <li><strong>Forecast assignment notes on project rows</strong> — notes attached to a Forecast assignment now surface on the matching project row with a notes icon and tooltip.</li>
+          <li>Projects sort by client then name so the order stays stable between refreshes.</li>
+          <li>Renamed the project context menu's "Start Timer" to "Add Time" for clarity.</li>
+          <li>Row header stays week-level when you narrow to a single day, so the totals don't collapse out from under you.</li>
+          <li>Under the hood: deduped fetches, pre-computed week state, and the Time Off project ID now persists across launches to avoid a second fetch on refresh.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.10.0/Yield-0.9.10.0.zip"
+        sparkle:edSignature="1mGgsPiN9IbNGyoBoKW2bDbW7qSBBe4MLF/k9P9uSSS7g2WslcWwADtcNpyk1RqN9xYuBfTEtP15QoUcOfHMDw=="
+        length="2247593"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.9.0</title>
       <sparkle:version>27</sparkle:version>
       <sparkle:shortVersionString>0.9.9.0</sparkle:shortVersionString>
