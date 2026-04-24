@@ -8,7 +8,7 @@ struct ForecastNotesIcon: View {
     let notes: String
 
     var body: some View {
-        Image(systemName: "text.page")
+        Image(systemName: "note.text")
             .font(.system(size: 14))
             .foregroundStyle(YieldColors.textSecondary)
             .help(notes)
