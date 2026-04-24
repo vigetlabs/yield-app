@@ -409,7 +409,12 @@ final class TimeComparisonViewModel {
     /// The Forecast Time Off project ID, cached from the first successful
     /// refresh. Used to scope the "Everyone" (company holidays) query
     /// server-side so the response size doesn't scale with org headcount.
-    private var cachedTimeOffProjectId: Int?
+    /// Persisted to UserDefaults so even the first refresh after relaunch
+    /// can skip the unfiltered-query cold-start penalty.
+    private var cachedTimeOffProjectId: Int? {
+        get { UserDefaults.standard.object(forKey: "forecastTimeOffProjectId") as? Int }
+        set { UserDefaults.standard.set(newValue, forKey: "forecastTimeOffProjectId") }
+    }
     private var cachedHarvestUserId: Int?
     private var cachedForecastPersonId: Int?
 
@@ -1830,6 +1835,15 @@ final class TimeComparisonViewModel {
         //   day off" convention) are treated as a standard 8h day.
         let calendar = Calendar.current
         let dayLabels = DateHelpers.weekdayLabels
+
+        // Pre-compute the seven (date, dateStr) pairs once so the
+        // per-assignment loop below doesn't re-add days and re-format
+        // dates N × 7 times.
+        let weekDays: [(date: Date, str: String)] = (0..<7).compactMap { i in
+            guard let day = calendar.date(byAdding: .day, value: i, to: weekBounds.start) else { return nil }
+            return (day, DateHelpers.dateFormatter.string(from: day))
+        }
+
         var hoursByDate: [String: Double] = [:]
         if offset > 0 {
             let fullDayHours = YieldConstants.workdayHours
@@ -1842,10 +1856,7 @@ final class TimeComparisonViewModel {
                 let hoursPerDay = (isTimeOff && allocationSeconds == 0)
                     ? fullDayHours
                     : Double(allocationSeconds) / 3600.0
-                for i in 0..<7 {
-                    guard let day = calendar.date(byAdding: .day, value: i, to: weekBounds.start),
-                          day >= aStart, day <= aEnd, day <= weekBounds.end else { continue }
-                    let dateStr = DateHelpers.dateFormatter.string(from: day)
+                for (day, dateStr) in weekDays where day >= aStart && day <= aEnd && day <= weekBounds.end {
                     hoursByDate[dateStr, default: 0] += hoursPerDay
                 }
             }
@@ -1855,15 +1866,12 @@ final class TimeComparisonViewModel {
             }
         }
         var dailyHours: [DayHours] = []
-        for i in 0..<7 {
-            guard let date = calendar.date(byAdding: .day, value: i, to: weekBounds.start) else { continue }
-            let dateStr = DateHelpers.dateFormatter.string(from: date)
-            let isToday = calendar.isDateInToday(date)
+        for (i, day) in weekDays.enumerated() {
             dailyHours.append(DayHours(
-                id: dateStr,
+                id: day.str,
                 dayLabel: dayLabels[i],
-                hours: hoursByDate[dateStr] ?? 0,
-                isToday: isToday
+                hours: hoursByDate[day.str] ?? 0,
+                isToday: calendar.isDateInToday(day.date)
             ))
         }
 

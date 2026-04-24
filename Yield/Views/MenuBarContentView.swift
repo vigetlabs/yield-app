@@ -244,6 +244,7 @@ struct MenuBarContentView: View {
                     ProjectRowView(
                         project: project,
                         effectiveLoggedHours: project.loggedHours,
+                        visibleEntries: project.timeEntries,
                         isHarvestDown: viewModel.isHarvestDown,
                         isReadOnly: true,
                         weekStart: weekStart

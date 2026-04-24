@@ -27,16 +27,11 @@ final class ForecastService {
     }
 
     func getAssignments(personId: Int, startDate: String, endDate: String) async throws -> [ForecastAssignment] {
-        let response: ForecastAssignmentsResponse = try await client.request(
-            "/assignments",
-            queryItems: [
-                URLQueryItem(name: "person_id", value: String(personId)),
-                URLQueryItem(name: "start_date", value: startDate),
-                URLQueryItem(name: "end_date", value: endDate),
-                URLQueryItem(name: "state", value: "active"),
-            ]
+        try await fetchAssignments(
+            startDate: startDate,
+            endDate: endDate,
+            personId: personId
         )
-        return response.assignments
     }
 
     /// Fetch company-wide "Everyone" assignments for a week — rows with
@@ -53,19 +48,39 @@ final class ForecastService {
     /// nil, we fall back to an unfiltered query and filter client-side
     /// (used on first refresh before the Time Off project ID is known).
     func getEveryoneAssignments(startDate: String, endDate: String, restrictToProjectId: Int? = nil) async throws -> [ForecastAssignment] {
+        let assignments = try await fetchAssignments(
+            startDate: startDate,
+            endDate: endDate,
+            projectId: restrictToProjectId
+        )
+        return assignments.filter { $0.personId == nil && $0.placeholderId == nil }
+    }
+
+    /// Shared query builder for the two /assignments variants. Adds the
+    /// standard state=active filter plus any optional person/project
+    /// scoping.
+    private func fetchAssignments(
+        startDate: String,
+        endDate: String,
+        personId: Int? = nil,
+        projectId: Int? = nil
+    ) async throws -> [ForecastAssignment] {
         var items: [URLQueryItem] = [
             URLQueryItem(name: "start_date", value: startDate),
             URLQueryItem(name: "end_date", value: endDate),
             URLQueryItem(name: "state", value: "active"),
         ]
-        if let pid = restrictToProjectId {
-            items.append(URLQueryItem(name: "project_id", value: String(pid)))
+        if let personId {
+            items.append(URLQueryItem(name: "person_id", value: String(personId)))
+        }
+        if let projectId {
+            items.append(URLQueryItem(name: "project_id", value: String(projectId)))
         }
         let response: ForecastAssignmentsResponse = try await client.request(
             "/assignments",
             queryItems: items
         )
-        return response.assignments.filter { $0.personId == nil && $0.placeholderId == nil }
+        return response.assignments
     }
 
     func getProjects() async throws -> [ForecastProject] {

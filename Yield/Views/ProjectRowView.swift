@@ -3,10 +3,10 @@ import SwiftUI
 struct ProjectRowView: View {
     let project: ProjectStatus
     var effectiveLoggedHours: Double
-    /// Entries to render in the drawer + day-by-day bar. Defaults to the
-    /// project's full week of entries; the parent passes a filtered list
-    /// when a day filter is active in the weekday mini-bar.
-    var visibleEntries: [TimeEntryInfo]? = nil
+    /// Entries to render in the drawer + day-by-day bar. The parent
+    /// passes a day-filtered list when the weekday mini-bar filter is
+    /// active; otherwise it passes `project.timeEntries`.
+    let visibleEntries: [TimeEntryInfo]
     var onToggleTimer: (() -> Void)? = nil
     var onToggleEntryTimer: ((Int, Bool) -> Void)? = nil
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
@@ -25,8 +25,7 @@ struct ProjectRowView: View {
     @State private var isExpanded: Bool = false
     @State private var isHovered: Bool = false
 
-    private var entries: [TimeEntryInfo] { visibleEntries ?? project.timeEntries }
-    private var hasEntries: Bool { !entries.isEmpty }
+    private var hasEntries: Bool { !visibleEntries.isEmpty }
 
     /// Today's effective hours on this project (includes live-ticking offset
     /// while a timer is running on it). Used to drive the today segment in
@@ -68,9 +67,9 @@ struct ProjectRowView: View {
             // can animate between 0 and natural height; clipped() hides
             // overflow so contents reveal top-to-bottom as the height grows.
             VStack(spacing: 0) {
-                if project.isForecasted || !entries.isEmpty {
+                if project.isForecasted || !visibleEntries.isEmpty {
                     SegmentedProgressBarView(
-                        entries: entries,
+                        entries: visibleEntries,
                         todayEffectiveHours: effectiveTodayHours,
                         booked: project.bookedHours,
                         isDrawerExpanded: isExpanded,
@@ -86,7 +85,7 @@ struct ProjectRowView: View {
                     .padding(.bottom, 10)
                 }
 
-                ForEach(entries) { entry in
+                ForEach(visibleEntries) { entry in
                     TaskEntryRowView(
                         entry: entry,
                         isHarvestDown: isHarvestDown,
@@ -127,14 +126,8 @@ struct ProjectRowView: View {
 
             // Project details + time
             HStack {
-                // Forecast notes icon — leading. Only shown when the
-                // project has assignment notes this week; hover to reveal
-                // the full text in a native tooltip.
                 if let notes = project.forecastNotes {
-                    Image(systemName: "text.page")
-                        .font(.system(size: 14))
-                        .foregroundStyle(YieldColors.textSecondary)
-                        .help(notes)
+                    ForecastNotesIcon(notes: notes)
                 }
 
                 // Left: client, name, remaining

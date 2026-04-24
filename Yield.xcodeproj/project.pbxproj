@@ -30,6 +30,7 @@
 		8324AA3F5CF8FBC4782301B1 /* HarvestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE70177FE259AB1C37908F0 /* HarvestModels.swift */; };
 		8F63E1C0A91D89249020D891 /* TimeComparisonViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013EF1D97DC6E9FC35048CC1 /* TimeComparisonViewModel.swift */; };
 		8F8396A0AC2F4F6920926C37 /* ForecastService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */; };
+		95B603C14869A370CBA0C1B4 /* ForecastNotesIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */; };
 		99ED0D0543AAE1B074741BC6 /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */; };
 		A718514604B129BD1665B93E /* StatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */; };
 		ACB882604B7D20FC84473136 /* DropdownPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82BA76EB59241974EF71AF53 /* DropdownPicker.swift */; };
@@ -58,6 +59,7 @@
 		77C42827589B10C29C0772BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectRowView.swift; sourceTree = "<group>"; };
 		7AC15EED42FBAABA8E309340 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastNotesIcon.swift; sourceTree = "<group>"; };
 		81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusIndicator.swift; sourceTree = "<group>"; };
 		82BA76EB59241974EF71AF53 /* DropdownPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropdownPicker.swift; sourceTree = "<group>"; };
 		863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Regular.ttf"; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				82BA76EB59241974EF71AF53 /* DropdownPicker.swift */,
+				7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */,
 				9F394448517841A11132011C /* IdleAlertView.swift */,
 				1DCB0B20EC3D0FF46A1DA250 /* LookAheadRowView.swift */,
 				C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */,
@@ -303,6 +306,7 @@
 				12764D69F0D5F8224898949E /* DesignTokens.swift in Sources */,
 				ACB882604B7D20FC84473136 /* DropdownPicker.swift in Sources */,
 				E334718332CF138B1EAC4ADF /* ForecastModels.swift in Sources */,
+				95B603C14869A370CBA0C1B4 /* ForecastNotesIcon.swift in Sources */,
 				8F8396A0AC2F4F6920926C37 /* ForecastService.swift in Sources */,
 				8324AA3F5CF8FBC4782301B1 /* HarvestModels.swift in Sources */,
 				C4E96F0745CED0E60BA91284 /* HarvestService.swift in Sources */,
