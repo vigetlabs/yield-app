@@ -47,12 +47,62 @@ struct NewTimerFormView: View {
         return f
     }()
 
-    private var headerTitle: String {
-        let prefix = isEditing ? "Edit time entry" : "New time entry"
-        let dateLabel = isSpentDateToday
-            ? "Today, \(Self.headerMonthDayFormatter.string(from: spentDate))"
-            : Self.headerDateFormatter.string(from: spentDate)
-        return "\(prefix): \(dateLabel)"
+    private var headerPrefix: String {
+        isEditing ? "Edit time entry:" : "New time entry:"
+    }
+
+    private func dateLabel(for date: Date) -> String {
+        if Calendar.current.isDateInToday(date) {
+            return "Today, \(Self.headerMonthDayFormatter.string(from: date))"
+        }
+        return Self.headerDateFormatter.string(from: date)
+    }
+
+    /// All seven days of the current week (Mon–Sun), in order.
+    private var currentWeekDays: [Date] {
+        let weekStart = DateHelpers.currentWeekBounds().start
+        let cal = Calendar.current
+        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: weekStart) }
+    }
+
+    /// Date pill in the header. In edit mode it's static (the entry's date
+    /// can't be moved from here). In create mode it's a menu that lets the
+    /// user target any day of the current week.
+    @ViewBuilder
+    private var dateSelector: some View {
+        if isEditing {
+            Text(dateLabel(for: spentDate))
+                .font(YieldFonts.titleMedium)
+                .foregroundStyle(YieldColors.textPrimary)
+        } else {
+            Menu {
+                ForEach(currentWeekDays, id: \.self) { day in
+                    Button {
+                        spentDate = day
+                        refreshDuplicateConfirm()
+                    } label: {
+                        let isSelected = Calendar.current.isDate(day, inSameDayAs: spentDate)
+                        if isSelected {
+                            Label(dateLabel(for: day), systemImage: "checkmark")
+                        } else {
+                            Text(dateLabel(for: day))
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(dateLabel(for: spentDate))
+                        .font(YieldFonts.titleMedium)
+                        .foregroundStyle(YieldColors.textPrimary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(YieldColors.textSecondary)
+                }
+            }
+            .menuIndicator(.hidden)
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
     }
 
     struct TaskOption: Identifiable, Hashable {
@@ -69,15 +119,15 @@ struct NewTimerFormView: View {
         selectedProjectId != nil && selectedTaskId != nil && !isStarting && !isLogging
     }
 
-    /// Today's existing entries for the currently selected project and task.
-    private var existingTodayEntries: [TimeEntryInfo] {
+    /// Existing entries for the currently selected project + task on the
+    /// currently selected spent date. Drives the duplicate-entry warning.
+    private var existingEntriesOnSelectedDate: [TimeEntryInfo] {
         guard let projectId = selectedProjectId,
               let taskId = selectedTaskId else { return [] }
-        let todayString = DateHelpers.dateFormatter.string(from: Date())
         guard let project = viewModel.projectStatuses.first(where: {
             $0.harvestProjectId == projectId
         }) else { return [] }
-        return project.timeEntries.filter { $0.date == todayString && $0.taskId == taskId }
+        return project.timeEntries.filter { $0.date == spentDateString && $0.taskId == taskId }
     }
 
     private var canLog: Bool {
@@ -87,10 +137,12 @@ struct NewTimerFormView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
-            HStack(spacing: 8) {
-                Text(headerTitle)
+            HStack(spacing: 6) {
+                Text(headerPrefix)
                     .font(YieldFonts.titleMedium)
                     .foregroundStyle(YieldColors.textPrimary)
+
+                dateSelector
 
                 Spacer()
 
@@ -304,7 +356,14 @@ struct NewTimerFormView: View {
 
     private func selectTask(_ taskId: Int) {
         selectedTaskId = taskId
-        let existing = existingTodayEntries
+        refreshDuplicateConfirm()
+    }
+
+    /// Re-evaluate whether the duplicate-entry banner should be shown for
+    /// the current (project, task, date) tuple. Called whenever any of
+    /// those change.
+    private func refreshDuplicateConfirm() {
+        let existing = existingEntriesOnSelectedDate
         withAnimation(.easeInOut(duration: 0.15)) {
             duplicateConfirmEntries = existing.isEmpty ? nil : existing
         }
@@ -371,9 +430,12 @@ struct NewTimerFormView: View {
         let m = Int((totalHours - Double(h)) * 60)
         let timeStr = "\(h)h \(String(format: "%02d", m))m"
         let label = "\(projectName) / \(taskName)"
+        let dayPhrase = isSpentDateToday
+            ? "today"
+            : "on \(Self.headerDateFormatter.string(from: spentDate))"
         let message = hasRunning
-            ? "\(label) has a timer running (\(timeStr) today)."
-            : "\(label) already has \(timeStr) logged today."
+            ? "\(label) has a timer running (\(timeStr) \(dayPhrase))."
+            : "\(label) already has \(timeStr) logged \(dayPhrase)."
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
