@@ -37,7 +37,11 @@ struct ForecastNotesIcon: View {
                 Text(notes)
                     .font(YieldFonts.dmSans(13))
                     .foregroundStyle(YieldColors.textPrimary)
-                    .lineLimit(nil)
+                    // Cap at 30 lines so pathological notes (invisible
+                    // chars that slip past normalization, extreme
+                    // length) can't blow the popover up to fill the
+                    // screen. Truncates mid-content past that.
+                    .lineLimit(30)
                     .lineSpacing(4)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)

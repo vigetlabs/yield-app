@@ -888,17 +888,34 @@ final class TimeComparisonViewModel {
             guard !note.isEmpty else { continue }
             collected[projectId, default: []].append(note)
         }
-        return collected.mapValues { $0.joined(separator: "\n\n") }
+        return collected.mapValues { notes in
+            // Dedupe identical notes (same text repeated across
+            // assignments against the same project is common and would
+            // otherwise stack up in the tooltip).
+            var seen = Set<String>()
+            let unique = notes.filter { seen.insert($0).inserted }
+            return unique.joined(separator: "\n\n")
+        }
     }
 
     /// Clean up a single Forecast assignment note for tooltip rendering.
-    /// Trims each line individually, collapses runs of blank lines to at
-    /// most one, and strips leading/trailing blanks. Without this, notes
-    /// with many embedded newlines render as absurdly tall popovers —
-    /// the outer-only `trimmingCharacters` can't touch internal blanks.
+    /// Strips every Unicode "default-ignorable" scalar (zero-width,
+    /// bidi, soft hyphen, variation selectors, tag characters, BOM,
+    /// etc.) from the raw text — those pass whitespace trimming but
+    /// SwiftUI Text still allots a line for them, which produces the
+    /// "tall popover, one line of text" bug. Then splits on newlines,
+    /// trims each line, collapses runs of blanks to at most one, and
+    /// drops leading/trailing blanks.
     private static func normalizeNote(_ raw: String) -> String {
+        var filteredScalars = String.UnicodeScalarView()
+        for scalar in raw.unicodeScalars
+        where !scalar.properties.isDefaultIgnorableCodePoint {
+            filteredScalars.append(scalar)
+        }
+        let filtered = String(filteredScalars)
+
         var compressed: [String] = []
-        for rawLine in raw.components(separatedBy: .newlines) {
+        for rawLine in filtered.components(separatedBy: .newlines) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             if line.isEmpty, compressed.last?.isEmpty == true { continue }
             compressed.append(line)
