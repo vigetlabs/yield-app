@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.10.2</title>
+      <sparkle:version>30</sparkle:version>
+      <sparkle:shortVersionString>0.9.10.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix refresh wiping the viewed past/future week — a menu-open or manual refresh while browsing another week was flashing the UI to current-week data. The viewed week's snapshot is now preserved through the refresh and a fresh fetch for that week runs alongside the current-week refresh.</li>
+          <li>Faster, nicer Forecast notes tooltip — hovering the notes icon now pops open in ~100ms (the native macOS tooltip delay was ~1s and not tunable), positioned to the right of the icon with larger text, line spacing, and padding.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.10.2/Yield-0.9.10.2.zip"
+        sparkle:edSignature="cwR8cyyh1hSbwa7FhdhqptmqrDfhPOt3oa714MWTggFno29sBOf2XGdkdo8LDIEdlXS/Q8/9H0BAq7cApz+LDQ=="
+        length="2262064"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.10.1</title>
       <sparkle:version>29</sparkle:version>
       <sparkle:shortVersionString>0.9.10.1</sparkle:shortVersionString>
