@@ -530,19 +530,13 @@ final class TimeComparisonViewModel {
     }
 
     func effectiveLoggedHours(for project: ProjectStatus) -> Double {
-        // With a day filter active, the displayed hours should reflect
-        // only that day's tracked time. Live-ticking elapsed offset only
-        // counts when today is the filtered day and this project is the
-        // one tracking.
-        if let dayFilter {
-            let dayHours = project.timeEntries
-                .filter { $0.date == dayFilter }
-                .reduce(0) { $0 + $1.hours }
-            let todayString = DateHelpers.dateFormatter.string(from: Date())
-            let includeElapsed = project.isTracking && dayFilter == todayString
-            return dayHours + (includeElapsed ? elapsedOffset : 0)
-        }
-        return project.loggedHours + (project.isTracking ? elapsedOffset : 0)
+        // Always the week total (plus live-ticking offset when tracking).
+        // A day filter changes what's shown inside the drawer via
+        // visibleEntries — but the row header's hours label, progress
+        // bar, and remaining-for-the-week label stay week-level so the
+        // user sees the filtered day's contribution in context, not in
+        // isolation.
+        project.loggedHours + (project.isTracking ? elapsedOffset : 0)
     }
 
     /// Entries to show in the expanded drawer / segmented bar for a given
