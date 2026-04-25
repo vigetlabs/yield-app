@@ -882,61 +882,12 @@ final class TimeComparisonViewModel {
         for assignment in assignments {
             guard let projectId = assignment.projectId,
                   projectId != timeOffProjectId,
-                  let raw = assignment.notes
+                  let note = assignment.notes?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !note.isEmpty
             else { continue }
-            let note = normalizeNote(raw)
-            guard !note.isEmpty else { continue }
             collected[projectId, default: []].append(note)
         }
-        return collected.mapValues { notes in
-            // Dedupe identical notes (same text repeated across
-            // assignments against the same project is common and would
-            // otherwise stack up in the tooltip).
-            var seen = Set<String>()
-            let unique = notes.filter { seen.insert($0).inserted }
-            return unique.joined(separator: "\n\n")
-        }
-    }
-
-    /// Clean up a single Forecast assignment note for tooltip rendering.
-    /// Strips every non-rendering scalar — Unicode categories Cc
-    /// (Control), Cf (Format), Co (Private Use), Cn (Unassigned), Cs
-    /// (Surrogate) — plus anything flagged Default_Ignorable_Code_Point
-    /// (catches Mn / Lo invisibles like combining grapheme joiner and
-    /// Hangul fillers). Without this, notes pasted from word processors
-    /// or carrying zero-width / bidi / private-use chars render as
-    /// absurdly tall popovers with a single visible line.
-    ///
-    /// Newlines (Cc LF/CR/NEL, Zl line sep, Zp paragraph sep) are
-    /// preserved as structural delimiters; we split on them right after.
-    /// Then each line gets whitespace-trimmed, runs of blank lines
-    /// collapse to at most one, and leading/trailing blanks drop.
-    private static func normalizeNote(_ raw: String) -> String {
-        var filteredScalars = String.UnicodeScalarView()
-        for scalar in raw.unicodeScalars {
-            if CharacterSet.newlines.contains(scalar) {
-                filteredScalars.append(scalar)
-                continue
-            }
-            switch scalar.properties.generalCategory {
-            case .control, .format, .privateUse, .unassigned, .surrogate:
-                continue
-            default:
-                if scalar.properties.isDefaultIgnorableCodePoint { continue }
-                filteredScalars.append(scalar)
-            }
-        }
-        let filtered = String(filteredScalars)
-
-        var compressed: [String] = []
-        for rawLine in filtered.components(separatedBy: .newlines) {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            if line.isEmpty, compressed.last?.isEmpty == true { continue }
-            compressed.append(line)
-        }
-        while compressed.first?.isEmpty == true { compressed.removeFirst() }
-        while compressed.last?.isEmpty == true { compressed.removeLast() }
-        return compressed.joined(separator: "\n")
+        return collected.mapValues { $0.joined(separator: "\n\n") }
     }
 
     private static func computeTimeOffBlock(
