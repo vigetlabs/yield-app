@@ -38,34 +38,33 @@ struct ForecastNotesIcon: View {
             }
     }
 
-    /// Sequoia (macOS 15) and later get fluid sizing — the popover hugs
-    /// short content and wraps long content at 260pt. Sonoma (14) gets a
-    /// deterministic fixed-width frame: at least one beta tester on
-    /// 14.6.1 saw the `maxWidth + fixedSize` combo render absurdly tall
-    /// popovers regardless of content (no special characters in the
-    /// note, repro on every project's tooltip), which points at a
-    /// SwiftUI popover-sizing bug specific to that OS.
-    @ViewBuilder
     private var tooltipText: some View {
+        Text(notes)
+            .font(YieldFonts.dmSans(13))
+            .foregroundStyle(YieldColors.textPrimary)
+            .lineLimit(nil)
+            .lineSpacing(4)
+            .multilineTextAlignment(.leading)
+            .modifier(TooltipSizing())
+            .padding(20)
+    }
+}
+
+/// Sequoia (macOS 15) and later get fluid sizing — the popover hugs
+/// short content and wraps long content at 260pt. Sonoma (14) gets a
+/// deterministic fixed-width frame: at least one beta tester on 14.6.1
+/// saw the `maxWidth + fixedSize` combo render absurdly tall popovers
+/// regardless of content (no special characters, repro on every
+/// project's tooltip), which points at a SwiftUI popover-sizing bug
+/// specific to that OS.
+private struct TooltipSizing: ViewModifier {
+    func body(content: Content) -> some View {
         if #available(macOS 15.0, *) {
-            Text(notes)
-                .font(YieldFonts.dmSans(13))
-                .foregroundStyle(YieldColors.textPrimary)
-                .lineLimit(nil)
-                .lineSpacing(4)
-                .multilineTextAlignment(.leading)
+            content
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 260, alignment: .leading)
-                .padding(20)
         } else {
-            Text(notes)
-                .font(YieldFonts.dmSans(13))
-                .foregroundStyle(YieldColors.textPrimary)
-                .lineLimit(nil)
-                .lineSpacing(4)
-                .multilineTextAlignment(.leading)
-                .frame(width: 260, alignment: .leading)
-                .padding(20)
+            content.frame(width: 260, alignment: .leading)
         }
     }
 }
