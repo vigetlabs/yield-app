@@ -3,6 +3,22 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.10.5</title>
+      <sparkle:version>33</sparkle:version>
+      <sparkle:shortVersionString>0.9.10.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix tall Forecast notes tooltip on macOS 14 (Sonoma) — the SwiftUI popover-sizing combo we were using triggered a layout bug specific to that OS, rendering the tooltip absurdly tall regardless of content. macOS 14 now uses a deterministic fixed-width layout; macOS 15+ keeps the original fluid layout that hugs short notes and wraps long ones.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.10.5/Yield-0.9.10.5.zip"
+        sparkle:edSignature="SQwRzFJF+waaZA5Zy7kX/aiKunYvjQ3DcqxCybVGsQFEevkrNEaCbnT2yl4IF2UEoA5uwtMQTZuGDqTrVDCrDA=="
+        length="2264821"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.10.4</title>
       <sparkle:version>32</sparkle:version>
       <sparkle:shortVersionString>0.9.10.4</sparkle:shortVersionString>
