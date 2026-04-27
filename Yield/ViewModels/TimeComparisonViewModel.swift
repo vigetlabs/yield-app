@@ -398,6 +398,14 @@ final class TimeComparisonViewModel {
     /// so stale data doesn't leak across weeks.
     private var currentWeekStart: Date?
 
+    /// YYYY-MM-DD of the last successful hard refresh. Soft refresh skips
+    /// the Forecast call by reusing `cachedTimeOffBlock` / `cachedForecastBookings`
+    /// — but if the day rolls over while the app is open, day-dependent
+    /// state (today's PTO, today's bookings) can go stale. Compare this
+    /// against today on each soft refresh and fall back to a hard refresh
+    /// when they don't match.
+    private var currentRefreshDay: String?
+
     // Cached state from last hard refresh — used by softRefresh() to avoid
     // re-fetching Forecast data and non-today Harvest entries every minute.
     private var cachedWeekEntries: [HarvestTimeEntry] = []
@@ -1343,8 +1351,20 @@ final class TimeComparisonViewModel {
             // Cache the ID so the next refresh's "Everyone" query can
             // scope to just this project server-side (keeps the response
             // size bounded regardless of org headcount).
-            let timeOffProjectId = projects.first(where: { $0.name == YieldConstants.timeOffProjectName })?.id
-            cachedTimeOffProjectId = timeOffProjectId
+            //
+            // Fall back to the previously-cached ID when the name match
+            // misses — a flaky `/projects` response (incomplete list,
+            // Forecast-side caching, transient blip) would otherwise
+            // silently drop PTO from the panel AND leak it into booked
+            // totals, since assignments aren't filtered out when the
+            // sentinel ID is nil. Only overwrite the cache when we have
+            // a fresh non-nil hit, so a single bad response can't
+            // poison the cache.
+            let freshTimeOffProjectId = projects.first(where: { $0.name == YieldConstants.timeOffProjectName })?.id
+            let timeOffProjectId = freshTimeOffProjectId ?? cachedTimeOffProjectId
+            if let freshTimeOffProjectId {
+                cachedTimeOffProjectId = freshTimeOffProjectId
+            }
 
             // Aggregate booked hours by Forecast project ID, splitting out
             // time off into its own per-day collection for a bottom-of-list
@@ -1378,6 +1398,7 @@ final class TimeComparisonViewModel {
             cachedHarvestUserId = userId
             cachedForecastPersonId = person.id
             currentWeekStart = weekBounds.start
+            currentRefreshDay = DateHelpers.dateFormatter.string(from: Date())
             cachedWeekEntries = entries
             cachedForecastBookings = bookedByForecastProject
             cachedProjectMap = projectMap
@@ -1611,17 +1632,22 @@ final class TimeComparisonViewModel {
         // If we haven't done a hard refresh yet, or the week rolled over since
         // the cache was built, fall back to a full refresh so we don't mix
         // stale forecast bookings / old-week entries with the new week's data.
+        // The day check catches a subtler case: app open across midnight
+        // within the same week, where day-dependent Forecast state (today's
+        // PTO, today's bookings) would otherwise stay stale until the user
+        // manually refreshes — see the bug report about PTO not picking up
+        // until the app was quit and relaunched.
+        let todayString = DateHelpers.dateFormatter.string(from: Date())
         guard let userId = cachedHarvestUserId,
               !cachedForecastBookings.isEmpty,
-              currentWeekStart == DateHelpers.currentWeekBounds().start
+              currentWeekStart == DateHelpers.currentWeekBounds().start,
+              currentRefreshDay == todayString
         else {
             await refresh()
             return
         }
 
         guard let (harvestService, _) = makeServices() else { return }
-
-        let todayString = DateHelpers.dateFormatter.string(from: Date())
 
         do {
             let todayEntries = try await harvestService.getTimeEntries(
@@ -1753,7 +1779,8 @@ final class TimeComparisonViewModel {
                 entries: try await entries,
                 assignments: resolvedAssignments,
                 projects: resolvedProjects,
-                clients: resolvedClients
+                clients: resolvedClients,
+                fallbackTimeOffProjectId: cachedTimeOffProjectId
             )
             weekSnapshots[offset] = snapshot
             noteFetchSucceeded()
@@ -1772,11 +1799,16 @@ final class TimeComparisonViewModel {
         entries: [HarvestTimeEntry],
         assignments: [ForecastAssignment],
         projects: [ForecastProject],
-        clients: [ForecastClient]
+        clients: [ForecastClient],
+        fallbackTimeOffProjectId: Int?
     ) -> WeekSnapshot {
         let projectMap = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
         let clientMap = Dictionary(uniqueKeysWithValues: clients.map { ($0.id, $0) })
+        // Same defensive fallback as the current-week refresh: if /projects
+        // didn't include the Time Off project this time, use the last-known
+        // good ID so PTO doesn't disappear and leak into booked totals.
         let timeOffProjectId = projects.first(where: { $0.name == YieldConstants.timeOffProjectName })?.id
+            ?? fallbackTimeOffProjectId
 
         // Aggregate booked hours by Forecast project ID (excluding time off)
         var bookedByForecastProject: [Int: Double] = [:]
