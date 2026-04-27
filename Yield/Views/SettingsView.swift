@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("appearanceMode") private var appearanceMode: String = AppearanceMode.system.rawValue
     @AppStorage("idleDetectionEnabled") private var idleDetectionEnabled = true
     @AppStorage("idleMinutes") private var idleMinutes = 10
+    @AppStorage("menuBarLabelMode") private var menuBarLabelMode: String = MenuBarLabelMode.projectTime.rawValue
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -196,6 +197,13 @@ struct SettingsView: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
 
+            // Menu bar display
+            menuBarDisplayRow
+
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+
             // Idle detection
             HStack(spacing: 8) {
                 Image(systemName: "moon.zzz")
@@ -339,6 +347,37 @@ struct SettingsView: View {
             .padding(.horizontal, 12)
             .padding(.top, 10)
             .padding(.bottom, 6)
+    }
+
+    /// Picker row for `MenuBarLabelMode`. `DropdownPicker` is keyed by
+    /// `Int` tags so we use each mode's `allCases` index as the id.
+    private var menuBarDisplayRow: some View {
+        let modes = MenuBarLabelMode.allCases
+        let items = modes.enumerated().map { (id: $0.offset, title: $0.element.label) }
+        let selectedId = modes.firstIndex { $0.rawValue == menuBarLabelMode } ?? 0
+
+        return HStack(spacing: 8) {
+            Image(systemName: "menubar.rectangle")
+                .font(.system(size: 10))
+                .foregroundStyle(YieldColors.textSecondary)
+                .frame(width: 16)
+            Text("Menu bar display")
+                .font(YieldFonts.dmSans(11))
+                .foregroundStyle(YieldColors.textPrimary)
+            Spacer()
+            DropdownPicker(
+                label: "Menu bar display",
+                placeholder: "Select",
+                items: items,
+                selectedId: selectedId
+            ) { id in
+                guard modes.indices.contains(id) else { return }
+                menuBarLabelMode = modes[id].rawValue
+            }
+            .frame(width: 160)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     private func settingsToggleRow(icon: String, label: String, isOn: Binding<Bool>) -> some View {

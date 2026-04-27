@@ -27,6 +27,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
         UserDefaults.standard.register(defaults: [
             "idleDetectionEnabled": true,
             "idleMinutes": 10,
+            "menuBarLabelMode": MenuBarLabelMode.projectTime.rawValue,
         ])
 
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
@@ -72,6 +73,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
 @main
 struct YieldApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    /// Read here so SwiftUI tracks the dependency — changing the setting
+    /// in Settings re-runs the MenuBarExtra label closure with the new
+    /// mode, which produces a different cache key and a new image.
+    @AppStorage("menuBarLabelMode") private var menuBarLabelModeRaw: String = MenuBarLabelMode.projectTime.rawValue
     private var viewModel: TimeComparisonViewModel { AppState.shared.viewModel }
 
     var body: some Scene {
@@ -79,10 +84,12 @@ struct YieldApp: App {
             MenuBarContentView(viewModel: viewModel)
         } label: {
             let isTracking = viewModel.projectStatuses.contains(where: { $0.isTracking })
+            let mode = MenuBarLabelMode(rawValue: menuBarLabelModeRaw) ?? .projectTime
             Image(nsImage: composedMenuBarImage(
                 label: viewModel.menuBarLabel,
                 icon: viewModel.menuBarIcon,
-                isTracking: isTracking
+                isTracking: isTracking,
+                mode: mode
             ))
         }
         .menuBarExtraStyle(.window)
@@ -95,6 +102,7 @@ struct YieldApp: App {
         let label: String
         let icon: TimeComparisonViewModel.MenuBarIcon
         let isTracking: Bool
+        let mode: MenuBarLabelMode
     }
 
     /// Process-global cache for the composed menu bar image. SwiftUI re-runs
@@ -107,18 +115,18 @@ struct YieldApp: App {
 
     /// Compose the full menu bar image: [tracking dot] [time text] [state icon]
     /// Draws into a single NSImage so MenuBarExtra renders it reliably.
-    private func composedMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, isTracking: Bool) -> NSImage {
-        let key = MenuBarImageKey(label: label, icon: icon, isTracking: isTracking)
+    private func composedMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, isTracking: Bool, mode: MenuBarLabelMode) -> NSImage {
+        let key = MenuBarImageKey(label: label, icon: icon, isTracking: isTracking, mode: mode)
         if let cached = Self.cache, cached.key == key {
             return cached.image
         }
 
-        let image = renderMenuBarImage(label: label, icon: icon, isTracking: isTracking)
+        let image = renderMenuBarImage(label: label, icon: icon, isTracking: isTracking, mode: mode)
         Self.cache = (key, image)
         return image
     }
 
-    private func renderMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, isTracking: Bool) -> NSImage {
+    private func renderMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, isTracking: Bool, mode: MenuBarLabelMode) -> NSImage {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         let textColor = NSColor.black
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
@@ -157,8 +165,10 @@ struct YieldApp: App {
         let spacing: CGFloat = 4
         let dotSize: CGFloat = 6
 
-        // Fixed-width text area — measure widest possible string to prevent width jitter
-        let maxLabel = "88:88 / 88:88"
+        // Fixed-width text area — measure widest possible string to prevent width jitter.
+        // Current-timer mode only ever shows a single H:MM value, so reserve only
+        // that much. The other modes can show paired "tracked / budget" strings.
+        let maxLabel = mode == .currentTimer ? "88:88" : "88:88 / 88:88"
         let fixedTextWidth: CGFloat = (maxLabel as NSString).size(withAttributes: attrs).width
         let textSize: CGSize = label.isEmpty ? .zero : (label as NSString).size(withAttributes: attrs)
 

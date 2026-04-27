@@ -475,36 +475,77 @@ final class TimeComparisonViewModel {
     /// Minimum weekly budget floor used when user has little or no forecast data
     private static let minimumWeeklyBudget: Double = 40
 
+    /// What the menu bar label shows. User-configurable in Settings;
+    /// reads through to the persisted UserDefault each access so the
+    /// label updates immediately when the setting changes.
+    var menuBarLabelMode: MenuBarLabelMode {
+        let raw = UserDefaults.standard.string(forKey: "menuBarLabelMode")
+            ?? MenuBarLabelMode.projectTime.rawValue
+        return MenuBarLabelMode(rawValue: raw) ?? .projectTime
+    }
+
     var menuBarLabel: String {
         guard lastUpdated != nil else { return "" }
 
-        // Active tracking timer
+        switch menuBarLabelMode {
+        case .projectTime:  return projectTimeLabel()
+        case .dayTime:      return dayTimeLabel()
+        case .currentTimer: return currentTimerLabel()
+        }
+    }
+
+    /// `tracked / booked` for the running project's weekly slot. Falls
+    /// back to `weekTotal / weeklyBudget` (40h floor) when no timer is
+    /// running, mirroring the original menu-bar behavior.
+    private func projectTimeLabel() -> String {
         if let tracking = projectStatuses.first(where: { $0.isTracking }) {
             if tracking.bookedHours == 0 {
-                // Unbooked: current entry (live) / today's total (live)
                 let entryHours = (trackingEntry?.hours ?? 0) + elapsedOffset
                 let todayTotal = totalTodayLogged + elapsedOffset
                 return formatPair(entryHours, todayTotal)
             }
-            // Booked: project tracked / project booked
             let tracked = tracking.loggedHours + elapsedOffset
             return formatPair(tracked, tracking.bookedHours)
         }
-
-        // Paused timer — same semantics as active, frozen values (no live offset)
         if let project = pausedProject {
             if project.bookedHours == 0 {
-                // Unbooked paused: frozen entry hours / today's total
                 let entryHours = pausedState?.frozenHours ?? 0
                 return formatPair(entryHours, totalTodayLogged)
             }
             return formatPair(project.loggedHours, project.bookedHours)
         }
-
-        // No timer: all tracked time / weekly booked (40h min)
         let allTracked = totalLogged + totalUnbookedLogged
         let budget = max(totalBooked, Self.minimumWeeklyBudget)
         return formatPair(allTracked, budget)
+    }
+
+    /// `currentEntry / todayTotal`. Both tick live while a timer runs.
+    /// Falls back to `todayTotal / 8h` when nothing is running so the
+    /// label still conveys day progress.
+    private func dayTimeLabel() -> String {
+        if let entry = trackingEntry {
+            let entryHours = entry.hours + elapsedOffset
+            let todayTotal = totalTodayLogged + elapsedOffset
+            return formatPair(entryHours, todayTotal)
+        }
+        if let paused = pausedState {
+            return formatPair(paused.frozenHours, totalTodayLogged)
+        }
+        return formatPair(totalTodayLogged, YieldConstants.workdayHours)
+    }
+
+    /// Just the current timer's hours, no denominator. A paused timer
+    /// keeps showing its frozen value; once all timers are stopped, falls
+    /// back to today's total so the menu bar still says something useful
+    /// instead of going blank.
+    private func currentTimerLabel() -> String {
+        if let entry = trackingEntry {
+            return formatHM(entry.hours + elapsedOffset)
+        }
+        if let paused = pausedState {
+            return formatHM(paused.frozenHours)
+        }
+        return formatHM(totalTodayLogged)
     }
 
     var menuBarIcon: MenuBarIcon {

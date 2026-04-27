@@ -28,6 +28,30 @@ enum AppearanceMode: String, CaseIterable {
     }
 }
 
+/// What the menu bar shows next to the icon while a timer is running.
+/// Persisted to UserDefaults via the `menuBarLabelMode` key.
+enum MenuBarLabelMode: String, CaseIterable {
+    /// Default: the active project's tracked hours vs. its weekly booking.
+    /// Falls back to the week-wide total / weekly budget when no timer is
+    /// running.
+    case projectTime
+    /// The current timer's hours vs. the running total of all logged time
+    /// today. Falls back to today's total / 8h when no timer is running.
+    case dayTime
+    /// Just the current running timer's hours, in compact form (no
+    /// denominator). A paused timer keeps showing its frozen value;
+    /// once all timers are stopped, falls back to today's running total.
+    case currentTimer
+
+    var label: String {
+        switch self {
+        case .projectTime:  return "Project time"
+        case .dayTime:      return "Day time"
+        case .currentTimer: return "Current timer"
+        }
+    }
+}
+
 struct MenuBarContentView: View {
     let viewModel: TimeComparisonViewModel
     @State private var showNewTimerForm = false
