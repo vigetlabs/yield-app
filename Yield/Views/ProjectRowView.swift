@@ -115,6 +115,18 @@ struct ProjectRowView: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
         }
+        // Auto-collapse the drawer when its last visible entry disappears
+        // (typically: user deletes the only entry from the drawer). The
+        // drawer has nothing to show in that state, and the
+        // `hasEntries`-guarded tap gesture would prevent re-opening it
+        // anyway — leaving it stuck open is just visual dead space.
+        .onChange(of: visibleEntries.isEmpty) { _, isEmpty in
+            if isEmpty, isExpanded {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded = false
+                }
+            }
+        }
     }
 
     // MARK: - Project Header
