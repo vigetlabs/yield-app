@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.11.0</title>
+      <sparkle:version>34</sparkle:version>
+      <sparkle:shortVersionString>0.9.11.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Menu bar display setting</strong> — pick what shows next to the icon: Project time (the original tracked-vs-booked-for-the-week behavior), Day time (current timer vs. today's running total), or Current timer (just the running timer's hours, in a narrower menu bar item). Configurable in Settings → Preferences.</li>
+          <li>Fix Forecast PTO disappearing on a new week while booked tasks looked correct — the Time Off project ID lookup now falls back to the last-known-good cached value when /projects returns an unexpectedly incomplete response.</li>
+          <li>Fix stale day-dependent Forecast state when the app is open across midnight within the same week — the soft refresh now also detects day rollover (not just week rollover) and falls back to a hard refresh.</li>
+          <li>Project drawer auto-collapses when its last visible time entry is deleted, instead of getting stuck open with no content.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.11.0/Yield-0.9.11.0.zip"
+        sparkle:edSignature="XB54WdB7sR59BtFGc3Yn2k9c6IkKn3dzK75ALWyWa6prKxq+9KD3OzM8YhL1Kd81G4Wfizzss+4Hlw97Kve6Dg=="
+        length="2277419"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.10.5</title>
       <sparkle:version>33</sparkle:version>
       <sparkle:shortVersionString>0.9.10.5</sparkle:shortVersionString>
