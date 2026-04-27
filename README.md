@@ -12,19 +12,22 @@ Unzip, drag Yield to your Applications folder, and launch. It'll take root in yo
 
 ## ✨ Features
 
-- 📊 **At-a-glance weekly overview** — Every project with color-coded progress bars showing logged vs. booked hours. Green when under budget, red when over.
-- 📈 **Weekly time chart** — Stacked area chart showing hours by project across the week. Click a legend row to isolate a single project, or export as PNG.
-- ⏱️ **Live timer controls** — Start, stop, pause, and resume Harvest timers without leaving the menu bar.
-- ✏️ **Create & edit time entries** — Log time with project and task dropdowns grouped by client. Edit or delete entries inline. Start a timer with pre-filled hours for catch-up tracking.
-- 📅 **Log time to any day** — Add time entries to past days in the current week, not just today.
-- ⚠️ **Duplicate timer guard** — When starting a timer on a project that already has time logged today, choose to resume the existing entry or create a new one.
-- 📈 **Smart progress tracking** — Progress bars visualize overage when you exceed your budget. The remaining label flips to "over this week" in red.
-- 🎛️ **Menu bar gauge** — An adaptive icon that rotates based on your weekly progress. Shows active timer info or time remaining at a glance.
-- 💤 **Idle detection** — Alerts you when you've been idle, with options to continue, stop, or keep the time.
-- 🔔 **Booked-hours notifications** — Get a nudge when you hit your target on a project so you know when to move on.
-- 📂 **Recent & Forecasted views** — Toggle between projects with recent time entries and upcoming projects booked in Forecast.
-- 🔄 **Auto-refresh** — Lightweight refresh every minute picks up timer changes; full refresh on menu open syncs Forecast data. Active timers tick locally so numbers always feel current.
-- 🚀 **Automatic updates** — Checks for new versions daily and prompts you to install them.
+- 📊 **At-a-glance weekly overview** — every project with color-coded progress bars showing logged vs. booked hours. Green when under budget, red when over.
+- 🎛️ **Configurable menu bar display** — pick what shows next to the icon: tracked vs. booked for the running project, current timer vs. today's total, or just the running timer. The icon itself rotates as a gauge tied to your progress on the active project.
+- 📈 **Weekly time chart** — stacked area chart showing hours by project across the week. Click a legend row to isolate a single project, or export the chart as a PNG.
+- 📐 **Day-by-day breakdown** — expand any project to see a segmented bar of its daily contribution to the week, alongside its individual time entries.
+- 🔍 **Day-of-week filter** — click a weekday in the header to narrow the list to projects you spent time on (or are booked on) that day.
+- 🔭 **Look-ahead** — see what's still ahead this week: expected hours per day, company holidays, your scheduled time off, and prospective Forecast bookings that aren't tied to a Harvest project yet.
+- 🌴 **Time off awareness** — your Forecast PTO surfaces as a dedicated summary row, and the menu bar icon switches to a moon when you're off for the full day.
+- ◀ ▶ **Week navigation** — step backward through past weeks (read-only, with full drawers and the day-by-day bar) or forward to see what's booked next, with a "This Week" pill to jump back.
+- ⏱️ **Live timer controls** — start, stop, pause, and resume Harvest timers without leaving the menu bar. A duplicate-timer guard offers to resume an existing entry on the same project instead of doubling up.
+- ✏️ **Create & edit time entries** — log time with project and task dropdowns grouped by client. Edit (or double-click to edit) and delete entries inline. Start a timer with pre-filled hours for catch-up tracking.
+- 📅 **Log time to any day** — add entries to any day in the current week, not just today.
+- 📝 **Forecast notes** — assignment notes from Forecast surface on project rows; hover the icon to read the full text.
+- 💤 **Idle detection** — alerts you when you've been idle, with options to continue, stop, or keep the time.
+- 🔔 **Budget notifications** — nudges you when you hit your booked target on a project so you know when to move on.
+- 🔄 **Auto-refresh** — lightweight refresh every minute picks up timer changes; full refresh on menu open and at day or week rollover keeps Forecast data current. Active timers tick locally so numbers always feel real-time.
+- 🚀 **Automatic updates** — checks for new versions daily and prompts you to install them.
 
 ## 🚜 Getting started
 
