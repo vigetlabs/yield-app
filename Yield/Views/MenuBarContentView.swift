@@ -52,6 +52,7 @@ enum MenuBarLabelMode: String, CaseIterable {
     }
 }
 
+
 struct MenuBarContentView: View {
     let viewModel: TimeComparisonViewModel
     @State private var showNewTimerForm = false
@@ -59,6 +60,23 @@ struct MenuBarContentView: View {
     @State private var preselectedProjectId: Int? = nil
     @State private var newTimerTargetDate: Date? = nil
     @State private var showSettings = false
+    /// Natural heights of the panel's non-list regions, measured at
+    /// runtime so the list's "fits or scrolls?" decision works no matter
+    /// which banners / time-off row / timer state are visible.
+    @State private var fixedTopHeight: CGFloat = 0
+    @State private var footerHeight: CGFloat = 0
+    /// Natural height of the project list contents (sum of all rows).
+    /// When this exceeds the available budget, the list wraps in a
+    /// ScrollView with a fixed height so the panel stays under the
+    /// screen ceiling.
+    @State private var listContentHeight: CGFloat = 0
+    /// Bumped every time the menu-bar panel becomes key, forcing the
+    /// body to re-evaluate `maxPanelHeight` against the current
+    /// `NSScreen.main`. SwiftUI keeps the content view alive across
+    /// panel opens, so without this kick the panel would reuse the
+    /// previous screen's cap when the user clicks the menu-bar icon
+    /// on a different display.
+    @State private var panelOpenTick: Int = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -110,80 +128,123 @@ struct MenuBarContentView: View {
             if viewModel.idleAlertState == nil && !showSettings && !showNewTimerForm && editingEntry == nil {
                 footerView
                     .transition(.opacity)
+                    .background(measureHeight { footerHeight = $0 })
             }
         }
         .frame(width: YieldDimensions.panelWidth)
         .background(YieldColors.background)
         .background(OpaqueMenuBarPanel())
+        // Read the tick somewhere in body so SwiftUI registers a
+        // dependency on it — without this, mutating `panelOpenTick`
+        // wouldn't necessarily force a body re-evaluation.
+        .id(panelOpenTick)
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { note in
+            guard let window = note.object as? NSWindow else { return }
+            // MenuBarExtra's panel window has "MenuBarExtra" in its
+            // class name; ignore other key-window changes.
+            guard String(describing: type(of: window)).contains("MenuBarExtra") else { return }
+            panelOpenTick &+= 1
+        }
+    }
+
+    /// Maximum height for the project list before scrolling kicks in.
+    /// The 120pt floor protects against a transient zero measurement
+    /// on the very first render (before measureHeight callbacks land)
+    /// collapsing the list. After measurements arrive this stabilizes
+    /// at `maxPanelHeight - fixedTopHeight - footerHeight`.
+    private var availableForList: CGFloat {
+        max(120, maxPanelHeight - fixedTopHeight - footerHeight)
+    }
+
+    private var listOverflows: Bool {
+        listContentHeight > availableForList
+    }
+
+    /// Background helper that calls back with the foreground view's
+    /// measured height. Uses a GeometryReader + onChange directly
+    /// (rather than PreferenceKey) — the preference-key path didn't
+    /// reliably propagate up through `.background` here in practice,
+    /// and onChange-on-proxy.size.height with `initial: true` is just
+    /// as cheap and fires deterministically.
+    private func measureHeight(_ action: @escaping (CGFloat) -> Void) -> some View {
+        GeometryReader { proxy in
+            Color.clear
+                .onChange(of: proxy.size.height, initial: true) { _, new in
+                    action(new)
+                }
+        }
+    }
+
+    /// Cap the panel just under the screen's visible area. While the
+    /// menu-bar panel is open, `NSScreen.main` is the screen the panel
+    /// is showing on (it's the key window's screen) — so this gives us
+    /// the right cap whether the user has one display or several.
+    /// `visibleFrame` already excludes the menu bar and dock, so this
+    /// is the real room available to a menu-bar window.
+    private var maxPanelHeight: CGFloat {
+        let visible = NSScreen.main?.visibleFrame.height ?? 800
+        return max(400, visible - 16)
     }
 
     // MARK: - Content
 
     private var contentView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            headerView
+            // Fixed top region — header, banners, time-off row, timer
+            // banner. Wrapped in a single VStack so we can measure its
+            // total height via one GeometryReader and subtract from the
+            // panel cap to figure out the list's budget.
+            VStack(alignment: .leading, spacing: 0) {
+                headerView
 
-            if !viewModel.serviceErrors.isEmpty {
-                serviceWarningBanner
-            } else if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-            }
-
-            // Time Off summary — pinned above the timer banner so the "you
-            // have PTO this week" signal lives at the top of the panel.
-            if let timeOff = viewModel.displayedTimeOff, viewModel.selectedTab != .chart {
-                TimeOffRowView(block: timeOff)
-            }
-
-            // Timer banner / inactive slot — only shown for the current
-            // week; hidden on past/future weeks since no timer state is
-            // meaningful there.
-            if !viewModel.isViewingOtherWeek {
-                timerBannerSlot
-            }
-
-            if viewModel.isViewingOtherWeek {
-                otherWeekList
-            } else if viewModel.selectedTab == .chart {
-                ProjectChartView(viewModel: viewModel)
-            } else if viewModel.filteredStatuses.isEmpty {
-                Text("No projects found for this week.")
-                    .foregroundStyle(YieldColors.textSecondary)
-                    .font(YieldFonts.dmSans(11))
-                    .padding(16)
-            } else {
-                ForEach(viewModel.filteredStatuses) { project in
-                    ProjectRowView(
-                        project: project,
-                        effectiveLoggedHours: viewModel.effectiveLoggedHours(for: project),
-                        visibleEntries: viewModel.visibleEntries(for: project),
-                        onToggleTimer: {
-                            Task { await viewModel.toggleTimer(for: project) }
-                        },
-                        onToggleEntryTimer: { entryId, isRunning in
-                            Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: isRunning) }
-                        },
-                        onEditEntry: { entry in
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                editingEntry = entry
-                            }
-                        },
-                        onDeleteEntry: { entry in
-                            Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
-                        },
-                        isHarvestDown: viewModel.isHarvestDown,
-                        onStartTimerForProject: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                preselectedProjectId = project.harvestProjectId
-                                showNewTimerForm = true
-                            }
-                        }
-                    )
+                if !viewModel.serviceErrors.isEmpty {
+                    serviceWarningBanner
+                } else if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
                 }
+
+                // Time Off summary — pinned above the timer banner so the "you
+                // have PTO this week" signal lives at the top of the panel.
+                if let timeOff = viewModel.displayedTimeOff, viewModel.selectedTab != .chart {
+                    TimeOffRowView(block: timeOff)
+                }
+
+                // Timer banner / inactive slot — only shown for the current
+                // week; hidden on past/future weeks since no timer state is
+                // meaningful there.
+                if !viewModel.isViewingOtherWeek {
+                    timerBannerSlot
+                }
+            }
+            .background(measureHeight { fixedTopHeight = $0 })
+
+            // The project list is the only flexible-height section.
+            // Conditionally wrap in a ScrollView based on the measured
+            // natural list height vs. the budget, so when content fits
+            // the panel sizes to natural and when it overflows the
+            // panel caps at `maxPanelHeight` with the list scrolling
+            // inside. Either way the list's `measureHeight` reports
+            // the natural content size — the GeometryReader sits in
+            // `.background` of the inner VStack, which renders at its
+            // natural height in both branches.
+            if listOverflows {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        listSection
+                    }
+                    .background(measureHeight { listContentHeight = $0 })
+                }
+                .scrollIndicators(.automatic)
+                .frame(height: availableForList)
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    listSection
+                }
+                .background(measureHeight { listContentHeight = $0 })
             }
         }
         // Cross-fade the Time Off row, timer banner, and project list
@@ -191,6 +252,51 @@ struct MenuBarContentView: View {
         // Rows with stable IDs re-render in place; new/removed rows fade.
         .animation(.easeInOut(duration: 0.22), value: viewModel.weekOffset)
         .animation(.easeInOut(duration: 0.22), value: viewModel.displayedFilteredStatuses.map(\.id))
+    }
+
+    /// The variable-height project / chart / empty-state region inside
+    /// the scrollable container.
+    @ViewBuilder
+    private var listSection: some View {
+        if viewModel.isViewingOtherWeek {
+            otherWeekList
+        } else if viewModel.selectedTab == .chart {
+            ProjectChartView(viewModel: viewModel)
+        } else if viewModel.filteredStatuses.isEmpty {
+            Text("No projects found for this week.")
+                .foregroundStyle(YieldColors.textSecondary)
+                .font(YieldFonts.dmSans(11))
+                .padding(16)
+        } else {
+            ForEach(viewModel.filteredStatuses) { project in
+                ProjectRowView(
+                    project: project,
+                    effectiveLoggedHours: viewModel.effectiveLoggedHours(for: project),
+                    visibleEntries: viewModel.visibleEntries(for: project),
+                    onToggleTimer: {
+                        Task { await viewModel.toggleTimer(for: project) }
+                    },
+                    onToggleEntryTimer: { entryId, isRunning in
+                        Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: isRunning) }
+                    },
+                    onEditEntry: { entry in
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            editingEntry = entry
+                        }
+                    },
+                    onDeleteEntry: { entry in
+                        Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
+                    },
+                    isHarvestDown: viewModel.isHarvestDown,
+                    onStartTimerForProject: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            preselectedProjectId = project.harvestProjectId
+                            showNewTimerForm = true
+                        }
+                    }
+                )
+            }
+        }
     }
 
     /// Timer banner area — extracted so the contentView stays readable
