@@ -70,13 +70,16 @@ struct MenuBarContentView: View {
     /// ScrollView with a fixed height so the panel stays under the
     /// screen ceiling.
     @State private var listContentHeight: CGFloat = 0
-    /// Bumped every time the menu-bar panel becomes key, forcing the
-    /// body to re-evaluate `maxPanelHeight` against the current
-    /// `NSScreen.main`. SwiftUI keeps the content view alive across
-    /// panel opens, so without this kick the panel would reuse the
-    /// previous screen's cap when the user clicks the menu-bar icon
-    /// on a different display.
-    @State private var panelOpenTick: Int = 0
+    /// Visible-frame height of the screen the panel is currently on.
+    /// Captured each time the panel becomes key so multi-display setups
+    /// pick up the right cap when the user opens the panel on a
+    /// different display. SwiftUI keeps the content view alive across
+    /// panel opens, so without refreshing this on `didBecomeKey` we'd
+    /// reuse the previous screen's height. Storing the value (rather
+    /// than re-reading `NSScreen.main` on every render via a tick) lets
+    /// `maxPanelHeight` read it as a real dependency — no `.id()`
+    /// identity churn, no subview teardown, no flicker.
+    @State private var screenVisibleHeight: CGFloat = NSScreen.main?.visibleFrame.height ?? 800
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -134,16 +137,20 @@ struct MenuBarContentView: View {
         .frame(width: YieldDimensions.panelWidth)
         .background(YieldColors.background)
         .background(OpaqueMenuBarPanel())
-        // Read the tick somewhere in body so SwiftUI registers a
-        // dependency on it — without this, mutating `panelOpenTick`
-        // wouldn't necessarily force a body re-evaluation.
-        .id(panelOpenTick)
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { note in
             guard let window = note.object as? NSWindow else { return }
             // MenuBarExtra's panel window has "MenuBarExtra" in its
             // class name; ignore other key-window changes.
             guard String(describing: type(of: window)).contains("MenuBarExtra") else { return }
-            panelOpenTick &+= 1
+            // Refresh the screen height in case the user opened the
+            // panel on a different display since the last open.
+            // SwiftUI re-evaluates body because `maxPanelHeight` reads
+            // this state directly — no `.id()` identity churn, no
+            // subview teardown.
+            if let visible = NSScreen.main?.visibleFrame.height,
+               visible != screenVisibleHeight {
+                screenVisibleHeight = visible
+            }
         }
     }
 
@@ -175,15 +182,14 @@ struct MenuBarContentView: View {
         }
     }
 
-    /// Cap the panel just under the screen's visible area. While the
-    /// menu-bar panel is open, `NSScreen.main` is the screen the panel
-    /// is showing on (it's the key window's screen) — so this gives us
-    /// the right cap whether the user has one display or several.
-    /// `visibleFrame` already excludes the menu bar and dock, so this
-    /// is the real room available to a menu-bar window.
+    /// Cap the panel just under the screen's visible area. Reads from
+    /// `screenVisibleHeight`, which we refresh from `NSScreen.main`
+    /// each time the panel becomes key (so multi-display setups pick
+    /// up the new display). `visibleFrame` already excludes the menu
+    /// bar and dock, so this is the real room available to a menu-bar
+    /// window.
     private var maxPanelHeight: CGFloat {
-        let visible = NSScreen.main?.visibleFrame.height ?? 800
-        return max(400, visible - 16)
+        max(400, screenVisibleHeight - 16)
     }
 
     // MARK: - Content
