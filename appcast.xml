@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.12.0</title>
+      <sparkle:version>35</sparkle:version>
+      <sparkle:shortVersionString>0.9.12.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Smarter API outage messages</strong> — when Harvest or Forecast fails, Yield now checks <a href="https://www.harveststatus.com">harveststatus.com</a> and tells you what's actually going on. If there's a confirmed incident you'll see its name, how long ago it started, and a link to the status page; if the status page reports no issues you'll see a hint that the failure is more likely on your end (connection, sign-in).</li>
+          <li><strong>Long project lists now scroll</strong> — when there are more projects than fit on screen, the panel caps just under the screen height and the project list scrolls inside while the header, banners, time-off row, timer banner, and footer stay pinned. The panel still sizes naturally when content fits.</li>
+          <li>Multi-display: the panel correctly re-sizes for the screen it's actually on when you click the menu bar icon on a different display.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.12.0/Yield-0.9.12.0.zip"
+        sparkle:edSignature="5CtjGi+VeB03FUPvFR01pT91VutXf0mk/b6SApdfgqDOZc+y4qkUOg1pIAwD1d53qGVnRJVqwbBWGZmEOchwDA=="
+        length="2325677"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.11.0</title>
       <sparkle:version>34</sparkle:version>
       <sparkle:shortVersionString>0.9.11.0</sparkle:shortVersionString>
