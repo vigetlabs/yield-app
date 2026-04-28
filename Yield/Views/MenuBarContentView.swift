@@ -561,10 +561,11 @@ struct MenuBarContentView: View {
 
             if !viewModel.serviceErrors.isEmpty {
                 ForEach(viewModel.serviceErrors) { error in
-                    Text("\(error.service.rawValue) — \(error.message)")
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(YieldColors.textSecondary)
-                        .font(YieldFonts.dmSans(11))
+                    ServiceErrorRow(
+                        error: error,
+                        snapshot: viewModel.statusSnapshot,
+                        compact: false
+                    )
                 }
             } else {
                 Text(message)
@@ -585,11 +586,13 @@ struct MenuBarContentView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(YieldColors.yellowAccent)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 ForEach(viewModel.serviceErrors) { error in
-                    Text("\(error.service.rawValue) — \(error.message)")
-                        .font(YieldFonts.dmSans(10))
-                        .foregroundStyle(YieldColors.textSecondary)
+                    ServiceErrorRow(
+                        error: error,
+                        snapshot: viewModel.statusSnapshot,
+                        compact: true
+                    )
                 }
             }
 
@@ -733,4 +736,85 @@ private struct OpaqueMenuBarPanel: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
+// MARK: - Service Error Row
+
+/// Renders a single service error with optional incident context from
+/// harveststatus.com. Two layout modes:
+/// - `compact: true` for the inline warning banner (10pt text, single
+///   line per error).
+/// - `compact: false` for the full-screen error placeholder (11pt,
+///   center-aligned, multi-line ok).
+///
+/// When the status snapshot has loaded, the row shows one of:
+/// 1. *Confirmed incident* — incident name + "Started X ago" + a button
+///    to open Harvest's status page.
+/// 2. *Status page reports no issues* — original message + a hint that
+///    the failure is more likely a connection/auth issue locally.
+/// While the snapshot is still nil (loading or status page unreachable),
+/// it falls back to the original "Service — Message" line.
+private struct ServiceErrorRow: View {
+    let error: TimeComparisonViewModel.ServiceError
+    let snapshot: HarvestStatusService.Snapshot?
+    let compact: Bool
+
+    private var incident: HarvestStatusService.Incident? {
+        snapshot?.incident(affecting: error.service.rawValue)
+    }
+
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f
+    }()
+
+    var body: some View {
+        VStack(alignment: compact ? .leading : .center, spacing: 2) {
+            if let incident {
+                primaryText("\(error.service.rawValue) — \(incident.statusLabel): \(incident.name)")
+                HStack(spacing: 6) {
+                    secondaryText("Started \(Self.relativeFormatter.localizedString(for: incident.createdAt, relativeTo: Date()))")
+                    if let url = incident.url {
+                        Button {
+                            NSWorkspace.shared.open(url)
+                        } label: {
+                            HStack(spacing: 2) {
+                                Text("Status page")
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: compact ? 8 : 9))
+                            }
+                            .font(YieldFonts.dmSans(compact ? 10 : 11, weight: .medium))
+                            .foregroundStyle(YieldColors.greenAccent)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            } else if snapshot != nil {
+                // Status page loaded, no matching incident — point user
+                // at their connection / auth instead of waiting it out.
+                primaryText("\(error.service.rawValue) — \(error.message)")
+                secondaryText("Status page reports no issues — check your connection or sign in again.")
+            } else {
+                // Snapshot not yet loaded (or fetch failed silently).
+                primaryText("\(error.service.rawValue) — \(error.message)")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func primaryText(_ s: String) -> some View {
+        Text(s)
+            .font(YieldFonts.dmSans(compact ? 10 : 11))
+            .foregroundStyle(YieldColors.textSecondary)
+            .multilineTextAlignment(compact ? .leading : .center)
+    }
+
+    @ViewBuilder
+    private func secondaryText(_ s: String) -> some View {
+        Text(s)
+            .font(YieldFonts.dmSans(compact ? 9 : 10))
+            .foregroundStyle(YieldColors.textSecondary.opacity(0.7))
+            .multilineTextAlignment(compact ? .leading : .center)
+    }
 }

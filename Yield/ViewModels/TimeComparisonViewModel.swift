@@ -76,6 +76,13 @@ final class TimeComparisonViewModel {
     private(set) var isLoading: Bool = false
     private(set) var errorMessage: String? = nil
     private(set) var serviceErrors: [ServiceError] = []
+    /// Snapshot of harveststatus.com state, fetched on demand whenever
+    /// `serviceErrors` is non-empty. Lets the error banner enrich its
+    /// message with confirmed-incident context (or note when the status
+    /// page reports no issues, so the user looks at their own connection
+    /// / auth rather than waiting it out).
+    private(set) var statusSnapshot: HarvestStatusService.Snapshot?
+    private let statusService = HarvestStatusService()
 
     /// True when the most recent fetch attempt (hard or soft) failed due to
     /// a connectivity problem. Drives the menu bar icon, "offline" signals,
@@ -117,6 +124,16 @@ final class TimeComparisonViewModel {
     /// Whether Harvest API is currently unreachable (timer controls should be disabled)
     var isHarvestDown: Bool {
         serviceErrors.contains { $0.service == .harvest }
+    }
+
+    /// Kick off a status-page fetch in the background; updates
+    /// `statusSnapshot` when the response lands. Silent-fails — the
+    /// status page itself being down isn't something to surface.
+    private func refreshStatusSnapshot() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.statusSnapshot = try? await self.statusService.fetch()
+        }
     }
     private(set) var elapsedOffset: Double = 0  // hours elapsed locally since last API refresh
     var selectedTab: ProjectTab = .recent
@@ -1264,6 +1281,7 @@ final class TimeComparisonViewModel {
         isLoading = true
         errorMessage = nil
         serviceErrors = []
+        statusSnapshot = nil
 
         guard let (harvestService, forecastService) = makeServices() else {
             errorMessage = "API credentials not configured."
@@ -1423,6 +1441,7 @@ final class TimeComparisonViewModel {
             } else {
                 errorMessage = serviceErrors.map { "\($0.service.rawValue): \($0.message)" }.joined(separator: "\n")
             }
+            refreshStatusSnapshot()
         }
 
         #if DEBUG
@@ -1433,6 +1452,7 @@ final class TimeComparisonViewModel {
                 serviceErrors.append(ServiceError(service: service, message: "Service unavailable (simulated)"))
             }
             errorMessage = serviceErrors.map { "\($0.service.rawValue): \($0.message)" }.joined(separator: "\n")
+            refreshStatusSnapshot()
         }
         #endif
 
