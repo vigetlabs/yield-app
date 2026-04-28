@@ -65,14 +65,9 @@ struct MenuBarContentView: View {
     /// to give the list section its scrolling budget.
     @State private var fixedTopHeight: CGFloat = 0
     @State private var footerHeight: CGFloat = 0
-    /// Visible-frame height of the screen the panel is currently on.
-    /// `OpaqueMenuBarPanel` reports it from the panel's own window — on
-    /// initial attach, when the window crosses to another display
-    /// (`NSWindow.didChangeScreenNotification`), and when the system's
-    /// screen layout changes (`NSApplication.didChangeScreenParametersNotification`).
-    /// Reading from the panel's window (rather than `NSScreen.main`) is
-    /// the right primitive for multi-display setups, since the menu bar
-    /// may sit on a screen that isn't main.
+    /// Visible-frame height of the screen the panel is currently on,
+    /// reported by `OpaqueMenuBarPanel` from the panel's own window. The
+    /// initial value is overwritten as soon as the window attaches.
     @State private var screenVisibleHeight: CGFloat = NSScreen.main?.visibleFrame.height ?? 800
 
     var body: some View {
@@ -145,12 +140,9 @@ struct MenuBarContentView: View {
     }
 
 
-    /// Cap the panel just under the screen's visible area. Reads from
-    /// `screenVisibleHeight`, which we refresh from `NSScreen.main`
-    /// each time the panel becomes key (so multi-display setups pick
-    /// up the new display). `visibleFrame` already excludes the menu
-    /// bar and dock, so this is the real room available to a menu-bar
-    /// window.
+    /// Cap the panel just under the screen's visible area. `visibleFrame`
+    /// already excludes the menu bar and dock, so the 16pt buffer is just
+    /// breathing room.
     private var maxPanelHeight: CGFloat {
         max(400, screenVisibleHeight - 16)
     }
@@ -159,10 +151,8 @@ struct MenuBarContentView: View {
 
     private var contentView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Fixed top region — header, banners, time-off row, timer
-            // banner. Wrapped in a single VStack so we can measure its
-            // total height via one GeometryReader and subtract from the
-            // panel cap to figure out the list's budget.
+            // Fixed top region — measured as a single block so we know
+            // how much vertical space the project list has left.
             VStack(alignment: .leading, spacing: 0) {
                 headerView
 
@@ -191,14 +181,10 @@ struct MenuBarContentView: View {
             }
             .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { fixedTopHeight = $0 }
 
-            // The project list is the only flexible-height section.
-            // `fixedSize(vertical: true)` on the framed ScrollView is
-            // the canonical Apple-Forums pattern: the ScrollView reports
-            // its content's ideal height as its own size — clamped by
-            // the frame's `maxHeight` — so it sizes to content when
-            // content fits and caps at `availableForList` (scrolling
-            // inside) when it doesn't. No conditional, no measurement
-            // of the list's own height, no inline-vs-scroll flicker.
+            // `fixedSize(vertical:)` lets the ScrollView size to its
+            // content's ideal height, clamped by the frame's maxHeight —
+            // so the panel sizes naturally when the list fits and caps
+            // (with scrolling) when it doesn't.
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     listSection

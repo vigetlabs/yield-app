@@ -70,10 +70,7 @@ actor HarvestStatusService {
 
     /// Statuspage.io serializes timestamps with fractional seconds
     /// ("2025-04-28T15:42:11.123Z"), which `.iso8601` rejects. Try with
-    /// fractional seconds first, fall back to plain. Formatters are
-    /// instantiated inside the closure so we don't capture non-Sendable
-    /// state — cost is negligible at the call frequency here (one
-    /// status fetch per minute at most).
+    /// fractional seconds first, fall back to plain.
     private static let decoder: JSONDecoder = {
         let d = JSONDecoder()
         d.keyDecodingStrategy = .convertFromSnakeCase
