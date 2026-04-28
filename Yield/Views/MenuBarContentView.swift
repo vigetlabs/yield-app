@@ -61,24 +61,18 @@ struct MenuBarContentView: View {
     @State private var newTimerTargetDate: Date? = nil
     @State private var showSettings = false
     /// Natural heights of the panel's non-list regions, measured at
-    /// runtime so the list's "fits or scrolls?" decision works no matter
-    /// which banners / time-off row / timer state are visible.
+    /// runtime so we can subtract them from the screen-bounded ceiling
+    /// to give the list section its scrolling budget.
     @State private var fixedTopHeight: CGFloat = 0
     @State private var footerHeight: CGFloat = 0
-    /// Natural height of the project list contents (sum of all rows).
-    /// When this exceeds the available budget, the list wraps in a
-    /// ScrollView with a fixed height so the panel stays under the
-    /// screen ceiling.
-    @State private var listContentHeight: CGFloat = 0
     /// Visible-frame height of the screen the panel is currently on.
-    /// Captured each time the panel becomes key so multi-display setups
-    /// pick up the right cap when the user opens the panel on a
-    /// different display. SwiftUI keeps the content view alive across
-    /// panel opens, so without refreshing this on `didBecomeKey` we'd
-    /// reuse the previous screen's height. Storing the value (rather
-    /// than re-reading `NSScreen.main` on every render via a tick) lets
-    /// `maxPanelHeight` read it as a real dependency — no `.id()`
-    /// identity churn, no subview teardown, no flicker.
+    /// `OpaqueMenuBarPanel` reports it from the panel's own window — on
+    /// initial attach, when the window crosses to another display
+    /// (`NSWindow.didChangeScreenNotification`), and when the system's
+    /// screen layout changes (`NSApplication.didChangeScreenParametersNotification`).
+    /// Reading from the panel's window (rather than `NSScreen.main`) is
+    /// the right primitive for multi-display setups, since the menu bar
+    /// may sit on a screen that isn't main.
     @State private var screenVisibleHeight: CGFloat = NSScreen.main?.visibleFrame.height ?? 800
 
     var body: some View {
@@ -131,56 +125,25 @@ struct MenuBarContentView: View {
             if viewModel.idleAlertState == nil && !showSettings && !showNewTimerForm && editingEntry == nil {
                 footerView
                     .transition(.opacity)
-                    .background(measureHeight { footerHeight = $0 })
+                    .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { footerHeight = $0 }
             }
         }
         .frame(width: YieldDimensions.panelWidth)
         .background(YieldColors.background)
-        .background(OpaqueMenuBarPanel())
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { note in
-            guard let window = note.object as? NSWindow else { return }
-            // MenuBarExtra's panel window has "MenuBarExtra" in its
-            // class name; ignore other key-window changes.
-            guard String(describing: type(of: window)).contains("MenuBarExtra") else { return }
-            // Refresh the screen height in case the user opened the
-            // panel on a different display since the last open.
-            // SwiftUI re-evaluates body because `maxPanelHeight` reads
-            // this state directly — no `.id()` identity churn, no
-            // subview teardown.
-            if let visible = NSScreen.main?.visibleFrame.height,
-               visible != screenVisibleHeight {
-                screenVisibleHeight = visible
+        .background(OpaqueMenuBarPanel(onVisibleHeightChange: { height in
+            if height != screenVisibleHeight {
+                screenVisibleHeight = height
             }
-        }
+        }))
     }
 
-    /// Maximum height for the project list before scrolling kicks in.
-    /// The 120pt floor protects against a transient zero measurement
-    /// on the very first render (before measureHeight callbacks land)
-    /// collapsing the list. After measurements arrive this stabilizes
-    /// at `maxPanelHeight - fixedTopHeight - footerHeight`.
+    /// Maximum height for the project-list ScrollView. The 120pt floor
+    /// guards against the very first frame, before fixed-section
+    /// measurements have landed, collapsing the list to nothing.
     private var availableForList: CGFloat {
         max(120, maxPanelHeight - fixedTopHeight - footerHeight)
     }
 
-    private var listOverflows: Bool {
-        listContentHeight > availableForList
-    }
-
-    /// Background helper that calls back with the foreground view's
-    /// measured height. Uses a GeometryReader + onChange directly
-    /// (rather than PreferenceKey) — the preference-key path didn't
-    /// reliably propagate up through `.background` here in practice,
-    /// and onChange-on-proxy.size.height with `initial: true` is just
-    /// as cheap and fires deterministically.
-    private func measureHeight(_ action: @escaping (CGFloat) -> Void) -> some View {
-        GeometryReader { proxy in
-            Color.clear
-                .onChange(of: proxy.size.height, initial: true) { _, new in
-                    action(new)
-                }
-        }
-    }
 
     /// Cap the panel just under the screen's visible area. Reads from
     /// `screenVisibleHeight`, which we refresh from `NSScreen.main`
@@ -226,32 +189,24 @@ struct MenuBarContentView: View {
                     timerBannerSlot
                 }
             }
-            .background(measureHeight { fixedTopHeight = $0 })
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { fixedTopHeight = $0 }
 
             // The project list is the only flexible-height section.
-            // Conditionally wrap in a ScrollView based on the measured
-            // natural list height vs. the budget, so when content fits
-            // the panel sizes to natural and when it overflows the
-            // panel caps at `maxPanelHeight` with the list scrolling
-            // inside. Either way the list's `measureHeight` reports
-            // the natural content size — the GeometryReader sits in
-            // `.background` of the inner VStack, which renders at its
-            // natural height in both branches.
-            if listOverflows {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        listSection
-                    }
-                    .background(measureHeight { listContentHeight = $0 })
-                }
-                .scrollIndicators(.automatic)
-                .frame(height: availableForList)
-            } else {
+            // `fixedSize(vertical: true)` on the framed ScrollView is
+            // the canonical Apple-Forums pattern: the ScrollView reports
+            // its content's ideal height as its own size — clamped by
+            // the frame's `maxHeight` — so it sizes to content when
+            // content fits and caps at `availableForList` (scrolling
+            // inside) when it doesn't. No conditional, no measurement
+            // of the list's own height, no inline-vs-scroll flicker.
+            ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     listSection
                 }
-                .background(measureHeight { listContentHeight = $0 })
             }
+            .scrollIndicators(.automatic)
+            .frame(maxHeight: availableForList)
+            .fixedSize(horizontal: false, vertical: true)
         }
         // Cross-fade the Time Off row, timer banner, and project list
         // whenever we swap data via week navigation or a refresh lands.
@@ -830,6 +785,16 @@ private struct HeaderTextButton: View {
 // MARK: - Opaque Panel Background
 
 private struct OpaqueMenuBarPanel: NSViewRepresentable {
+    /// Reports the panel window's current visibleFrame height — initially
+    /// when the window is first attached, then again whenever the panel
+    /// moves to a different display (`NSWindow.didChangeScreenNotification`)
+    /// or the system's screen layout changes
+    /// (`NSApplication.didChangeScreenParametersNotification`). Reading
+    /// from the panel's *own* window — rather than `NSScreen.main` — is
+    /// the right primitive for multi-display setups where the menu bar
+    /// may sit on a screen that isn't main.
+    var onVisibleHeightChange: (CGFloat) -> Void
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
@@ -843,11 +808,57 @@ private struct OpaqueMenuBarPanel: NSViewRepresentable {
                     effectView.material = .windowBackground
                 }
             }
+
+            let coordinator = context.coordinator
+            coordinator.window = window
+            coordinator.report()
+
+            let nc = NotificationCenter.default
+            coordinator.screenObserver = nc.addObserver(
+                forName: NSWindow.didChangeScreenNotification,
+                object: window,
+                queue: .main
+            ) { _ in coordinator.report() }
+            coordinator.paramsObserver = nc.addObserver(
+                forName: NSApplication.didChangeScreenParametersNotification,
+                object: nil,
+                queue: .main
+            ) { _ in coordinator.report() }
         }
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {}
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // Keep the latest callback; underlying observers stay tied to
+        // the same window/notification subscriptions.
+        context.coordinator.onVisibleHeightChange = onVisibleHeightChange
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onVisibleHeightChange: onVisibleHeightChange)
+    }
+
+    final class Coordinator {
+        var onVisibleHeightChange: (CGFloat) -> Void
+        weak var window: NSWindow?
+        var screenObserver: NSObjectProtocol?
+        var paramsObserver: NSObjectProtocol?
+
+        init(onVisibleHeightChange: @escaping (CGFloat) -> Void) {
+            self.onVisibleHeightChange = onVisibleHeightChange
+        }
+
+        func report() {
+            guard let height = window?.screen?.visibleFrame.height else { return }
+            onVisibleHeightChange(height)
+        }
+
+        deinit {
+            let nc = NotificationCenter.default
+            if let screenObserver { nc.removeObserver(screenObserver) }
+            if let paramsObserver { nc.removeObserver(paramsObserver) }
+        }
+    }
 }
 
 // MARK: - Service Error Row
