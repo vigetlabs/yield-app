@@ -922,12 +922,12 @@ final class TimeComparisonViewModel {
     /// - Partial-day time off → `allocation` holds seconds-per-day. We sum
     ///   it directly.
     /// - Weekends are skipped because they're not work days.
-    /// Shared project sort: booked (scheduled) projects before logged-
-    /// only ones, then alphabetical by client name, then project name.
-    /// Deliberately stable — no tracking or recency component — so the
-    /// list doesn't reshuffle between refreshes.
+    /// Shared project sort: alphabetical by client name, then project
+    /// name — booked and logged-only projects intermingle so the list
+    /// reads as one alphabetical sweep. Deliberately stable (no
+    /// tracking or recency component) so the list doesn't reshuffle
+    /// between refreshes.
     static func projectSortOrder(_ a: ProjectStatus, _ b: ProjectStatus) -> Bool {
-        if (a.bookedHours > 0) != (b.bookedHours > 0) { return a.bookedHours > 0 }
         let aClient = a.clientName ?? ""
         let bClient = b.clientName ?? ""
         if aClient != bClient {
