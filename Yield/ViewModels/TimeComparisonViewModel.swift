@@ -1197,8 +1197,16 @@ final class TimeComparisonViewModel {
 
         do {
             _ = try await harvestService.restartTimer(entryId: paused.entryId)
-            pausedState = nil
+            // Hold `pausedState` through the refresh so the banner stays
+            // continuously visible — `isTimerBannerVisible` would otherwise
+            // be false in the gap between clearing it and the new
+            // `trackingProject` landing, removing the banner from the view
+            // tree and triggering a disappear/reappear transition. With
+            // `pausedState` still set during the refresh and the new
+            // `trackingProject` populated by it, the banner just smoothly
+            // changes from paused styling to active styling in place.
             await refresh()
+            pausedState = nil
         } catch {
             errorMessage = error.localizedDescription
         }
