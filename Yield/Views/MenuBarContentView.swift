@@ -266,7 +266,13 @@ struct MenuBarContentView: View {
                         Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
                     }
                 )
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                // Asymmetric: drop in with a slide+fade (the banner
+                // taking its place), exit with just a fade so the
+                // collapse back to the empty strip feels calmer.
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)),
+                    removal: .opacity
+                ))
             } else {
                 Rectangle()
                     .fill(
