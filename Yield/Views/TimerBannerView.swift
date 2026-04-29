@@ -6,6 +6,10 @@ struct TimerBannerView: View {
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
 
     @State private var colonOn: Bool = true
+    /// Toggles between scale 1.0 and 1.25 on a slow ease-in-out loop while
+    /// the timer is active, so the status dot reads as a "heartbeat."
+    /// Frozen when paused.
+    @State private var dotPulse: Bool = false
 
     private var isActive: Bool { !viewModel.isTimerPaused }
 
@@ -63,10 +67,13 @@ struct TimerBannerView: View {
             HStack(spacing: 10) {
                 // Left: dot + project/task info
                 HStack(spacing: 8) {
-                    // Status dot (green active, yellow paused)
+                    // Status dot (green active, yellow paused). Pulses
+                    // gently while active so the row reads as "live"
+                    // even when the timer text is between ticks.
                     Circle()
                         .fill(accentColor)
                         .frame(width: 6, height: 6)
+                        .scaleEffect(dotPulse ? 1.25 : 1.0)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(contextLabel.uppercased())
@@ -154,6 +161,23 @@ struct TimerBannerView: View {
                 Label("Delete Timer", systemImage: "trash")
             }
             .disabled(viewModel.isHarvestDown || currentEntry == nil)
+        }
+        .onAppear { syncDotPulse() }
+        .onChange(of: isActive) { _, _ in syncDotPulse() }
+    }
+
+    /// Drive the dot's heartbeat: a slow easeInOut.repeatForever while
+    /// active, snap back to scale 1.0 when paused (a non-repeating
+    /// animation cancels the repeating one).
+    private func syncDotPulse() {
+        if isActive {
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                dotPulse = true
+            }
+        } else {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                dotPulse = false
+            }
         }
     }
 
