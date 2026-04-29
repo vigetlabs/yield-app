@@ -130,6 +130,13 @@ struct MenuBarContentView: View {
                 screenVisibleHeight = height
             }
         }))
+        // Drive the timer-banner expand/collapse animation at the body
+        // level so the parent VStack's reflow and the panel's outer
+        // frame change happen inside the same animation context as the
+        // banner's own frame change. With the animation scoped to just
+        // TimerBannerView, the parent layout updates discretely and
+        // the panel "pops" around the smoothly-animating banner.
+        .animation(.spring(response: 0.42, dampingFraction: 0.84), value: viewModel.isTimerBannerVisible)
     }
 
     /// Maximum height for the project-list ScrollView. The 120pt floor
@@ -246,57 +253,25 @@ struct MenuBarContentView: View {
         }
     }
 
-    /// Timer banner area — the empty 16pt strip and the full banner share
-    /// one ZStack so the container's height animates smoothly between
-    /// the two states (instead of discretely swapping views and
-    /// snapping height). A spring on `isTimerBannerVisible` gives the
-    /// "the row grew into a banner" feel.
+    /// Timer banner area. `TimerBannerView` is always rendered and
+    /// handles its own empty-strip vs. expanded-banner state with a
+    /// height + opacity animation, so this slot is just responsible for
+    /// hiding the row entirely on the chart tab.
     @ViewBuilder
     private var timerBannerSlot: some View {
-        ZStack(alignment: .top) {
-            if viewModel.isTimerBannerVisible {
-                TimerBannerView(
-                    viewModel: viewModel,
-                    onEditEntry: { entry in
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            editingEntry = entry
-                        }
-                    },
-                    onDeleteEntry: { entry in
-                        Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
-                    }
-                )
-                // Asymmetric: drop in with a slide+fade (the banner
-                // taking its place), exit with just a fade so the
-                // collapse back to the empty strip feels calmer.
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .move(edge: .top)),
-                    removal: .opacity
-                ))
-            } else {
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                YieldColors.greenAccent.opacity(0.15),
-                                Color.clear,
-                            ],
-                            startPoint: .leading,
-                            endPoint: UnitPoint(x: 0.7, y: 0.5)
-                        )
-                    )
-                    .frame(height: 16)
-                    .overlay(alignment: .bottom) {
-                        Rectangle()
-                            .fill(YieldColors.border)
-                            .frame(height: 1)
-                    }
-                    .transition(.opacity)
+        TimerBannerView(
+            viewModel: viewModel,
+            onEditEntry: { entry in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    editingEntry = entry
+                }
+            },
+            onDeleteEntry: { entry in
+                Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
             }
-        }
+        )
         .frame(maxHeight: viewModel.selectedTab != .chart ? .infinity : 0, alignment: .top)
         .clipped()
-        .animation(.spring(response: 0.42, dampingFraction: 0.84), value: viewModel.isTimerBannerVisible)
     }
 
     /// Project list for past (read-only) or future (look-ahead) weeks.

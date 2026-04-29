@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// Top-of-panel banner for the active (or paused) Harvest timer. Always
+/// rendered — when no timer is set it shrinks to a thin gradient strip;
+/// when one is set it expands to its natural ~74pt height with the
+/// project/task/timer/controls fading in. One persistent component
+/// instead of a strip-vs-banner swap means the height interpolation
+/// reads as the same row growing into a banner, not as one component
+/// being torn down and another inserted.
 struct TimerBannerView: View {
     let viewModel: TimeComparisonViewModel
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
@@ -10,7 +17,16 @@ struct TimerBannerView: View {
     /// the timer is active, so the status dot reads as a "heartbeat."
     /// Frozen when paused.
     @State private var dotPulse: Bool = false
+    /// Measured natural height of the timer-content layout. Used as the
+    /// expanded frame height; we don't hard-code so a longer client/
+    /// project name that wraps to two lines stays accommodated.
+    @State private var contentHeight: CGFloat = 74
 
+    /// Empty-state strip height — kept thin enough to read as "ready"
+    /// without dominating the panel.
+    private let emptyHeight: CGFloat = 16
+
+    private var isVisible: Bool { viewModel.isTimerBannerVisible }
     private var isActive: Bool { !viewModel.isTimerPaused }
 
     /// The entry represented by the banner — tracking entry when active, paused entry when paused
@@ -61,6 +77,57 @@ struct TimerBannerView: View {
     }
 
     var body: some View {
+        ZStack(alignment: .top) {
+            // Always-visible backdrop. Its color tracks state — green
+            // when active or empty, yellow when paused.
+            LinearGradient(
+                colors: [gradientColor, Color.clear],
+                startPoint: .leading,
+                endPoint: UnitPoint(x: 0.7, y: 0.5)
+            )
+
+            // Timer content laid out at its natural height always so we
+            // can measure it; opacity fades it in/out, frame cap below
+            // shrinks the visible slot to a thin strip when invisible.
+            timerContent
+                .opacity(isVisible ? 1 : 0)
+                .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { contentHeight = $0 }
+                .allowsHitTesting(isVisible)
+        }
+        // Slot height: full content height when a timer is set, the
+        // thin strip otherwise. The animation that drives this is
+        // applied at the MenuBarContentView body level so the parent
+        // VStack and the panel's outer frame all participate in the
+        // same animation context — without that, the parent reflows
+        // discretely and the panel "pops" around the smoothly-animating
+        // banner.
+        .frame(height: isVisible ? contentHeight : emptyHeight, alignment: .top)
+        .clipped()
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+        }
+        .contextMenu {
+            Button {
+                if let entry = currentEntry { onEditEntry?(entry) }
+            } label: {
+                Label("Edit Timer", systemImage: "pencil")
+            }
+            .disabled(viewModel.isHarvestDown || currentEntry == nil)
+            Button(role: .destructive) {
+                if let entry = currentEntry { onDeleteEntry?(entry) }
+            } label: {
+                Label("Delete Timer", systemImage: "trash")
+            }
+            .disabled(viewModel.isHarvestDown || currentEntry == nil)
+        }
+        .onAppear { syncDotPulse() }
+        .onChange(of: isActive) { _, _ in syncDotPulse() }
+    }
+
+    @ViewBuilder
+    private var timerContent: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let totalSeconds = computeTotalSeconds(at: timeline.date)
 
@@ -133,37 +200,6 @@ struct TimerBannerView: View {
             .padding(16)
         }
         .contentShape(Rectangle())
-        .background(
-            LinearGradient(
-                colors: [
-                    gradientColor,
-                    Color.clear
-                ],
-                startPoint: .leading,
-                endPoint: UnitPoint(x: 0.7, y: 0.5)
-            )
-        )
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
-        }
-        .contextMenu {
-            Button {
-                if let entry = currentEntry { onEditEntry?(entry) }
-            } label: {
-                Label("Edit Timer", systemImage: "pencil")
-            }
-            .disabled(viewModel.isHarvestDown || currentEntry == nil)
-            Button(role: .destructive) {
-                if let entry = currentEntry { onDeleteEntry?(entry) }
-            } label: {
-                Label("Delete Timer", systemImage: "trash")
-            }
-            .disabled(viewModel.isHarvestDown || currentEntry == nil)
-        }
-        .onAppear { syncDotPulse() }
-        .onChange(of: isActive) { _, _ in syncDotPulse() }
     }
 
     /// Drive the dot's heartbeat: a slow easeInOut.repeatForever while
