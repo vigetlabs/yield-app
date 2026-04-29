@@ -227,6 +227,7 @@ final class TimeComparisonViewModel {
     }
 
     struct PausedTimerState {
+        let clientName: String?
         let projectName: String
         let taskName: String
         let entryId: Int
@@ -1173,6 +1174,7 @@ final class TimeComparisonViewModel {
         // Save paused state before stopping
         let effectiveHours = effectiveLoggedHours(for: project)
         pausedState = PausedTimerState(
+            clientName: project.clientName,
             projectName: project.projectName,
             taskName: entry.taskName,
             entryId: entry.id,

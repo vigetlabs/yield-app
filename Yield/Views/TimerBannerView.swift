@@ -29,8 +29,20 @@ struct TimerBannerView: View {
         isActive ? YieldColors.greenAccent.opacity(0.15) : YieldColors.yellowFaint
     }
 
+    private var clientName: String? {
+        viewModel.trackingProject?.clientName ?? viewModel.pausedState?.clientName
+    }
+
     private var projectName: String {
         viewModel.trackingProject?.projectName ?? viewModel.pausedState?.projectName ?? ""
+    }
+
+    /// Top-line label: "CLIENT — PROJECT" when a client is known, just
+    /// the project name otherwise. Em-dash separator matches the
+    /// convention used elsewhere in the codebase (idle alert, budget
+    /// notification body).
+    private var contextLabel: String {
+        [clientName, projectName].compactMap { $0 }.joined(separator: " — ")
     }
 
     private var taskName: String {
@@ -57,7 +69,7 @@ struct TimerBannerView: View {
                         .frame(width: 6, height: 6)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(projectName.uppercased())
+                        Text(contextLabel.uppercased())
                             .font(YieldFonts.labelProject)
                             .foregroundStyle(YieldColors.textSecondary)
                             .lineLimit(1)
