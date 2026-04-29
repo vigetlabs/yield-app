@@ -246,11 +246,14 @@ struct MenuBarContentView: View {
         }
     }
 
-    /// Timer banner area — extracted so the contentView stays readable
-    /// and we can skip rendering it entirely for non-current weeks.
+    /// Timer banner area — the empty 16pt strip and the full banner share
+    /// one ZStack so the container's height animates smoothly between
+    /// the two states (instead of discretely swapping views and
+    /// snapping height). A spring on `isTimerBannerVisible` gives the
+    /// "the row grew into a banner" feel.
     @ViewBuilder
     private var timerBannerSlot: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .top) {
             if viewModel.isTimerBannerVisible {
                 TimerBannerView(
                     viewModel: viewModel,
@@ -282,10 +285,12 @@ struct MenuBarContentView: View {
                             .fill(YieldColors.border)
                             .frame(height: 1)
                     }
+                    .transition(.opacity)
             }
         }
         .frame(maxHeight: viewModel.selectedTab != .chart ? .infinity : 0, alignment: .top)
         .clipped()
+        .animation(.spring(response: 0.42, dampingFraction: 0.84), value: viewModel.isTimerBannerVisible)
     }
 
     /// Project list for past (read-only) or future (look-ahead) weeks.
