@@ -195,7 +195,8 @@ struct ProjectRowView: View {
                     if project.isForecasted {
                         ProgressBarView(
                             logged: effectiveLoggedHours,
-                            booked: project.bookedHours
+                            booked: project.bookedHours,
+                            dayLogged: dayFilteredHours
                         )
                     }
                 }
@@ -285,6 +286,10 @@ private func formatHM(_ hours: Double) -> String {
 struct ProgressBarView: View {
     let logged: Double
     let booked: Double
+    /// When non-nil, the row is filtered to a single day. The week fill
+    /// dims to 50% and a full-opacity overlay shows the day's portion of
+    /// the week so far.
+    var dayLogged: Double? = nil
 
     private var ratio: Double {
         guard booked > 0 else { return 0 }
@@ -305,6 +310,14 @@ struct ProgressBarView: View {
         return max(1.0 / min(ratio, 5.0), 0.2)
     }
 
+    /// Width fraction for the day overlay. Scales the day's share of the
+    /// week against the week's rendered fill, so the overlay always sits
+    /// within the week fill regardless of over/under state.
+    private var dayFill: Double {
+        guard let dayLogged, dayLogged > 0, logged > 0 else { return 0 }
+        return bookedFill * min(max(dayLogged / logged, 0), 1)
+    }
+
     var body: some View {
         ZStack(alignment: .leading) {
             // Background: overage color when over, default otherwise
@@ -312,14 +325,27 @@ struct ProgressBarView: View {
                 .fill(isOver ? YieldStatusColors.over.opacity(0.4) : YieldColors.surfaceActive)
                 .frame(width: YieldDimensions.progressBarWidth, height: YieldDimensions.progressBarHeight)
 
-            // Fill: booked portion
+            // Fill: booked portion. Dimmed when a day filter is active so
+            // the day overlay reads as the focal element.
             RoundedRectangle(cornerRadius: YieldRadius.progressBar)
                 .fill(barColor)
+                .opacity(dayLogged != nil ? 0.4 : 1.0)
                 .frame(
                     width: YieldDimensions.progressBarWidth * bookedFill,
                     height: YieldDimensions.progressBarHeight
                 )
                 .animation(.easeInOut(duration: 0.4), value: bookedFill)
+
+            // Day overlay: full-opacity slice of the week fill.
+            if dayLogged != nil {
+                RoundedRectangle(cornerRadius: YieldRadius.progressBar)
+                    .fill(barColor)
+                    .frame(
+                        width: YieldDimensions.progressBarWidth * dayFill,
+                        height: YieldDimensions.progressBarHeight
+                    )
+                    .animation(.easeInOut(duration: 0.4), value: dayFill)
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: YieldRadius.progressBar))
     }
