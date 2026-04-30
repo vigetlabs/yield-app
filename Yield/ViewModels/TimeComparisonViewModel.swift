@@ -618,6 +618,21 @@ final class TimeComparisonViewModel {
         return project.timeEntries.filter { $0.date == dayFilter }
     }
 
+    /// Hours logged on the filtered day for a project, plus the live-ticking
+    /// offset when the running timer falls on that day. Returns nil when no
+    /// day filter is active — callers use that signal to render the default
+    /// "week / booked" label instead of "day / week-so-far".
+    func dayFilteredHours(for project: ProjectStatus) -> Double? {
+        guard let dayFilter else { return nil }
+        let base = project.timeEntries
+            .filter { $0.date == dayFilter }
+            .reduce(0.0) { $0 + $1.hours }
+        let runningOnFilteredDay = project.isTracking && project.timeEntries.contains {
+            $0.isRunning && $0.date == dayFilter
+        }
+        return base + (runningOnFilteredDay ? elapsedOffset : 0)
+    }
+
     /// Tooltip shown when hovering the menu bar icon while a timer is
     /// set — matches the banner's top-line format ("Client — Project")
     /// so the menu bar surface reveals the same identifying context

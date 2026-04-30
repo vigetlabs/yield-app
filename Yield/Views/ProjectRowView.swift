@@ -7,6 +7,12 @@ struct ProjectRowView: View {
     /// passes a day-filtered list when the weekday mini-bar filter is
     /// active; otherwise it passes `project.timeEntries`.
     let visibleEntries: [TimeEntryInfo]
+    /// When non-nil, the row is being shown under an active day filter.
+    /// The header time label switches from "week / booked" to
+    /// "day / week-so-far" so the user can see how the filtered day
+    /// contributes to the week total. Progress bar still reflects the
+    /// week against booked.
+    var dayFilteredHours: Double? = nil
     var onToggleTimer: (() -> Void)? = nil
     var onToggleEntryTimer: ((Int, Bool) -> Void)? = nil
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
@@ -223,7 +229,17 @@ struct ProjectRowView: View {
 
     private var timeLabel: some View {
         Group {
-            if project.isForecasted {
+            if let dayHours = dayFilteredHours {
+                // Day filter active: show "day total / week-so-far" so the
+                // filtered day's contribution is framed against the week.
+                HStack(spacing: 0) {
+                    Text(formatHoursMinutes(dayHours) + " / ")
+                        .foregroundStyle(YieldColors.textPrimary)
+                    Text(formatHoursMinutes(effectiveLoggedHours))
+                        .foregroundStyle(YieldColors.textSecondary)
+                }
+                .font(YieldFonts.monoSmall)
+            } else if project.isForecasted {
                 HStack(spacing: 0) {
                     Text(formatHoursMinutes(effectiveLoggedHours) + " / ")
                         .foregroundStyle(YieldColors.textPrimary)

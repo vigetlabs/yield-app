@@ -225,6 +225,7 @@ struct MenuBarContentView: View {
                     project: project,
                     effectiveLoggedHours: viewModel.effectiveLoggedHours(for: project),
                     visibleEntries: viewModel.visibleEntries(for: project),
+                    dayFilteredHours: viewModel.dayFilteredHours(for: project),
                     onToggleTimer: {
                         Task { await viewModel.toggleTimer(for: project) }
                     },
