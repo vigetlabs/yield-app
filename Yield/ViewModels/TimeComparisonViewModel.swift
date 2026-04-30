@@ -618,6 +618,20 @@ final class TimeComparisonViewModel {
         return project.timeEntries.filter { $0.date == dayFilter }
     }
 
+    /// Tooltip shown when hovering the menu bar icon while a timer is
+    /// set — matches the banner's top-line format ("Client — Project")
+    /// so the menu bar surface reveals the same identifying context
+    /// the open panel shows. Nil when no timer is set.
+    var menuBarTooltip: String? {
+        if let tracking = trackingProject {
+            return tracking.qualifiedName
+        }
+        if let paused = pausedState {
+            return ProjectStatus.qualifiedName(client: paused.clientName, project: paused.projectName)
+        }
+        return nil
+    }
+
     /// Format a "tracked / budget" pair: "7:50 / 8:00"
     private func formatPair(_ tracked: Double, _ budget: Double) -> String {
         "\(formatHM(tracked)) / \(formatHM(budget))"

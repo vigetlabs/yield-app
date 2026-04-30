@@ -85,7 +85,14 @@ struct YieldApp: App {
         } label: {
             let isTracking = viewModel.projectStatuses.contains(where: { $0.isTracking })
             let mode = MenuBarLabelMode(rawValue: menuBarLabelModeRaw) ?? .projectTime
-            Image(nsImage: composedMenuBarImage(
+            // SwiftUI's `.help()` doesn't propagate to MenuBarExtra's
+            // `NSStatusBarButton`, so we set the AppKit `toolTip`
+            // directly. Reading `menuBarTooltip` here makes the label
+            // closure depend on it, so it re-runs whenever the tooltip
+            // text changes — which is when we update the button.
+            let tooltip = viewModel.menuBarTooltip ?? ""
+            Self.applyStatusItemTooltip(tooltip)
+            return Image(nsImage: composedMenuBarImage(
                 label: viewModel.menuBarLabel,
                 icon: viewModel.menuBarIcon,
                 isTracking: isTracking,
@@ -112,6 +119,21 @@ struct YieldApp: App {
     /// allocate an NSImage + re-render an SF Symbol + measure attributed
     /// strings multiple times per minute even when nothing visibly changed.
     private static var cache: (key: MenuBarImageKey, image: NSImage)?
+
+    /// Set (or clear) the underlying NSStatusBarButton's tooltip. Walks
+    /// `NSApp.windows` to find the MenuBarExtra's status item — same
+    /// trick the view model uses to programmatically open the panel.
+    /// Skips the AppKit hop when nothing changed so the label closure's
+    /// hot path doesn't pay for it on every timer tick.
+    private static var lastAppliedTooltip: String?
+    private static func applyStatusItemTooltip(_ tooltip: String) {
+        guard tooltip != lastAppliedTooltip else { return }
+        lastAppliedTooltip = tooltip
+        let button = NSApp.windows
+            .compactMap { $0.value(forKey: "statusItem") as? NSStatusItem }
+            .first?.button
+        button?.toolTip = tooltip.isEmpty ? nil : tooltip
+    }
 
     /// Compose the full menu bar image: [tracking dot] [time text] [state icon]
     /// Draws into a single NSImage so MenuBarExtra renders it reliably.
