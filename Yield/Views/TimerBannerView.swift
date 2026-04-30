@@ -80,6 +80,10 @@ struct TimerBannerView: View {
                 .opacity(hasTimer ? 1 : 0)
                 .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { contentHeight = $0 }
                 .allowsHitTesting(hasTimer)
+                .onTapGesture(count: 2) {
+                    guard !viewModel.isHarvestDown, let entry = currentEntry else { return }
+                    onEditEntry?(entry)
+                }
         }
         // The animation driving this height change is applied at the
         // panel body level (MenuBarContentView) so the parent VStack
