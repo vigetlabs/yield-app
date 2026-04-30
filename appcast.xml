@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.13.2</title>
+      <sparkle:version>38</sparkle:version>
+      <sparkle:shortVersionString>0.9.13.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Move idle time to another timer.</strong> The idle alert now offers a fourth option — "Move Time…" — that opens the new-timer form prefilled with the captured idle minutes. Pick a different project/task and commit; the idle minutes are removed from the original timer and added to the destination. If the destination already has an entry today, the duplicate banner offers "Add to existing" so the time is merged into the existing entry instead of creating a duplicate. The source timer isn't touched until the destination commit succeeds, so cancelling out is a no-op on data.</li>
+          <li><strong>Day-filter row reading.</strong> When a weekday filter is active, each project row's time label switches from "week / booked" to "day / week-so-far" — the day's contribution framed against your week-to-date total — and the progress bar layers a full-opacity day overlay on top of a 40%-dimmed week fill so you can read both at once.</li>
+          <li><strong>Menu bar icon tooltip.</strong> Hovering the menu bar icon while a timer is running shows "Client — Project" as a system tooltip, matching the active-timer banner's labeling.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.13.2/Yield-0.9.13.2.zip"
+        sparkle:edSignature="ToupvbkAh6mgpa9dAallfzQY5xfJSOc0rIs6+CVQ19gXTEjnO3lo/iJbQ3iedxqkpgrDTjTLu+ND4ShRS6CdAQ=="
+        length="2358118"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.13.1</title>
       <sparkle:version>37</sparkle:version>
       <sparkle:shortVersionString>0.9.13.1</sparkle:shortVersionString>
