@@ -5,6 +5,12 @@ struct NewTimerFormView: View {
     let editingEntry: TimeEntryInfo?
     let preselectedProjectId: Int?
     let targetDate: Date?
+    /// When non-nil, the form is being used to relocate idle time from
+    /// an existing running timer to another timer on the same day. The
+    /// time field is pre-filled with the idle hours, the date is locked
+    /// to today, and the action buttons commit the move (rather than
+    /// starting a new timer or logging time).
+    let idleMove: TimeComparisonViewModel.PendingIdleMove?
     let onDismiss: () -> Void
 
     @State private var allProjects: [TimeComparisonViewModel.TimerProjectOption] = []
@@ -18,15 +24,17 @@ struct NewTimerFormView: View {
     @State private var spentDate: Date = Date()
     @State private var duplicateConfirmEntries: [TimeEntryInfo]?
 
-    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, onDismiss: @escaping () -> Void) {
+    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
         self.editingEntry = editingEntry
         self.preselectedProjectId = preselectedProjectId
         self.targetDate = targetDate
+        self.idleMove = idleMove
         self.onDismiss = onDismiss
     }
 
     private var isEditing: Bool { editingEntry != nil }
+    private var isIdleMove: Bool { idleMove != nil }
     private var isSpentDateToday: Bool { Calendar.current.isDateInToday(spentDate) }
     private var spentDateString: String { DateHelpers.dateFormatter.string(from: spentDate) }
 
@@ -45,7 +53,9 @@ struct NewTimerFormView: View {
     }()
 
     private var headerPrefix: String {
-        isEditing ? "Edit time entry:" : "New time entry:"
+        if isEditing { return "Edit time entry:" }
+        if isIdleMove { return "Move idle time:" }
+        return "New time entry:"
     }
 
     private func dateLabel(for date: Date) -> String {
@@ -67,7 +77,7 @@ struct NewTimerFormView: View {
     /// user target any day of the current week.
     @ViewBuilder
     private var dateSelector: some View {
-        if isEditing {
+        if isEditing || isIdleMove {
             Text(dateLabel(for: spentDate))
                 .font(YieldFonts.titleMedium)
                 .foregroundStyle(YieldColors.textPrimary)
@@ -218,6 +228,19 @@ struct NewTimerFormView: View {
                     .buttonStyle(.greenOutlined)
                     .disabled(!canStart)
                     .opacity(canStart ? 1 : 0.5)
+                } else if isIdleMove {
+                    // Idle-move mode: a single primary commit. When a
+                    // matching entry already exists, the duplicate banner
+                    // disables this so the user makes the explicit
+                    // add-or-create choice from the banner.
+                    Button {
+                        Task { await commitIdleMove() }
+                    } label: {
+                        Text("Move Time")
+                    }
+                    .buttonStyle(.greenOutlined)
+                    .disabled(!canLog || duplicateConfirmEntries != nil)
+                    .opacity(canLog && duplicateConfirmEntries == nil ? 1 : 0.5)
                 } else if isSpentDateToday {
                     Button {
                         Task { await startTimer() }
@@ -236,7 +259,7 @@ struct NewTimerFormView: View {
 
                 Spacer()
 
-                if !isEditing {
+                if !isEditing && !isIdleMove {
                     Button {
                         Task { await logTime() }
                     } label: {
@@ -255,16 +278,25 @@ struct NewTimerFormView: View {
         .task {
             // Initialize spent date. Priority:
             //   1. Edit mode → entry's own date
-            //   2. Explicit targetDate parameter
-            //   3. Active weekday filter → pre-fill the filtered day
-            //   4. Today (default)
+            //   2. Idle-move mode → today (idle moves are constrained to today)
+            //   3. Explicit targetDate parameter
+            //   4. Active weekday filter → pre-fill the filtered day
+            //   5. Today (default)
             if let entry = editingEntry, let parsed = DateHelpers.dateFormatter.date(from: entry.date) {
                 spentDate = parsed
+            } else if isIdleMove {
+                spentDate = Date()
             } else if let target = targetDate {
                 spentDate = target
             } else if let filter = viewModel.dayFilter,
                       let parsed = DateHelpers.dateFormatter.date(from: filter) {
                 spentDate = parsed
+            }
+
+            // Pre-fill the time field with the idle hours so the user
+            // sees the amount being relocated.
+            if let move = idleMove {
+                (timeHours, timeMinutes) = move.idleHours.roundedHM
             }
 
             await loadProjects()
@@ -427,6 +459,23 @@ struct NewTimerFormView: View {
         )
     }
 
+    /// Commit the idle-move flow with a brand-new entry on the chosen
+    /// project/task. The duplicate banner short-circuits this path
+    /// when an existing entry would be a better target.
+    private func commitIdleMove() async {
+        guard let move = idleMove,
+              let projectId = selectedProjectId,
+              let taskId = selectedTaskId else { return }
+        let notesToSend = notes.isEmpty ? nil : notes
+        onDismiss()
+        await viewModel.idleMoveCreateNew(
+            move,
+            projectId: projectId,
+            taskId: taskId,
+            notes: notesToSend
+        )
+    }
+
     // MARK: - Duplicate Confirmation
 
     private func duplicateConfirmBanner(entries: [TimeEntryInfo]) -> some View {
@@ -456,29 +505,53 @@ struct NewTimerFormView: View {
             }
 
             HStack(spacing: 8) {
-                // Resume the most recent entry — only when no timer is already running
-                if !hasRunning {
+                if isIdleMove {
+                    // Idle-move mode: merge into the existing entry by
+                    // adding the idle hours, rather than resuming a
+                    // timer or creating a duplicate.
                     Button {
                         let mostRecent = entries.max(by: { ($0.id) < ($1.id) })
-                        guard let entryId = mostRecent?.id else { return }
+                        guard let move = idleMove, let entryId = mostRecent?.id else { return }
                         onDismiss()
                         Task {
-                            await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false)
+                            await viewModel.idleMoveAddToExisting(move, entryId: entryId)
                         }
                     } label: {
-                        Text("Resume existing")
+                        Text("Add to existing")
                     }
                     .buttonStyle(.greenOutlined)
-                }
 
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        duplicateConfirmEntries = nil
+                    Button {
+                        Task { await commitIdleMove() }
+                    } label: {
+                        Text("New entry")
                     }
-                } label: {
-                    Text("New entry")
+                    .buttonStyle(.yieldBordered)
+                } else {
+                    // Resume the most recent entry — only when no timer is already running
+                    if !hasRunning {
+                        Button {
+                            let mostRecent = entries.max(by: { ($0.id) < ($1.id) })
+                            guard let entryId = mostRecent?.id else { return }
+                            onDismiss()
+                            Task {
+                                await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false)
+                            }
+                        } label: {
+                            Text("Resume existing")
+                        }
+                        .buttonStyle(.greenOutlined)
+                    }
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            duplicateConfirmEntries = nil
+                        }
+                    } label: {
+                        Text("New entry")
+                    }
+                    .buttonStyle(.yieldBordered)
                 }
-                .buttonStyle(.yieldBordered)
 
                 Button {
                     onDismiss()

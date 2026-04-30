@@ -65,6 +65,18 @@ struct IdleAlertView: View {
                     .padding(.horizontal, 16)
 
                 idleActionButton(
+                    title: "Move Time…",
+                    subtitle: "Send \(label) of idle time to another timer",
+                    icon: "arrow.uturn.right"
+                ) {
+                    viewModel.idleStartMove()
+                }
+
+                Divider()
+                    .background(YieldColors.border)
+                    .padding(.horizontal, 16)
+
+                idleActionButton(
                     title: "Keep All Time",
                     subtitle: "Dismiss and include idle time",
                     icon: "clock.arrow.circlepath",

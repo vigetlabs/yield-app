@@ -83,14 +83,18 @@ struct MenuBarContentView: View {
                         }
                     }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
-                } else if showNewTimerForm || editingEntry != nil {
+                } else if showNewTimerForm || editingEntry != nil || viewModel.pendingIdleMove != nil {
                     NewTimerFormView(
                         viewModel: viewModel,
                         editingEntry: editingEntry,
                         preselectedProjectId: preselectedProjectId,
-                        targetDate: newTimerTargetDate
+                        targetDate: newTimerTargetDate,
+                        idleMove: viewModel.pendingIdleMove
                     ) {
                         withAnimation(.easeInOut(duration: 0.2)) {
+                            if viewModel.pendingIdleMove != nil {
+                                viewModel.idleMoveCancel()
+                            }
                             showNewTimerForm = false
                             editingEntry = nil
                             preselectedProjectId = nil
@@ -116,8 +120,9 @@ struct MenuBarContentView: View {
             .animation(.easeInOut(duration: 0.2), value: showNewTimerForm)
             .animation(.easeInOut(duration: 0.2), value: editingEntry?.id)
             .animation(.easeInOut(duration: 0.2), value: viewModel.idleAlertState != nil)
+            .animation(.easeInOut(duration: 0.2), value: viewModel.pendingIdleMove != nil)
 
-            if viewModel.idleAlertState == nil && !showSettings && !showNewTimerForm && editingEntry == nil {
+            if viewModel.idleAlertState == nil && viewModel.pendingIdleMove == nil && !showSettings && !showNewTimerForm && editingEntry == nil {
                 footerView
                     .transition(.opacity)
                     .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { footerHeight = $0 }

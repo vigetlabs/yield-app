@@ -253,6 +253,19 @@ final class TimeComparisonViewModel {
 
     private(set) var idleAlertState: IdleAlertState? = nil
 
+    /// In-flight idle-time relocation. Set when the user picks "Move
+    /// Time…" on the idle alert; the source entry is left untouched
+    /// until the destination commit succeeds, so cancelling out of the
+    /// form leaves data unchanged.
+    struct PendingIdleMove {
+        let sourceEntryId: Int
+        let sourceAdjustedHours: Double
+        let idleHours: Double
+        let sourceProjectName: String
+    }
+
+    private(set) var pendingIdleMove: PendingIdleMove? = nil
+
     /// Current-week day filter. When non-nil, the project list hides
     /// unbooked projects that didn't log time on that day; booked
     /// (forecasted) projects always show regardless. Set by tapping a
@@ -876,6 +889,98 @@ final class TimeComparisonViewModel {
     func idleDismiss() {
         idleAlertState = nil
         idleNotificationSent = false
+    }
+
+    /// Start an idle-move flow: capture the idle hours and source-entry
+    /// info into `pendingIdleMove`, then dismiss the idle alert. The
+    /// source entry isn't touched until the destination commit succeeds,
+    /// so cancelling the form is a no-op on data.
+    @MainActor
+    func idleStartMove() {
+        guard let alert = idleAlertState else { return }
+        let idleHours = max(0, Date().timeIntervalSince(alert.idleStartDate) / 3600)
+        pendingIdleMove = PendingIdleMove(
+            sourceEntryId: alert.entryId,
+            sourceAdjustedHours: alert.adjustedHours,
+            idleHours: idleHours,
+            sourceProjectName: alert.projectName
+        )
+        idleAlertState = nil
+        idleNotificationSent = false
+    }
+
+    /// Cancel an in-progress idle move without touching any data.
+    @MainActor
+    func idleMoveCancel() {
+        pendingIdleMove = nil
+    }
+
+    /// Add the pending idle hours to an existing time entry, then
+    /// subtract them from the source. Destination-first so a cancel or
+    /// network failure leaves the user with extra time on the source
+    /// (visible and easy to fix) rather than missing time. Takes the
+    /// move struct explicitly so the form can dismiss (which clears
+    /// `pendingIdleMove`) before invoking this.
+    @MainActor
+    func idleMoveAddToExisting(_ move: PendingIdleMove, entryId: Int) async {
+        guard let (harvestService, _) = makeServices() else { return }
+
+        do {
+            // Look up current hours on the destination so we can add idle to it.
+            let target = projectStatuses
+                .flatMap { $0.timeEntries }
+                .first(where: { $0.id == entryId })
+            let baseHours = target?.hours ?? 0
+            let newHours = baseHours + move.idleHours
+
+            _ = try await harvestService.updateTimeEntry(entryId: entryId, hours: newHours, notes: nil)
+
+            do {
+                _ = try await harvestService.updateTimeEntry(
+                    entryId: move.sourceEntryId,
+                    hours: move.sourceAdjustedHours,
+                    notes: nil
+                )
+            } catch {
+                errorMessage = "Idle time was added to the destination, but the source timer could not be reduced. Edit it manually."
+            }
+
+            await refresh()
+        } catch {
+            errorMessage = "Failed to move idle time: \(error.localizedDescription)"
+        }
+    }
+
+    /// Create a brand-new time entry for the pending idle hours, then
+    /// subtract from the source. Always today (idle moves are
+    /// constrained to the current day).
+    @MainActor
+    func idleMoveCreateNew(_ move: PendingIdleMove, projectId: Int, taskId: Int, notes: String?) async {
+        guard let (harvestService, _) = makeServices() else { return }
+
+        do {
+            _ = try await harvestService.createTimeEntry(
+                projectId: projectId,
+                taskId: taskId,
+                hours: move.idleHours,
+                notes: notes,
+                spentDate: nil
+            )
+
+            do {
+                _ = try await harvestService.updateTimeEntry(
+                    entryId: move.sourceEntryId,
+                    hours: move.sourceAdjustedHours,
+                    notes: nil
+                )
+            } catch {
+                errorMessage = "Idle time was logged on the destination, but the source timer could not be reduced. Edit it manually."
+            }
+
+            await refresh()
+        } catch {
+            errorMessage = "Failed to move idle time: \(error.localizedDescription)"
+        }
     }
 
     /// If the project is already at or over its booked budget, mark it as already-notified
