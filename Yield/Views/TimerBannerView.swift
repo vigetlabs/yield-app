@@ -80,6 +80,9 @@ struct TimerBannerView: View {
                 .opacity(hasTimer ? 1 : 0)
                 .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { contentHeight = $0 }
                 .allowsHitTesting(hasTimer)
+                // Gesture sits on `timerContent` (not the outer ZStack)
+                // so the gradient backdrop stays tap-through when the
+                // banner is in its empty-strip state.
                 .onTapGesture(count: 2) {
                     guard !viewModel.isHarvestDown, let entry = currentEntry else { return }
                     onEditEntry?(entry)
@@ -168,8 +171,7 @@ struct TimerBannerView: View {
                             borderColor: accentDim,
                             foregroundColor: accentColor
                         ))
-                        .disabled(viewModel.isHarvestDown)
-                        .opacity(viewModel.isHarvestDown ? 0.4 : 1.0)
+                        .disabledWhenHarvestDown(viewModel.isHarvestDown)
 
                         // Stop button
                         Button {
@@ -182,8 +184,7 @@ struct TimerBannerView: View {
                             borderColor: YieldColors.buttonBorder,
                             foregroundColor: YieldColors.textSecondary
                         ))
-                        .disabled(viewModel.isHarvestDown)
-                        .opacity(viewModel.isHarvestDown ? 0.4 : 1.0)
+                        .disabledWhenHarvestDown(viewModel.isHarvestDown)
                     }
                 }
             }

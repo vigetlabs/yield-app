@@ -252,9 +252,7 @@ struct ProjectRowView: View {
     }
 
     private func formatRemainingLabel(_ remaining: Double) -> String {
-        let totalMinutes = Int((Swift.abs(remaining) * 60).rounded())
-        let h = totalMinutes / 60
-        let m = totalMinutes % 60
+        let (h, m) = Swift.abs(remaining).roundedHM
         let suffix = remaining < 0 ? "over this week" : "remaining this week"
         return "\(h)h \(String(format: "%02d", m))m \(suffix)"
     }
@@ -262,9 +260,7 @@ struct ProjectRowView: View {
 
 // Shared hours:minutes formatter used by ProjectRowView and TaskEntryRowView
 private func formatHM(_ hours: Double) -> String {
-    let totalMinutes = Int((Swift.abs(hours) * 60).rounded())
-    let h = totalMinutes / 60
-    let m = totalMinutes % 60
+    let (h, m) = Swift.abs(hours).roundedHM
     return "\(h)h \(String(format: "%02d", m))m"
 }
 
@@ -443,8 +439,8 @@ struct SegmentedProgressBarView: View {
 
     /// Format hours as "H:MM" (e.g. 3.25 → "3:15"). Tooltip-friendly.
     private func formatHMColon(_ hours: Double) -> String {
-        let totalMinutes = Int((hours * 60).rounded())
-        return "\(totalMinutes / 60):\(String(format: "%02d", totalMinutes % 60))"
+        let (h, m) = hours.roundedHM
+        return "\(h):\(String(format: "%02d", m))"
     }
 }
 
@@ -538,8 +534,7 @@ struct TaskEntryRowView: View {
                     borderColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.buttonBorder,
                     foregroundColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.textSecondary
                 ))
-                .disabled(isHarvestDown)
-                .opacity(isHarvestDown ? 0.4 : 1.0)
+                .disabledWhenHarvestDown(isHarvestDown)
             }
         }
         .padding(.leading, 32)

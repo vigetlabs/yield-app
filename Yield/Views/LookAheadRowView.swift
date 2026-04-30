@@ -59,9 +59,7 @@ struct LookAheadRowView: View {
     }
 
     private func formatBookedHours(_ hours: Double) -> String {
-        let totalMinutes = Int((hours * 60).rounded())
-        let h = totalMinutes / 60
-        let m = totalMinutes % 60
+        let (h, m) = hours.roundedHM
         if m == 0 { return "\(h)h" }
         return "\(h)h \(String(format: "%02d", m))m"
     }

@@ -275,9 +275,7 @@ struct NewTimerFormView: View {
                 // Edit mode: populate all fields
                 selectedProjectId = entry.harvestProjectId
                 notes = entry.notes ?? ""
-                let totalMinutes = Int((entry.hours * 60).rounded())
-                timeHours = totalMinutes / 60
-                timeMinutes = totalMinutes % 60
+                (timeHours, timeMinutes) = entry.hours.roundedHM
                 if let project = allProjects.first(where: { $0.harvestProjectId == entry.harvestProjectId }) {
                     availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
                 }
@@ -433,9 +431,7 @@ struct NewTimerFormView: View {
         let projectName = selectedProject?.projectName ?? "This project"
         let taskName = entries.first?.taskName ?? "this task"
         let hasRunning = entries.contains(where: { $0.isRunning })
-        let totalMinutes = Int((totalHours * 60).rounded())
-        let h = totalMinutes / 60
-        let m = totalMinutes % 60
+        let (h, m) = totalHours.roundedHM
         let timeStr = "\(h)h \(String(format: "%02d", m))m"
         let label = "\(projectName) / \(taskName)"
         let dayPhrase = isSpentDateToday
@@ -542,12 +538,6 @@ private struct TimeInputView: View {
             )
             .fixedSize(horizontal: true, vertical: false)
             .onAppear { text = Self.format(hours: hours, minutes: minutes) }
-            .onChange(of: hours) { _, _ in
-                if !focused { text = Self.format(hours: hours, minutes: minutes) }
-            }
-            .onChange(of: minutes) { _, _ in
-                if !focused { text = Self.format(hours: hours, minutes: minutes) }
-            }
     }
 
     private func commit() {

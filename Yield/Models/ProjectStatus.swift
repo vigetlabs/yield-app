@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct TimeEntryInfo: Identifiable {
     let id: Int
@@ -52,9 +53,7 @@ struct ProjectStatus: Identifiable {
     }
 
     var remainingFormatted: String {
-        let totalMinutes = Int((Swift.abs(remainingHours) * 60).rounded())
-        let h = totalMinutes / 60
-        let m = totalMinutes % 60
+        let (h, m) = Swift.abs(remainingHours).roundedHM
         let suffix = isOver ? "over this week" : "remaining this week"
         return "\(h)h \(String(format: "%02d", m))m \(suffix)"
     }
@@ -77,5 +76,28 @@ struct ProjectStatus: Identifiable {
     /// the snapshot in `PausedTimerState`).
     static func qualifiedName(client: String?, project: String) -> String {
         [client, project].compactMap { $0 }.joined(separator: " — ")
+    }
+}
+
+extension Double {
+    /// Split decimal hours into `(h, m)` rounded to the nearest minute.
+    /// Used everywhere we render an `H:MM` or `Hh MMm` display so the
+    /// rounding contract is single-sourced — Harvest stores hours at
+    /// 0.01h precision and displays the rounded minute, and we want to
+    /// match across the row totals, the timer banner, the menu bar
+    /// label, and the like. Naturally handles 60-rollover (3.999h → 4:00).
+    var roundedHM: (h: Int, m: Int) {
+        let total = Int((self * 60).rounded())
+        return (total / 60, total % 60)
+    }
+}
+
+extension View {
+    /// Disable the view and dim it to 40% opacity when Harvest is
+    /// unreachable. The pair shows up on every Harvest-mutating control
+    /// (timer toggle buttons, edit affordances) so they read as
+    /// uniformly inert during an outage.
+    func disabledWhenHarvestDown(_ down: Bool) -> some View {
+        self.disabled(down).opacity(down ? 0.4 : 1.0)
     }
 }

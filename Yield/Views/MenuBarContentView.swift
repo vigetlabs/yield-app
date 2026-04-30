@@ -451,8 +451,8 @@ struct MenuBarContentView: View {
     }
 
     private func formatDayHours(_ hours: Double) -> String {
-        let totalMinutes = Int((hours * 60).rounded())
-        return String(format: "%d:%02d", totalMinutes / 60, totalMinutes % 60)
+        let (h, m) = hours.roundedHM
+        return String(format: "%d:%02d", h, m)
     }
 
     /// Grouped back/forward chevron controls, styled to match the tab
@@ -554,8 +554,7 @@ struct MenuBarContentView: View {
             }
         }
         .buttonStyle(.greenOutlined)
-        .disabled(viewModel.isHarvestDown)
-        .opacity(viewModel.isHarvestDown ? 0.4 : 1.0)
+        .disabledWhenHarvestDown(viewModel.isHarvestDown)
     }
 
     // MARK: - States
