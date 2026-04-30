@@ -1,32 +1,28 @@
 import SwiftUI
 
-/// Top-of-panel banner for the active (or paused) Harvest timer. Always
-/// rendered — when no timer is set it shrinks to a thin gradient strip;
-/// when one is set it expands to its natural ~74pt height with the
-/// project/task/timer/controls fading in. One persistent component
-/// instead of a strip-vs-banner swap means the height interpolation
-/// reads as the same row growing into a banner, not as one component
-/// being torn down and another inserted.
+/// Top-of-panel banner for the active or paused Harvest timer. Always
+/// rendered: when no timer is set it shrinks to a thin gradient strip,
+/// when one is set it expands to its natural height with the timer
+/// content fading in. One persistent view (rather than a swap between
+/// a strip and a banner) keeps the transition reading as one row
+/// growing rather than two components handing off.
 struct TimerBannerView: View {
     let viewModel: TimeComparisonViewModel
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
 
     @State private var colonOn: Bool = true
-    /// Toggles between scale 1.0 and 1.25 on a slow ease-in-out loop while
-    /// the timer is active, so the status dot reads as a "heartbeat."
-    /// Frozen when paused.
     @State private var dotPulse: Bool = false
-    /// Measured natural height of the timer-content layout. Used as the
-    /// expanded frame height; we don't hard-code so a longer client/
-    /// project name that wraps to two lines stays accommodated.
+    /// Measured at first layout via `onGeometryChange`; the initial
+    /// value is just a stale-until-measured estimate.
     @State private var contentHeight: CGFloat = 74
 
-    /// Empty-state strip height — kept thin enough to read as "ready"
-    /// without dominating the panel.
     private let emptyHeight: CGFloat = 16
 
-    private var isVisible: Bool { viewModel.isTimerBannerVisible }
+    /// Whether a timer is set (active or paused). The view is always
+    /// rendered; this drives the slot's expanded vs. strip height and
+    /// whether the timer content fades in.
+    private var hasTimer: Bool { viewModel.isTimerBannerVisible }
     private var isActive: Bool { !viewModel.isTimerPaused }
 
     /// The entry represented by the banner — tracking entry when active, paused entry when paused
@@ -57,12 +53,8 @@ struct TimerBannerView: View {
         viewModel.trackingProject?.projectName ?? viewModel.pausedState?.projectName ?? ""
     }
 
-    /// Top-line label: "CLIENT — PROJECT" when a client is known, just
-    /// the project name otherwise. Em-dash separator matches the
-    /// convention used elsewhere in the codebase (idle alert, budget
-    /// notification body).
     private var contextLabel: String {
-        [clientName, projectName].compactMap { $0 }.joined(separator: " — ")
+        ProjectStatus.qualifiedName(client: clientName, project: projectName)
     }
 
     private var taskName: String {
@@ -78,30 +70,23 @@ struct TimerBannerView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // Always-visible backdrop. Its color tracks state — green
-            // when active or empty, yellow when paused.
             LinearGradient(
                 colors: [gradientColor, Color.clear],
                 startPoint: .leading,
                 endPoint: UnitPoint(x: 0.7, y: 0.5)
             )
 
-            // Timer content laid out at its natural height always so we
-            // can measure it; opacity fades it in/out, frame cap below
-            // shrinks the visible slot to a thin strip when invisible.
             timerContent
-                .opacity(isVisible ? 1 : 0)
+                .opacity(hasTimer ? 1 : 0)
                 .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { contentHeight = $0 }
-                .allowsHitTesting(isVisible)
+                .allowsHitTesting(hasTimer)
         }
-        // Slot height: full content height when a timer is set, the
-        // thin strip otherwise. The animation that drives this is
-        // applied at the MenuBarContentView body level so the parent
-        // VStack and the panel's outer frame all participate in the
-        // same animation context — without that, the parent reflows
-        // discretely and the panel "pops" around the smoothly-animating
-        // banner.
-        .frame(height: isVisible ? contentHeight : emptyHeight, alignment: .top)
+        // The animation driving this height change is applied at the
+        // panel body level (MenuBarContentView) so the parent VStack
+        // and the outer frame reflow inside the same context — a local
+        // animation here would let the parent layout snap discretely
+        // around a smooth banner.
+        .frame(height: hasTimer ? contentHeight : emptyHeight, alignment: .top)
         .clipped()
         .overlay(alignment: .bottom) {
             Rectangle()
@@ -124,6 +109,7 @@ struct TimerBannerView: View {
         }
         .onAppear { syncDotPulse() }
         .onChange(of: isActive) { _, _ in syncDotPulse() }
+        .onChange(of: hasTimer) { _, _ in syncDotPulse() }
     }
 
     @ViewBuilder
@@ -202,18 +188,18 @@ struct TimerBannerView: View {
         .contentShape(Rectangle())
     }
 
-    /// Drive the dot's heartbeat: a slow easeInOut.repeatForever while
-    /// active, snap back to scale 1.0 when paused (a non-repeating
-    /// animation cancels the repeating one).
+    /// Heartbeat for the status dot — only when a timer is set AND
+    /// active. Paused or empty: hard-stop with `withAnimation(nil)` so
+    /// the repeating animation doesn't keep ticking on a hidden view
+    /// (the banner stays alive in MenuBarExtra even after the panel
+    /// closes).
     private func syncDotPulse() {
-        if isActive {
+        if hasTimer && isActive {
             withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
                 dotPulse = true
             }
         } else {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                dotPulse = false
-            }
+            withAnimation(nil) { dotPulse = false }
         }
     }
 
@@ -234,6 +220,10 @@ struct TimerBannerView: View {
         .foregroundStyle(accentColor)
         .monospacedDigit()
         .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
+            // Skip when no timer is set — the banner is rendered (so we
+            // can measure its height) but invisible; toggling state
+            // would invalidate the view 60×/min for nothing.
+            guard hasTimer else { return }
             if isActive {
                 colonOn.toggle()
             } else if !colonOn {

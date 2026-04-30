@@ -62,4 +62,20 @@ struct ProjectStatus: Identifiable {
     var isForecasted: Bool {
         bookedHours > 0
     }
+
+    /// "Client — Project" when a client is known, just the project name
+    /// otherwise. Used wherever we surface a project to the user as a
+    /// single string — idle alerts, budget notifications, the timer
+    /// banner's top label.
+    var qualifiedName: String {
+        Self.qualifiedName(client: clientName, project: projectName)
+    }
+
+    /// Free-standing version for callers that have client/project
+    /// strings without a `ProjectStatus` in hand (e.g. the timer
+    /// banner, which composes from either the live tracking project or
+    /// the snapshot in `PausedTimerState`).
+    static func qualifiedName(client: String?, project: String) -> String {
+        [client, project].compactMap { $0 }.joined(separator: " — ")
+    }
 }

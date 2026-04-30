@@ -130,12 +130,10 @@ struct MenuBarContentView: View {
                 screenVisibleHeight = height
             }
         }))
-        // Drive the timer-banner expand/collapse animation at the body
-        // level so the parent VStack's reflow and the panel's outer
-        // frame change happen inside the same animation context as the
-        // banner's own frame change. With the animation scoped to just
-        // TimerBannerView, the parent layout updates discretely and
-        // the panel "pops" around the smoothly-animating banner.
+        // The timer banner's expand/collapse spring lives at the body
+        // level so parent reflow and panel resize share its animation
+        // context — scoped to just `TimerBannerView`, the parent would
+        // snap discretely around the smoothly-animating banner.
         .animation(.spring(response: 0.42, dampingFraction: 0.84), value: viewModel.isTimerBannerVisible)
     }
 

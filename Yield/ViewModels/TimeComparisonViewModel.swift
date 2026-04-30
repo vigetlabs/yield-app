@@ -769,9 +769,7 @@ final class TimeComparisonViewModel {
                 let actualIdleHours = idleSeconds / 3600.0
                 let hoursAtIdleStart = max(0, entry.hours - actualIdleHours)
 
-                let name = [project.clientName, project.projectName]
-                    .compactMap { $0 }
-                    .joined(separator: " — ")
+                let name = project.qualifiedName
 
                 idleAlertState = IdleAlertState(
                     idleStartDate: Date().addingTimeInterval(-idleSeconds),
@@ -879,8 +877,7 @@ final class TimeComparisonViewModel {
         let hours = project.bookedHours == project.bookedHours.rounded()
             ? String(format: "%.0f", project.bookedHours)
             : String(format: "%.1f", project.bookedHours)
-        let name = [project.clientName, project.projectName].compactMap { $0 }.joined(separator: " — ")
-        content.body = "\(name): You've reached your booked hours (\(hours)h)"
+        content.body = "\(project.qualifiedName): You've reached your booked hours (\(hours)h)"
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -1197,14 +1194,10 @@ final class TimeComparisonViewModel {
 
         do {
             _ = try await harvestService.restartTimer(entryId: paused.entryId)
-            // Hold `pausedState` through the refresh so the banner stays
-            // continuously visible — `isTimerBannerVisible` would otherwise
-            // be false in the gap between clearing it and the new
-            // `trackingProject` landing, removing the banner from the view
-            // tree and triggering a disappear/reappear transition. With
-            // `pausedState` still set during the refresh and the new
-            // `trackingProject` populated by it, the banner just smoothly
-            // changes from paused styling to active styling in place.
+            // Hold `pausedState` through the refresh so the banner has
+            // continuous coverage — clearing first leaves a gap before
+            // `trackingProject` lands where neither is set and the
+            // banner would briefly disappear/reappear.
             await refresh()
             pausedState = nil
         } catch {
