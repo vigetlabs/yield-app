@@ -623,11 +623,13 @@ final class TimeComparisonViewModel {
         "\(formatHM(tracked)) / \(formatHM(budget))"
     }
 
-    /// Format raw hours: "7:50"
+    /// Format raw hours: "7:50". Rounds to the nearest minute so a
+    /// stored value of 7.51h reads as 7:31, matching Harvest's display.
+    /// Pure truncation here can show one minute below Harvest for the
+    /// same underlying value.
     private func formatHM(_ hours: Double) -> String {
-        let h = Int(hours)
-        let m = Int((hours - Double(h)) * 60)
-        return "\(h):\(String(format: "%02d", m))"
+        let totalMinutes = Int((hours * 60).rounded())
+        return "\(totalMinutes / 60):\(String(format: "%02d", totalMinutes % 60))"
     }
 
     private func makeServices() -> (HarvestService, ForecastService)? {

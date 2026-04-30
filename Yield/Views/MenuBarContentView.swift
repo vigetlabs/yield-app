@@ -451,9 +451,8 @@ struct MenuBarContentView: View {
     }
 
     private func formatDayHours(_ hours: Double) -> String {
-        let h = Int(hours)
-        let m = Int((hours - Double(h)) * 60)
-        return String(format: "%d:%02d", h, m)
+        let totalMinutes = Int((hours * 60).rounded())
+        return String(format: "%d:%02d", totalMinutes / 60, totalMinutes % 60)
     }
 
     /// Grouped back/forward chevron controls, styled to match the tab

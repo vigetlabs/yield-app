@@ -52,9 +52,9 @@ struct ProjectStatus: Identifiable {
     }
 
     var remainingFormatted: String {
-        let abs = Swift.abs(remainingHours)
-        let h = Int(abs)
-        let m = Int((abs - Double(h)) * 60)
+        let totalMinutes = Int((Swift.abs(remainingHours) * 60).rounded())
+        let h = totalMinutes / 60
+        let m = totalMinutes % 60
         let suffix = isOver ? "over this week" : "remaining this week"
         return "\(h)h \(String(format: "%02d", m))m \(suffix)"
     }

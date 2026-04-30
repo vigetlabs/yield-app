@@ -212,8 +212,14 @@ struct TimerBannerView: View {
     /// 1s visible, 1s hidden, hard on/off (no fade).
     @ViewBuilder
     private func timerDisplay(totalSeconds: Int) -> some View {
-        let h = totalSeconds / 3600
-        let m = (totalSeconds % 3600) / 60
+        // Round seconds to the nearest minute so the banner agrees with
+        // the project drawer / row totals (which all round Harvest's
+        // 0.01h-precision values to the nearest minute via formatHM).
+        // Pure `% 60 / 60` truncation here was showing one minute below
+        // the drawer for the same underlying entry.
+        let totalMinutes = Int((Double(totalSeconds) / 60.0).rounded())
+        let h = totalMinutes / 60
+        let m = totalMinutes % 60
         HStack(spacing: 0) {
             Text(String(format: "%02d", h))
             Text(":")
@@ -237,7 +243,13 @@ struct TimerBannerView: View {
     }
 
     private func computeTotalSeconds(at now: Date) -> Int {
-        let baseSeconds = Int(baseHours * 3600)
+        // Round (rather than truncate) the seconds conversion so binary
+        // floating-point error doesn't cost us a minute at boundaries
+        // — `3.525 * 3600` evaluates to 12689.999…, and `Int(...)`
+        // would chop it to 12689 = 3:31:29 while the drawer's formatHM
+        // (which works in `hours * 60`) sees 3:32. With `.rounded()`
+        // the two display paths agree.
+        let baseSeconds = Int((baseHours * 3600).rounded())
         if isActive, let lastUpdated = viewModel.lastUpdated, lastUpdated <= now {
             // Clamp elapsed to 1 min — soft refresh polls every 60s, so local
             // ticking only has to bridge that window.
