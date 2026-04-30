@@ -3,6 +3,28 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.13.0</title>
+      <sparkle:version>36</sparkle:version>
+      <sparkle:shortVersionString>0.9.13.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Single-field time entry</strong> — the new/edit time form's HH:MM input is now one field instead of two. Type <code>1:30</code> or <code>1.5</code> (or <code>1,5</code>) and either lands as 1h 30m. Reformats to <code>H:MM</code> on commit. Larger 16pt mono font for readability.</li>
+          <li><strong>Double-click the active timer banner to edit</strong> — same destination as the right-click "Edit Timer" menu, matches the existing double-click pattern in the project drawers.</li>
+          <li><strong>Active timer banner shows the client name</strong> — top label is now <code>CLIENT — PROJECT</code> when a client is known, so projects with shared names across clients are no longer ambiguous. Em-dash matches the convention in the over-budget notification and idle alert.</li>
+          <li><strong>Smoother timer banner animations</strong> — the empty strip and active banner are now one persistent component that grows in place when a timer starts and collapses when it stops. The status dot pulses gently while running to convey "live" peripherally. Resume no longer flickers the banner off and on. The whole transition reads as one row growing rather than two components handing off.</li>
+          <li>Project list is now alphabetical by client → project across the whole list. Booked and logged-only projects intermingle so the list reads as one alphabetical sweep instead of two visually separate groups.</li>
+          <li>Pause no longer jumps the banner up by any other entries on the same project earlier in the week. Pausing freezes the running entry's elapsed, not the project's week total.</li>
+          <li>HH:MM displays now match Harvest's rounding — Yield was truncating, so 3.51h could read as 3:30 while Harvest showed 3:31. Now rounds to nearest minute everywhere (row totals, banner, menu bar label).</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.13.0/Yield-0.9.13.0.zip"
+        sparkle:edSignature="du7PNa3NomrDuMC0e1lDX6xceyr/cNEHn45uKTcsFEGRVXxG2VzpCI7eNmJI0vwqMeJQIgmonGmRAqBausmxBA=="
+        length="2331224"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.12.0</title>
       <sparkle:version>35</sparkle:version>
       <sparkle:shortVersionString>0.9.12.0</sparkle:shortVersionString>
