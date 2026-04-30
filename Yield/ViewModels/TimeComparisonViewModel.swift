@@ -1168,14 +1168,19 @@ final class TimeComparisonViewModel {
               let entry = trackingEntry,
               let (harvestService, _) = makeServices() else { return }
 
-        // Save paused state before stopping
-        let effectiveHours = effectiveLoggedHours(for: project)
+        // Save paused state before stopping. `frozenHours` is the
+        // running entry's elapsed time, not the project's week total —
+        // the banner shows the running entry while active and we want
+        // the same number frozen on pause. Using `loggedHours` here
+        // (the project's week total) caused the banner to jump up by
+        // any other entries on the same project this week.
+        let frozenEntryHours = entry.hours + elapsedOffset
         pausedState = PausedTimerState(
             clientName: project.clientName,
             projectName: project.projectName,
             taskName: entry.taskName,
             entryId: entry.id,
-            frozenHours: effectiveHours
+            frozenHours: frozenEntryHours
         )
 
         do {
