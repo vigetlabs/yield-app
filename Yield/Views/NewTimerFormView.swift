@@ -503,87 +503,91 @@ struct NewTimerFormView: View {
     }
 }
 
-// MARK: - Time Input (HH:MM)
+// MARK: - Time Input
 
+/// Single-field time input that accepts either `H:MM` or decimal-hours
+/// formats and reformats to `H:MM` on commit. Mirrors Harvest's web
+/// behavior so a paste of `1.5` lands as `1:30`. Keeps its external
+/// API as separate `hours` and `minutes` `Int` bindings so the parent
+/// form's save/start logic doesn't have to change.
 private struct TimeInputView: View {
     @Binding var hours: Int
     @Binding var minutes: Int
 
-    @State private var hoursText: String = "0"
-    @State private var minutesText: String = "00"
-    @FocusState private var hoursFocused: Bool
-    @FocusState private var minutesFocused: Bool
+    @State private var text: String = ""
+    @FocusState private var focused: Bool
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Hours field
-            TextField("0", text: $hoursText)
-                .font(YieldFonts.monoMedium)
-                .foregroundStyle(YieldColors.textPrimary)
-                .textFieldStyle(.plain)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 24)
-                .focused($hoursFocused)
-                .onChange(of: hoursText) { _, newValue in
-                    let filtered = String(newValue.filter { $0.isNumber }.prefix(2))
-                    if filtered != newValue { hoursText = filtered }
-                    hours = min(Int(filtered) ?? 0, 99)
-                }
-                .onChange(of: hoursFocused) { _, focused in
-                    if !focused {
-                        // Format on blur: strip leading zeros but keep at least "0"
-                        hoursText = "\(hours)"
-                    }
-                }
-
-            Text(":")
-                .font(YieldFonts.monoMedium)
-                .foregroundStyle(YieldColors.textSecondary)
-
-            // Minutes field
-            TextField("00", text: $minutesText)
-                .font(YieldFonts.monoMedium)
-                .foregroundStyle(YieldColors.textPrimary)
-                .textFieldStyle(.plain)
-                .multilineTextAlignment(.leading)
-                .frame(width: 24)
-                .focused($minutesFocused)
-                .onChange(of: minutesText) { _, newValue in
-                    let filtered = String(newValue.filter { $0.isNumber }.prefix(2))
-                    if filtered != newValue { minutesText = filtered }
-                    let val = Int(filtered) ?? 0
-                    minutes = min(val, 59)
-                }
-                .onChange(of: minutesFocused) { _, focused in
-                    if !focused {
-                        // Pad to 2 digits on blur
-                        minutesText = String(format: "%02d", minutes)
-                    }
-                }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(height: 52)
-        .background(YieldColors.surfaceDefault)
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
-        .overlay(
-            RoundedRectangle(cornerRadius: YieldRadius.dropdown)
-                .strokeBorder(YieldColors.border, lineWidth: 1)
-        )
-        .fixedSize(horizontal: true, vertical: false)
-        .onAppear {
-            hoursText = "\(hours)"
-            minutesText = String(format: "%02d", minutes)
-        }
-        .onChange(of: hours) { _, newValue in
-            if !hoursFocused {
-                hoursText = "\(newValue)"
+        TextField("0:00", text: $text)
+            .font(YieldFonts.jetBrainsMono(16, weight: .medium))
+            .foregroundStyle(YieldColors.textPrimary)
+            .textFieldStyle(.plain)
+            .multilineTextAlignment(.center)
+            .frame(width: 64)
+            .focused($focused)
+            .onSubmit { commit() }
+            .onChange(of: focused) { _, isFocused in
+                if !isFocused { commit() }
             }
-        }
-        .onChange(of: minutes) { _, newValue in
-            if !minutesFocused {
-                minutesText = String(format: "%02d", newValue)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(height: 52)
+            .background(YieldColors.surfaceDefault)
+            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
+            .overlay(
+                RoundedRectangle(cornerRadius: YieldRadius.dropdown)
+                    .strokeBorder(YieldColors.border, lineWidth: 1)
+            )
+            .fixedSize(horizontal: true, vertical: false)
+            .onAppear { text = Self.format(hours: hours, minutes: minutes) }
+            .onChange(of: hours) { _, _ in
+                if !focused { text = Self.format(hours: hours, minutes: minutes) }
             }
+            .onChange(of: minutes) { _, _ in
+                if !focused { text = Self.format(hours: hours, minutes: minutes) }
+            }
+    }
+
+    private func commit() {
+        if let (h, m) = Self.parse(text) {
+            hours = h
+            minutes = m
+            text = Self.format(hours: h, minutes: m)
+        } else {
+            // Unparseable — restore the display from the last good values.
+            text = Self.format(hours: hours, minutes: minutes)
         }
+    }
+
+    static func format(hours: Int, minutes: Int) -> String {
+        "\(hours):\(String(format: "%02d", minutes))"
+    }
+
+    /// Parse a time entry. Accepts:
+    ///   `H:MM`   →  literal hours/minutes
+    ///   `H.MM` or `H,MM`  →  decimal hours (1.5 → 1h30m)
+    ///   bare integer       →  whole hours (1 → 1h00m)
+    /// Returns nil if the string is non-empty and unparseable; empty
+    /// string returns (0, 0). Hours capped at 99, minutes at 59.
+    static func parse(_ raw: String) -> (Int, Int)? {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { return (0, 0) }
+
+        if trimmed.contains(":") {
+            let parts = trimmed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+            guard parts.count == 2 else { return nil }
+            let hStr = parts[0].trimmingCharacters(in: .whitespaces)
+            let mStr = parts[1].trimmingCharacters(in: .whitespaces)
+            let h = hStr.isEmpty ? 0 : Int(hStr)
+            let m = mStr.isEmpty ? 0 : Int(mStr)
+            guard let h, let m, h >= 0, m >= 0 else { return nil }
+            return (min(h, 99), min(m, 59))
+        }
+
+        // Decimal hours — accept comma or period as the separator.
+        let normalized = trimmed.replacingOccurrences(of: ",", with: ".")
+        guard let decimal = Double(normalized), decimal >= 0 else { return nil }
+        let totalMinutes = Int((decimal * 60).rounded())
+        return (min(totalMinutes / 60, 99), totalMinutes % 60)
     }
 }
