@@ -538,6 +538,32 @@ private struct TimeInputView: View {
             )
             .fixedSize(horizontal: true, vertical: false)
             .onAppear { text = Self.format(hours: hours, minutes: minutes) }
+            // Push parseable text into the bindings on every keystroke
+            // so the parent form sees the latest values even if the
+            // user clicks Save without first blurring the field — only
+            // commit (focus loss / submit) reformats the text back to
+            // canonical `H:MM`, so partial inputs like `1:` or `1.`
+            // don't get rewritten while the user is mid-edit.
+            .onChange(of: text) { _, newText in
+                guard focused, let (h, m) = Self.parse(newText) else { return }
+                if hours != h { hours = h }
+                if minutes != m { minutes = m }
+            }
+            // Edit-mode populate happens via the parent form's `.task`,
+            // which runs after this view's `onAppear` — so without these
+            // observers the field stays at the initial "0:00" even when
+            // bindings get filled in moments later. The `text != ...`
+            // guard keeps the also-fires-during-commit() path a no-op.
+            .onChange(of: hours) { _, _ in
+                guard !focused else { return }
+                let formatted = Self.format(hours: hours, minutes: minutes)
+                if text != formatted { text = formatted }
+            }
+            .onChange(of: minutes) { _, _ in
+                guard !focused else { return }
+                let formatted = Self.format(hours: hours, minutes: minutes)
+                if text != formatted { text = formatted }
+            }
     }
 
     private func commit() {
