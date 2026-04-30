@@ -1670,6 +1670,13 @@ final class TimeComparisonViewModel {
               currentWeekStart == DateHelpers.currentWeekBounds().start,
               currentRefreshDay == todayString
         else {
+            // Day rolled over while the app was running — a lingering
+            // dayFilter from yesterday would silently hide unbooked
+            // projects that only logged time on the new day (PTO logged
+            // today, etc.). Clear it so the user sees the full list.
+            // The week-rollover case is dominated by `refresh()`'s own
+            // snapshot wipe and an empty filter is the right default.
+            if dayFilter != nil { dayFilter = nil }
             await refresh()
             return
         }
