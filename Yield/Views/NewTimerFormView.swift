@@ -15,9 +15,6 @@ struct NewTimerFormView: View {
     @State private var timeHours: Int = 0
     @State private var timeMinutes: Int = 0
     @State private var availableTasks: [TaskOption] = []
-    @State private var isStarting = false
-    @State private var isLogging = false
-    @State private var isSaving = false
     @State private var spentDate: Date = Date()
     @State private var duplicateConfirmEntries: [TimeEntryInfo]?
 
@@ -116,7 +113,7 @@ struct NewTimerFormView: View {
     }
 
     private var canStart: Bool {
-        selectedProjectId != nil && selectedTaskId != nil && !isStarting && !isLogging
+        selectedProjectId != nil && selectedTaskId != nil
     }
 
     /// Existing entries for the currently selected project + task on the
@@ -219,8 +216,8 @@ struct NewTimerFormView: View {
                         Text("Save")
                     }
                     .buttonStyle(.greenOutlined)
-                    .disabled(!canStart || isSaving)
-                    .opacity(canStart && !isSaving ? 1 : 0.5)
+                    .disabled(!canStart)
+                    .opacity(canStart ? 1 : 0.5)
                 } else if isSpentDateToday {
                     Button {
                         Task { await startTimer() }
@@ -378,15 +375,22 @@ struct NewTimerFormView: View {
         Double(timeHours) + Double(timeMinutes) / 60.0
     }
 
+    // The save / start / log paths dismiss the form *before* awaiting
+    // the API round-trip. SwiftUI removes the form view immediately so
+    // the user is back on the main panel; the in-flight request keeps
+    // running, and the panel header's existing progress indicator
+    // (driven by `viewModel.isLoading` via the `await refresh()` inside
+    // each viewModel method) shows that work is happening. Errors land
+    // in `viewModel.errorMessage`, which the panel renders.
+
     private func startTimer() async {
         guard let projectId = selectedProjectId,
               let taskId = selectedTaskId else { return }
 
-        isStarting = true
         let hours = enteredHours > 0 ? enteredHours : nil
-        await viewModel.startNewTimer(projectId: projectId, taskId: taskId, hours: hours, notes: notes.isEmpty ? nil : notes)
-        isStarting = false
+        let notesToSend = notes.isEmpty ? nil : notes
         onDismiss()
+        await viewModel.startNewTimer(projectId: projectId, taskId: taskId, hours: hours, notes: notesToSend)
     }
 
     private func logTime() async {
@@ -394,16 +398,17 @@ struct NewTimerFormView: View {
               let taskId = selectedTaskId else { return }
         guard enteredHours > 0 else { return }
 
-        isLogging = true
+        let hours = enteredHours
+        let notesToSend = notes.isEmpty ? nil : notes
+        let date = spentDateString
+        onDismiss()
         await viewModel.logTimeEntry(
             projectId: projectId,
             taskId: taskId,
-            hours: enteredHours,
-            notes: notes.isEmpty ? nil : notes,
-            spentDate: spentDateString
+            hours: hours,
+            notes: notesToSend,
+            spentDate: date
         )
-        isLogging = false
-        onDismiss()
     }
 
     private func saveEntry() async {
@@ -413,15 +418,13 @@ struct NewTimerFormView: View {
         // Only send notes if the user changed them, to avoid unintentionally clearing
         let notesToSend = notes != (entry.notes ?? "") ? notes : entry.notes ?? ""
 
-        isSaving = true
+        onDismiss()
         await viewModel.updateExistingEntry(
             entryId: entry.id,
             taskId: taskId,
             hours: hours,
             notes: notesToSend
         )
-        isSaving = false
-        onDismiss()
     }
 
     // MARK: - Duplicate Confirmation
@@ -458,11 +461,9 @@ struct NewTimerFormView: View {
                     Button {
                         let mostRecent = entries.max(by: { ($0.id) < ($1.id) })
                         guard let entryId = mostRecent?.id else { return }
+                        onDismiss()
                         Task {
-                            isStarting = true
                             await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false)
-                            isStarting = false
-                            onDismiss()
                         }
                     } label: {
                         Text("Resume existing")
