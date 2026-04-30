@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.13.1</title>
+      <sparkle:version>37</sparkle:version>
+      <sparkle:shortVersionString>0.9.13.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Save / Start / Log dismiss the form immediately.</strong> The new/edit timer form now closes right away when you hit Save (or Start Timer / Log Time / Resume Existing); the API round-trip continues in the background and the panel header's existing progress indicator pulses to show work is happening. No more dead moment staring at a disabled form.</li>
+          <li>Fix editing an existing entry pre-filling 0:00 instead of the entry's actual time — a regression from the v0.9.13.0 simplify pass that dropped the input field's binding observers. Restored.</li>
+          <li>Fix saving an edited time silently dropping the change when you hit Save with the time field still focused. The single-field input now updates the bindings live as you type, so Save sees the latest value even without first tabbing out.</li>
+          <li>Fix unbooked projects (e.g. PTO) silently disappearing on day rollover when a weekday filter from the previous day was still active. The filter now auto-clears at the start of a new day.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.13.1/Yield-0.9.13.1.zip"
+        sparkle:edSignature="3jYsR4iDox8/SiyXqQSk3VSmesWSipq8izJwpXDUz2XtejUXO2nVjEp34uFy+cdmaF9ywG89KIRuCsKwVE8XCQ=="
+        length="2332678"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.13.0</title>
       <sparkle:version>36</sparkle:version>
       <sparkle:shortVersionString>0.9.13.0</sparkle:shortVersionString>
