@@ -409,9 +409,12 @@ final class TimeComparisonViewModel {
         guard let dayFilter,
               dailyHours.contains(where: { $0.id == dayFilter })
         else { return byTab }
+        // Show only projects that actually logged time on the filtered
+        // day — booked or not. Booked projects without time on the day
+        // would be noise in this view since the day-filter is meant to
+        // answer "what did I work on this day".
         return byTab.filter { project in
-            if project.bookedHours > 0 { return true }
-            return project.timeEntries.contains { $0.date == dayFilter }
+            project.timeEntries.contains { $0.date == dayFilter }
         }
     }
 
