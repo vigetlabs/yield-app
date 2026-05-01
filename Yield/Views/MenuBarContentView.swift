@@ -706,9 +706,15 @@ struct MenuBarContentView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .overlay(alignment: .top) {
+            // Pull up by 1pt so this divider paints into the same pixel
+            // row as the last project's bottom border (when a row sits
+            // directly above) — otherwise the two adjacent 1pt borders
+            // read as a 2pt double line. When the section above has no
+            // border (empty state, chart tab) the divider still shows.
             Rectangle()
                 .fill(YieldColors.border)
                 .frame(height: 1)
+                .offset(y: -1)
         }
     }
 
