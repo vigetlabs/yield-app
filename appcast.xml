@@ -3,6 +3,22 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.14.0</title>
+      <sparkle:version>39</sparkle:version>
+      <sparkle:shortVersionString>0.9.14.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Light mode.</strong> Settings now has an Appearance picker with System / Light / Dark options. The light palette was tuned for WCAG AA contrast (≥ 4.5:1) — green, yellow, over, and prospective accents shift to darker variants on the light background while keeping their dark-mode brightness intact. New installs default to Dark.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.14.0/Yield-0.9.14.0.zip"
+        sparkle:edSignature="YPB/rSNGf8KHjm6cy0Eh/KcXh97/YqleBxs3mjavyNVcm9eLx3b9pdOxZCXIte/GUu9xglyzqzbRVks6IZBRDA=="
+        length="2370113"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.13.2</title>
       <sparkle:version>38</sparkle:version>
       <sparkle:shortVersionString>0.9.13.2</sparkle:shortVersionString>
