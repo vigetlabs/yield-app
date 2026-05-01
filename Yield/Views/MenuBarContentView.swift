@@ -533,7 +533,7 @@ struct MenuBarContentView: View {
     private func tabLabel(_ tab: TimeComparisonViewModel.ProjectTab, isSelected: Bool) -> some View {
         switch tab {
         case .recent, .forecasted:
-            Text(tab == .recent ? "Recent" : "Booked")
+            Text(tab == .recent ? "All" : "Booked")
                 .font(isSelected
                     ? YieldFonts.dmSans(10, weight: .semibold)
                     : YieldFonts.dmSans(10, weight: .medium))
@@ -551,7 +551,7 @@ struct MenuBarContentView: View {
 
     private func tabHelp(_ tab: TimeComparisonViewModel.ProjectTab) -> String {
         switch tab {
-        case .recent: return "Projects with recent time entries"
+        case .recent: return "All projects (booked + tracked)"
         case .forecasted: return "Projects booked in Forecast"
         case .chart: return "Weekly time chart"
         }
