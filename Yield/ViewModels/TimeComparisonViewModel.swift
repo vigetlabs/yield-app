@@ -288,6 +288,56 @@ final class TimeComparisonViewModel {
         suppressNextTimerChangeHUD = true
     }
 
+    // MARK: - Optimistic timer mutations
+    //
+    // The Harvest start/stop endpoints take a moment to round-trip; the
+    // helpers below mutate `projectStatuses` in place so the UI flips
+    // immediately while the API call is still in flight. The next
+    // refresh reconciles to the server state — and on API failure, the
+    // mutation methods call `refresh()` from the catch branch to undo
+    // any divergence.
+
+    /// Mark `entryId` as no longer running. Updates the owning
+    /// project's `isTracking` flag based on whether any other entries
+    /// are still running on it.
+    @MainActor
+    private func optimisticallyStopEntry(_ entryId: Int) {
+        for i in projectStatuses.indices {
+            var didChange = false
+            for j in projectStatuses[i].timeEntries.indices
+                where projectStatuses[i].timeEntries[j].id == entryId {
+                projectStatuses[i].timeEntries[j].isRunning = false
+                didChange = true
+            }
+            if didChange {
+                projectStatuses[i].isTracking = projectStatuses[i].timeEntries.contains { $0.isRunning }
+            }
+        }
+        if !projectStatuses.contains(where: { $0.isTracking }) {
+            stopElapsedTimer()
+        }
+    }
+
+    /// Mark `entryId` as running, stop any other running entries, and
+    /// reset the elapsed-offset clock. The banner will start counting
+    /// from now until the refresh lands.
+    @MainActor
+    private func optimisticallyStartEntry(_ entryId: Int) {
+        for i in projectStatuses.indices {
+            var anyRunning = false
+            for j in projectStatuses[i].timeEntries.indices {
+                let shouldRun = projectStatuses[i].timeEntries[j].id == entryId
+                if projectStatuses[i].timeEntries[j].isRunning != shouldRun {
+                    projectStatuses[i].timeEntries[j].isRunning = shouldRun
+                }
+                if shouldRun { anyRunning = true }
+            }
+            projectStatuses[i].isTracking = anyRunning
+                || projectStatuses[i].timeEntries.contains { $0.isRunning }
+        }
+        startElapsedTimer()
+    }
+
     @MainActor
     private func detectExternalTimerChange() {
         let currentEntry = trackingEntry
@@ -1209,11 +1259,28 @@ final class TimeComparisonViewModel {
         markUserTimerMutation()
         pausedState = nil
 
+        // Snapshot the previously-running entry before we mutate state
+        // optimistically — the API still needs to know which timer to
+        // stop on the server side.
+        let previouslyRunningEntryId = projectStatuses
+            .first(where: { $0.isTracking })?
+            .todayEntryId
+        let runningEntryIdForThisProject = project.timeEntries
+            .first(where: { $0.isRunning })?.id
+
+        // Optimistic UI: flip immediately for the cases where we know
+        // the entry id (stop or restart-existing). The create-new path
+        // has no id until the API responds, so it stays non-optimistic.
+        if project.isTracking, let runningId = runningEntryIdForThisProject {
+            optimisticallyStopEntry(runningId)
+        } else if let todayEntryId = project.todayEntryId {
+            optimisticallyStartEntry(todayEntryId)
+        }
+
         do {
             // Stop any currently running timer first
-            if let running = projectStatuses.first(where: { $0.isTracking }),
-               let runningEntryId = running.todayEntryId {
-                _ = try await service.stopTimer(entryId: runningEntryId)
+            if let prev = previouslyRunningEntryId {
+                _ = try await service.stopTimer(entryId: prev)
             }
 
             if project.isTracking {
@@ -1233,6 +1300,7 @@ final class TimeComparisonViewModel {
                 }
                 guard let resolvedTaskId = taskId else {
                     errorMessage = "No tasks assigned to this project in Harvest."
+                    await refresh()  // reconcile (the optimistic stop above, if any, needs undoing)
                     return
                 }
                 suppressBookedHoursNotificationIfOver(project)
@@ -1242,6 +1310,7 @@ final class TimeComparisonViewModel {
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
+            await refresh()  // reconcile
         }
     }
 
@@ -1421,6 +1490,7 @@ final class TimeComparisonViewModel {
     func stopBannerTimer() async {
         if let entry = trackingEntry,
            let (harvestService, _) = makeServices() {
+            optimisticallyStopEntry(entry.id)
             do {
                 _ = try await harvestService.stopTimer(entryId: entry.id)
             } catch {
@@ -1437,19 +1507,30 @@ final class TimeComparisonViewModel {
         markUserTimerMutation()
         if !isRunning { pausedState = nil }
 
+        // Snapshot the currently-running entry (if any) BEFORE the
+        // optimistic mutation clears it, so the stop-then-restart path
+        // below still knows what to stop on the server.
+        let previouslyRunningEntryId: Int? = isRunning ? nil
+            : projectStatuses.first(where: { $0.isTracking })?.todayEntryId
+        let target = projectStatuses.first {
+            $0.timeEntries.contains(where: { $0.id == entryId })
+        }
+
+        // Flip the UI immediately, then run the API call.
+        if isRunning {
+            optimisticallyStopEntry(entryId)
+        } else {
+            optimisticallyStartEntry(entryId)
+        }
+
         do {
             if isRunning {
                 _ = try await harvestService.stopTimer(entryId: entryId)
             } else {
-                // Stop any currently running timer first
-                if let running = projectStatuses.first(where: { $0.isTracking }),
-                   let runningEntryId = running.todayEntryId {
-                    _ = try await harvestService.stopTimer(entryId: runningEntryId)
+                if let prev = previouslyRunningEntryId, prev != entryId {
+                    _ = try await harvestService.stopTimer(entryId: prev)
                 }
-                // Suppress over-budget notification if the entry's project is already over
-                if let target = projectStatuses.first(where: { project in
-                    project.timeEntries.contains(where: { $0.id == entryId })
-                }) {
+                if let target {
                     suppressBookedHoursNotificationIfOver(target)
                 }
                 _ = try await harvestService.restartTimer(entryId: entryId)
@@ -1457,6 +1538,7 @@ final class TimeComparisonViewModel {
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
+            await refresh()  // reconcile — undo the optimistic mutation if the API never landed
         }
     }
 

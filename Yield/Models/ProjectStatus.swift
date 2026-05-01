@@ -8,7 +8,10 @@ struct TimeEntryInfo: Identifiable {
     let taskName: String
     let hours: Double
     let date: String
-    let isRunning: Bool
+    /// Mutated by the view model's optimistic start/stop helpers so the
+    /// UI flips before the Harvest API round-trip completes; the next
+    /// refresh reconciles to the server's actual value.
+    var isRunning: Bool
     let notes: String?
 }
 
@@ -19,11 +22,13 @@ struct ProjectStatus: Identifiable {
     let bookedHours: Double
     let loggedHours: Double
     let todayHours: Double
-    let isTracking: Bool
+    /// Mutated alongside `timeEntries[*].isRunning` by the view model's
+    /// optimistic start/stop helpers — the next refresh reconciles.
+    var isTracking: Bool
     let harvestProjectId: Int?
     let todayEntryId: Int?      // today's time entry (restart this if it exists)
     let lastTaskId: Int?        // task ID from most recent entry (for creating new entries)
-    let timeEntries: [TimeEntryInfo]
+    var timeEntries: [TimeEntryInfo]
     /// Concatenated non-empty notes from all of this week's Forecast
     /// assignments for this project (nil if none). Multiple assignments
     /// with notes are joined with a blank line between them.
