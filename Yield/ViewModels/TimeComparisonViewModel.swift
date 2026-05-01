@@ -535,6 +535,14 @@ final class TimeComparisonViewModel {
     /// alerts when a user starts, stops, or restarts a timer on a project that
     /// is already over budget.
     private var notifiedProjectIds: Set<String> = []
+
+    /// Per-project `loggedHours` snapshot taken when the project entered
+    /// the tracking state. Used by `checkBookedHoursReached` so the
+    /// "Time's up!" notification only fires when this session's elapsed
+    /// time crossed the booking — starting a timer on an already-over
+    /// project (or having one running externally at app launch) leaves
+    /// the project silently marked as notified.
+    private var trackingSessionBaseline: [String: Double] = [:]
     private var idleNotificationSent: Bool = false
 
     /// Week-start date (Monday) for both the soft-refresh cache and the
@@ -1108,10 +1116,20 @@ final class TimeComparisonViewModel {
     @MainActor
     private func checkBookedHoursReached() {
         for project in projectStatuses where project.isTracking {
+            guard project.bookedHours > 0,
+                  !notifiedProjectIds.contains(project.id) else { continue }
+
+            // The session baseline is captured when the project first
+            // becomes tracking. If it was already over before this
+            // session, silently mark notified — the user already knows.
+            let baseline = trackingSessionBaseline[project.id] ?? project.loggedHours
+            if baseline >= project.bookedHours {
+                notifiedProjectIds.insert(project.id)
+                continue
+            }
+
             let effective = effectiveLoggedHours(for: project)
-            if project.bookedHours > 0,
-               effective >= project.bookedHours,
-               !notifiedProjectIds.contains(project.id) {
+            if effective >= project.bookedHours {
                 notifiedProjectIds.insert(project.id)
                 sendBookedHoursNotification(for: project)
             }
@@ -1929,8 +1947,23 @@ final class TimeComparisonViewModel {
             // exactly that bug.
             if currentWeekStart != weekBounds.start {
                 notifiedProjectIds.removeAll()
+                trackingSessionBaseline.removeAll()
                 currentWeekStart = weekBounds.start
             }
+            // Maintain the per-project tracking-session baseline used by
+            // `checkBookedHoursReached`. Capture loggedHours when a
+            // project enters the tracking state; drop the baseline when
+            // it leaves so the next start gets a fresh snapshot.
+            for project in statuses {
+                if project.isTracking {
+                    if trackingSessionBaseline[project.id] == nil {
+                        trackingSessionBaseline[project.id] = project.loggedHours
+                    }
+                } else {
+                    trackingSessionBaseline.removeValue(forKey: project.id)
+                }
+            }
+
             if statuses.contains(where: { $0.isTracking }) {
                 startElapsedTimer()
                 checkBookedHoursReached()
