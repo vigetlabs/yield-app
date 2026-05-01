@@ -1168,9 +1168,10 @@ final class TimeComparisonViewModel {
                 notes: entry.notes
             )
         }.sorted { a, b in
-            // Running first, then by date ascending (Mon → Fri), then by hours descending
-            if a.isRunning != b.isRunning { return a.isRunning }
-            if a.date != b.date { return a.date < b.date }
+            // Newest day first so today's entries sit at the top of the
+            // drawer (the active timer naturally ends up there). Within a
+            // day, longer entries first.
+            if a.date != b.date { return a.date > b.date }
             return a.hours > b.hours
         }
     }
