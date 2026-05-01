@@ -10,6 +10,11 @@ final class AppState {
     let viewModel = TimeComparisonViewModel()
     let oAuthService = OAuthService()
     var updaterController: SPUStandardUpdaterController?
+    /// Whether the MenuBarExtra panel is currently open. Maintained by
+    /// the AppDelegate's window key/resign observers. The HUD that
+    /// announces external timer changes consults this so it stays
+    /// silent while the user is already looking at the panel.
+    var isPanelOpen: Bool = false
     func start() {
         viewModel.startAutoRefresh()
     }
@@ -44,6 +49,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
         // Refresh whenever the MenuBarExtra panel opens, so state reflects
         // any changes made outside the app (e.g. starting a timer in Harvest).
         // Throttled to avoid excess API calls when opening/closing rapidly.
+        // Also tracks `AppState.isPanelOpen` so the timer-change HUD stays
+        // silent while the panel is already visible.
         NotificationCenter.default.addObserver(
             forName: NSWindow.didBecomeKeyNotification,
             object: nil,
@@ -54,7 +61,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
             // MenuBarExtra's panel window has "MenuBarExtra" in its class name
             guard className.contains("MenuBarExtra") else { return }
             Task { @MainActor in
+                AppState.shared.isPanelOpen = true
+                // Tear down any visible timer-change HUD — the panel
+                // about to open shows the same state, so leaving the
+                // HUD up would be redundant noise.
+                TimerChangeHUDController.shared.dismiss()
                 await AppState.shared.viewModel.refreshIfStale()
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didResignKeyNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            guard let window = note.object as? NSWindow else { return }
+            let className = String(describing: type(of: window))
+            guard className.contains("MenuBarExtra") else { return }
+            Task { @MainActor in
+                AppState.shared.isPanelOpen = false
             }
         }
     }

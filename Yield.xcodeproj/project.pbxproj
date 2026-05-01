@@ -43,6 +43,7 @@
 		DD5B690291EBA5B1C1FB36F3 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A0F29CD8D3681B5AF53341 /* APIClient.swift */; };
 		E334718332CF138B1EAC4ADF /* ForecastModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */; };
 		EE882AB59C60F5BAE74C3B8A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF707BC7919EFF060031F5B9 /* SettingsView.swift */; };
+		F0AB8C77798AB287C998660E /* TimerChangeHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2A0B87C5615E7220576980 /* TimerChangeHUD.swift */; };
 		FDCF7D82E3EC296419530CAB /* Newsreader-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6CD7C88B49D2E0356F35FCF4 /* Newsreader-Regular.ttf */; };
 /* End PBXBuildFile section */
 
@@ -72,6 +73,7 @@
 		ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Italic.ttf"; sourceTree = "<group>"; };
 		B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectChartView.swift; sourceTree = "<group>"; };
 		B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastModels.swift; sourceTree = "<group>"; };
+		BC2A0B87C5615E7220576980 /* TimerChangeHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerChangeHUD.swift; sourceTree = "<group>"; };
 		C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		C0FD7AEC1C89E1F04B5509F7 /* JetBrainsMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Regular.ttf"; sourceTree = "<group>"; };
 		C28B33F4048310D0D6B01D7C /* YieldButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YieldButtonStyles.swift; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 				81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */,
 				D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */,
 				3B0E8E50D8DEBFD70A32D925 /* TimerBannerView.swift */,
+				BC2A0B87C5615E7220576980 /* TimerChangeHUD.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -329,6 +332,7 @@
 				8F63E1C0A91D89249020D891 /* TimeComparisonViewModel.swift in Sources */,
 				1F625C8CFBDABCD6BBAD3BC1 /* TimeOffRowView.swift in Sources */,
 				1777566CD97D2CB223E29E5D /* TimerBannerView.swift in Sources */,
+				F0AB8C77798AB287C998660E /* TimerChangeHUD.swift in Sources */,
 				1581C711C6C01278186D9AD1 /* YieldApp.swift in Sources */,
 				7E6180F06F7AE91E39C7261E /* YieldButtonStyles.swift in Sources */,
 			);

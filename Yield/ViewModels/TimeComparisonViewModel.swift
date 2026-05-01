@@ -266,6 +266,66 @@ final class TimeComparisonViewModel {
 
     private(set) var pendingIdleMove: PendingIdleMove? = nil
 
+    // MARK: - External timer-change detection
+    //
+    // Tracks the running entry across refreshes so we can pop a HUD when
+    // the timer changes from outside Yield (e.g. the Harvest browser
+    // extension started a new timer). User-initiated mutations call
+    // `markUserTimerMutation()` first so the next refresh's diff is
+    // suppressed — only changes we didn't make ourselves trigger the HUD.
+    private var hasSeenInitialTrackingState = false
+    private var suppressNextTimerChangeHUD = false
+    private var lastTrackingEntryId: Int?
+    private var lastTrackingClientName: String?
+    private var lastTrackingProjectName: String?
+    private var lastTrackingTaskName: String?
+
+    /// Call from any user-initiated method that may change the running
+    /// timer (start / stop / pause / resume / delete-running-entry / idle
+    /// actions). The next refresh's change-detection sees the resulting
+    /// transition as expected and skips the HUD.
+    private func markUserTimerMutation() {
+        suppressNextTimerChangeHUD = true
+    }
+
+    @MainActor
+    private func detectExternalTimerChange() {
+        let currentEntry = trackingEntry
+        let currentProject = trackingProject
+        let currentId = currentEntry?.id
+
+        defer {
+            lastTrackingEntryId = currentId
+            lastTrackingClientName = currentProject?.clientName
+            lastTrackingProjectName = currentProject?.projectName
+            lastTrackingTaskName = currentEntry?.taskName
+            hasSeenInitialTrackingState = true
+            suppressNextTimerChangeHUD = false
+        }
+
+        // Skip the very first refresh — discovering an existing running
+        // timer at launch isn't a "change" worth announcing.
+        guard hasSeenInitialTrackingState else { return }
+        if suppressNextTimerChangeHUD { return }
+        if currentId == lastTrackingEntryId { return }
+
+        if let project = currentProject, let entry = currentEntry {
+            TimerChangeHUDController.shared.show(TimerChangeInfo(
+                kind: .started,
+                clientName: project.clientName,
+                projectName: project.projectName,
+                taskName: entry.taskName
+            ))
+        } else if let projectName = lastTrackingProjectName {
+            TimerChangeHUDController.shared.show(TimerChangeInfo(
+                kind: .stopped,
+                clientName: lastTrackingClientName,
+                projectName: projectName,
+                taskName: lastTrackingTaskName
+            ))
+        }
+    }
+
     /// Current-week day filter. When non-nil, the project list hides
     /// unbooked projects that didn't log time on that day; booked
     /// (forecasted) projects always show regardless. Set by tapping a
@@ -848,6 +908,7 @@ final class TimeComparisonViewModel {
         guard let alert = idleAlertState,
               let (harvestService, _) = makeServices() else { return }
 
+        markUserTimerMutation()
         do {
             _ = try await harvestService.stopTimer(entryId: alert.entryId)
             do {
@@ -872,6 +933,7 @@ final class TimeComparisonViewModel {
         guard let alert = idleAlertState,
               let (harvestService, _) = makeServices() else { return }
 
+        markUserTimerMutation()
         do {
             _ = try await harvestService.stopTimer(entryId: alert.entryId)
             _ = try await harvestService.updateTimeEntry(entryId: alert.entryId, hours: alert.adjustedHours, notes: nil)
@@ -1144,6 +1206,7 @@ final class TimeComparisonViewModel {
         guard let (harvestService, _) = makeServices() else { return }
         let service = harvestService
         guard let harvestProjectId = project.harvestProjectId else { return }
+        markUserTimerMutation()
         pausedState = nil
 
         do {
@@ -1218,6 +1281,7 @@ final class TimeComparisonViewModel {
     @MainActor
     func startNewTimer(projectId: Int, taskId: Int, hours: Double? = nil, notes: String? = nil) async {
         guard let (harvestService, _) = makeServices() else { return }
+        markUserTimerMutation()
         pausedState = nil
 
         do {
@@ -1270,6 +1334,12 @@ final class TimeComparisonViewModel {
         guard let (harvestService, _) = makeServices() else { return }
 
         do {
+            // Suppress the timer-change HUD if we're deleting the
+            // running entry — the resulting "stopped" transition is
+            // user-initiated and shouldn't pop the HUD.
+            if trackingEntry?.id == entryId {
+                markUserTimerMutation()
+            }
             try await harvestService.deleteTimeEntry(entryId: entryId)
             await refresh()
         } catch {
@@ -1301,6 +1371,8 @@ final class TimeComparisonViewModel {
               let entry = trackingEntry,
               let (harvestService, _) = makeServices() else { return }
 
+        markUserTimerMutation()
+
         // Save paused state before stopping. `frozenHours` is the
         // running entry's elapsed time, not the project's week total —
         // the banner shows the running entry while active and we want
@@ -1329,6 +1401,8 @@ final class TimeComparisonViewModel {
     func resumeTimer() async {
         guard let paused = pausedState,
               let (harvestService, _) = makeServices() else { return }
+
+        markUserTimerMutation()
 
         do {
             _ = try await harvestService.restartTimer(entryId: paused.entryId)
@@ -1360,6 +1434,7 @@ final class TimeComparisonViewModel {
     @MainActor
     func toggleEntryTimer(entryId: Int, isRunning: Bool) async {
         guard let (harvestService, _) = makeServices() else { return }
+        markUserTimerMutation()
         if !isRunning { pausedState = nil }
 
         do {
@@ -1777,6 +1852,8 @@ final class TimeComparisonViewModel {
             } else {
                 stopElapsedTimer()
             }
+
+            detectExternalTimerChange()
     }
 
     /// Lightweight refresh: fetches today's time entries only, merges with cached
