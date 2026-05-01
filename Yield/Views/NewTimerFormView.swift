@@ -271,9 +271,8 @@ struct NewTimerFormView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-
-            Spacer()
+            .padding(.top, 8)
+            .padding(.bottom, 16)
         }
         .task {
             // Initialize spent date. Priority:

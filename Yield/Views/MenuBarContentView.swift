@@ -279,7 +279,13 @@ struct MenuBarContentView: View {
                 Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
             }
         )
-        .frame(maxHeight: viewModel.selectedTab != .chart ? .infinity : 0, alignment: .top)
+        // On the chart tab the slot collapses to 0pt so the banner is
+        // hidden; everywhere else `maxHeight: nil` lets the banner take
+        // its natural ~74pt (running) or ~16pt (idle strip) height. The
+        // earlier `.infinity` made the slot greedily fill any spare
+        // vertical space, inflating the whole panel when content was
+        // short.
+        .frame(maxHeight: viewModel.selectedTab == .chart ? 0 : nil, alignment: .top)
         .clipped()
     }
 
