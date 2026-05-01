@@ -324,7 +324,7 @@ struct ProjectChartView: View {
                 }
 
                 RuleMark(y: .value("Target", YieldConstants.workdayHours))
-                    .foregroundStyle(Color.white.opacity(0.4))
+                    .foregroundStyle(YieldColors.onBackground.opacity(0.4))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
             .chartForegroundStyleScale(
@@ -342,11 +342,11 @@ struct ProjectChartView: View {
                            idx >= 0, idx < days.count {
                             Text(days[idx])
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(Color.white.opacity(0.7))
+                                .foregroundStyle(YieldColors.onBackground.opacity(0.7))
                         }
                     }
                     AxisGridLine()
-                        .foregroundStyle(Color.white.opacity(0.1))
+                        .foregroundStyle(YieldColors.onBackground.opacity(0.1))
                 }
             }
             .chartYAxis {
@@ -355,17 +355,17 @@ struct ProjectChartView: View {
                         if let h = value.as(Double.self) {
                             Text(formatHours(h))
                                 .font(.system(size: 11, design: .monospaced))
-                                .foregroundStyle(Color.white.opacity(0.7))
+                                .foregroundStyle(YieldColors.onBackground.opacity(0.7))
                         }
                     }
                     AxisGridLine()
-                        .foregroundStyle(Color.white.opacity(0.1))
+                        .foregroundStyle(YieldColors.onBackground.opacity(0.1))
                 }
                 AxisMarks(position: .trailing, values: [8]) { _ in
                     AxisValueLabel {
                         Text("8h")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(Color.white.opacity(0.7))
+                            .foregroundStyle(YieldColors.onBackground.opacity(0.7))
                     }
                 }
             }
@@ -384,7 +384,7 @@ struct ProjectChartView: View {
                             .frame(width: 8, height: 8)
                         Text(project.name)
                             .font(.system(size: 12))
-                            .foregroundStyle(Color.white)
+                            .foregroundStyle(YieldColors.textPrimary)
                             .lineLimit(1)
                     }
                 }

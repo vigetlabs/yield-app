@@ -223,7 +223,7 @@ struct ProjectRowView: View {
     private var statusLineColor: Color {
         guard project.isForecasted else { return .clear }
         if project.harvestProjectId == nil { return YieldStatusColors.prospective }
-        return Color.white.opacity(0.7)
+        return YieldColors.onBackground.opacity(0.7)
     }
 
     // MARK: - Time Label

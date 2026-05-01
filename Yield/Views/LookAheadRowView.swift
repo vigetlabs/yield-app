@@ -16,7 +16,7 @@ struct LookAheadRowView: View {
             Rectangle()
                 .fill(project.harvestProjectId == nil
                     ? YieldStatusColors.prospective
-                    : Color.white.opacity(0.7))
+                    : YieldColors.onBackground.opacity(0.7))
                 .frame(width: 2)
                 .frame(maxHeight: .infinity)
 

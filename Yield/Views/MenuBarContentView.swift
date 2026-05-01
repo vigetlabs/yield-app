@@ -3,6 +3,11 @@ import SwiftUI
 enum AppearanceMode: String, CaseIterable {
     case system, light, dark
 
+    /// Single source of truth for the default appearance, referenced by
+    /// the AppDelegate's UserDefaults registration, the @AppStorage
+    /// fallbacks, and `applyAppearance`. Change here, change everywhere.
+    static let `default`: AppearanceMode = .dark
+
     var label: String {
         switch self {
         case .system: return "System"

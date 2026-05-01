@@ -28,14 +28,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
             "idleDetectionEnabled": true,
             "idleMinutes": 10,
             "menuBarLabelMode": MenuBarLabelMode.projectTime.rawValue,
+            "appearanceMode": AppearanceMode.default.rawValue,
         ])
 
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         AppState.shared.updaterController = updaterController
         AppState.shared.start()
 
-        // Force dark mode until light/system modes are designed
-        NSApp.appearance = NSAppearance(named: .darkAqua)
+        // Apply the persisted appearance choice. The App's body also
+        // observes `appearanceMode` and updates this on change, so the
+        // user's selection takes effect without restarting.
+        let raw = UserDefaults.standard.string(forKey: "appearanceMode") ?? AppearanceMode.default.rawValue
+        applyAppearance(raw)
 
         // Refresh whenever the MenuBarExtra panel opens, so state reflects
         // any changes made outside the app (e.g. starting a timer in Harvest).
@@ -68,6 +72,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
     func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
         // No-op: Sparkle handles dismissing the reminder
     }
+
+    /// Apply an appearance choice (raw `AppearanceMode` value) to
+    /// `NSApp.appearance`. Called on launch with the persisted value
+    /// and from `YieldApp` whenever the setting changes.
+    func applyAppearance(_ raw: String) {
+        let mode = AppearanceMode(rawValue: raw) ?? .default
+        NSApp.appearance = mode.nsAppearance
+    }
 }
 
 @main
@@ -77,11 +89,22 @@ struct YieldApp: App {
     /// in Settings re-runs the MenuBarExtra label closure with the new
     /// mode, which produces a different cache key and a new image.
     @AppStorage("menuBarLabelMode") private var menuBarLabelModeRaw: String = MenuBarLabelMode.projectTime.rawValue
+    /// Drives `NSApp.appearance` and the panel's preferred color scheme
+    /// so the user's appearance choice is honored at runtime.
+    @AppStorage("appearanceMode") private var appearanceModeRaw: String = AppearanceMode.default.rawValue
     private var viewModel: TimeComparisonViewModel { AppState.shared.viewModel }
+
+    private var appearanceMode: AppearanceMode {
+        AppearanceMode(rawValue: appearanceModeRaw) ?? .default
+    }
 
     var body: some Scene {
         MenuBarExtra {
             MenuBarContentView(viewModel: viewModel)
+                .preferredColorScheme(appearanceMode.colorScheme)
+                .onChange(of: appearanceModeRaw) { _, newValue in
+                    appDelegate.applyAppearance(newValue)
+                }
         } label: {
             let isTracking = viewModel.projectStatuses.contains(where: { $0.isTracking })
             let mode = MenuBarLabelMode(rawValue: menuBarLabelModeRaw) ?? .projectTime

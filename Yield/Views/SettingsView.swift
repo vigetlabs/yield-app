@@ -5,7 +5,7 @@ struct SettingsView: View {
     let oAuthService: OAuthService
     let onDismiss: () -> Void
 
-    @AppStorage("appearanceMode") private var appearanceMode: String = AppearanceMode.system.rawValue
+    @AppStorage("appearanceMode") private var appearanceMode: String = AppearanceMode.default.rawValue
     @AppStorage("idleDetectionEnabled") private var idleDetectionEnabled = true
     @AppStorage("idleMinutes") private var idleMinutes = 10
     @AppStorage("menuBarLabelMode") private var menuBarLabelMode: String = MenuBarLabelMode.projectTime.rawValue
@@ -197,6 +197,13 @@ struct SettingsView: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
 
+            // Appearance (System / Light / Dark)
+            appearanceRow
+
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+
             // Menu bar display
             menuBarDisplayRow
 
@@ -349,30 +356,57 @@ struct SettingsView: View {
             .padding(.bottom, 6)
     }
 
-    /// Picker row for `MenuBarLabelMode`. `DropdownPicker` is keyed by
-    /// `Int` tags so we use each mode's `allCases` index as the id.
+    private var appearanceRow: some View {
+        enumPickerRow(
+            icon: "circle.lefthalf.filled",
+            label: "Appearance",
+            cases: AppearanceMode.allCases,
+            selectedRawValue: appearanceMode,
+            title: \.label
+        ) { appearanceMode = $0 }
+    }
+
     private var menuBarDisplayRow: some View {
-        let modes = MenuBarLabelMode.allCases
-        let items = modes.enumerated().map { (id: $0.offset, title: $0.element.label) }
-        let selectedId = modes.firstIndex { $0.rawValue == menuBarLabelMode } ?? 0
+        enumPickerRow(
+            icon: "menubar.rectangle",
+            label: "Menu bar display",
+            cases: MenuBarLabelMode.allCases,
+            selectedRawValue: menuBarLabelMode,
+            title: \.label
+        ) { menuBarLabelMode = $0 }
+    }
+
+    /// Settings row that binds a string-backed enum to a `DropdownPicker`.
+    /// The picker is keyed by `Int` tags so we use each case's `allCases`
+    /// index as the id.
+    private func enumPickerRow<T: RawRepresentable>(
+        icon: String,
+        label: String,
+        cases: [T],
+        selectedRawValue: String,
+        title: KeyPath<T, String>,
+        onSelect: @escaping (String) -> Void
+    ) -> some View where T.RawValue == String {
+        let items = cases.enumerated().map { (id: $0.offset, title: $0.element[keyPath: title]) }
+        let selectedId = cases.firstIndex { $0.rawValue == selectedRawValue } ?? 0
 
         return HStack(spacing: 8) {
-            Image(systemName: "menubar.rectangle")
+            Image(systemName: icon)
                 .font(.system(size: 10))
                 .foregroundStyle(YieldColors.textSecondary)
                 .frame(width: 16)
-            Text("Menu bar display")
+            Text(label)
                 .font(YieldFonts.dmSans(11))
                 .foregroundStyle(YieldColors.textPrimary)
             Spacer()
             DropdownPicker(
-                label: "Menu bar display",
+                label: label,
                 placeholder: "Select",
                 items: items,
                 selectedId: selectedId
             ) { id in
-                guard modes.indices.contains(id) else { return }
-                menuBarLabelMode = modes[id].rawValue
+                guard cases.indices.contains(id) else { return }
+                onSelect(cases[id].rawValue)
             }
             .frame(width: 160)
         }
