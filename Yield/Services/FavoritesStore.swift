@@ -76,6 +76,13 @@ final class FavoritesStore {
         save()
     }
 
+    /// Remove a favorite without considering its current state. Called
+    /// from the Settings list's per-row remove button.
+    func remove(projectId: Int, taskId: Int) {
+        favorites.remove(Favorite(projectId: projectId, taskId: taskId, lastUsedAt: .distantPast))
+        save()
+    }
+
     /// Bump `lastUsedAt` to now for the matching favorite (if one
     /// exists). No-op when the pair isn't a favorite. Called when the
     /// user commits a timer with this combo so the auto-select picks

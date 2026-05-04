@@ -11,6 +11,14 @@ struct SettingsView: View {
     @AppStorage("menuBarLabelMode") private var menuBarLabelMode: String = MenuBarLabelMode.projectTime.rawValue
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
+    /// All Harvest projects the current user has access to, fetched
+    /// when the Settings panel appears so the favorites card can
+    /// resolve `(projectId, taskId)` pairs to human-readable names.
+    @State private var allProjects: [TimeComparisonViewModel.TimerProjectOption] = []
+    @State private var isLoadingProjects = false
+    /// Bump on toggle so the favorites list re-derives from the store.
+    private var favoritesStore: FavoritesStore { FavoritesStore.shared }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
@@ -57,9 +65,15 @@ struct SettingsView: View {
             VStack(spacing: 12) {
                 accountCard
                 preferencesCard
+                favoritesCard
                 aboutCard
             }
             .padding(16)
+        }
+        .task {
+            isLoadingProjects = true
+            allProjects = (try? await AppState.shared.viewModel.fetchAllProjects()) ?? []
+            isLoadingProjects = false
         }
     }
 
@@ -264,6 +278,142 @@ struct SettingsView: View {
             RoundedRectangle(cornerRadius: YieldRadius.card)
                 .strokeBorder(YieldColors.border, lineWidth: 1)
         )
+    }
+
+    // MARK: - Favorites Card
+
+    /// Display row for a single favorite, used to populate the
+    /// favorites card. Resolved at render time from `allProjects`.
+    private struct FavoriteEntry: Identifiable {
+        let projectId: Int
+        let taskId: Int
+        let clientName: String?
+        let projectName: String
+        let taskName: String
+
+        var id: String { "\(projectId)-\(taskId)" }
+    }
+
+    /// Resolved favorites sorted alphabetically by client → project → task,
+    /// with unresolved (project no longer accessible to the user) entries
+    /// pushed to the bottom under a generic name so they're still removable.
+    private var resolvedFavorites: [FavoriteEntry] {
+        let projectsById = Dictionary(uniqueKeysWithValues: allProjects.map { ($0.harvestProjectId, $0) })
+        let entries: [FavoriteEntry] = favoritesStore.favorites.map { fav in
+            let project = projectsById[fav.projectId]
+            let task = project?.taskAssignments.first(where: { $0.task.id == fav.taskId })?.task
+            return FavoriteEntry(
+                projectId: fav.projectId,
+                taskId: fav.taskId,
+                clientName: project?.clientName,
+                projectName: project?.projectName ?? "Unknown project",
+                taskName: task?.name ?? "Unknown task"
+            )
+        }
+        return entries.sorted { a, b in
+            // Resolved (has a real project) first, then alphabetical.
+            let aResolved = a.projectName != "Unknown project"
+            let bResolved = b.projectName != "Unknown project"
+            if aResolved != bResolved { return aResolved }
+            let ac = a.clientName ?? ""
+            let bc = b.clientName ?? ""
+            if ac != bc { return ac.localizedCaseInsensitiveCompare(bc) == .orderedAscending }
+            if a.projectName != b.projectName {
+                return a.projectName.localizedCaseInsensitiveCompare(b.projectName) == .orderedAscending
+            }
+            return a.taskName.localizedCaseInsensitiveCompare(b.taskName) == .orderedAscending
+        }
+    }
+
+    private var favoritesCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sectionHeader("Favorites")
+
+            if isLoadingProjects && resolvedFavorites.isEmpty {
+                HStack {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(YieldColors.textSecondary)
+                    Text("Loading…")
+                        .font(YieldFonts.dmSans(11))
+                        .foregroundStyle(YieldColors.textSecondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+            } else if resolvedFavorites.isEmpty {
+                Text("No favorites yet. Add one from the new/edit timer screen.")
+                    .font(YieldFonts.dmSans(11))
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+            } else {
+                // Cap the list at ~3 rows of height with a partial 4th
+                // row peeking, so 4+ favorites trigger scrolling.
+                // `fixedSize(vertical: true)` lets the scroll view
+                // shrink to its content's natural height when there
+                // are few favorites — the cap only kicks in once the
+                // list would overflow.
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(resolvedFavorites.enumerated()), id: \.element.id) { index, fav in
+                            favoriteRow(fav)
+                            if index < resolvedFavorites.count - 1 {
+                                Rectangle()
+                                    .fill(YieldColors.border)
+                                    .frame(height: 1)
+                            }
+                        }
+                    }
+                }
+                .scrollIndicators(.automatic)
+                .frame(maxHeight: 160)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .background(YieldColors.surfaceDefault)
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: YieldRadius.card)
+                .strokeBorder(YieldColors.border, lineWidth: 1)
+        )
+    }
+
+    private func favoriteRow(_ fav: FavoriteEntry) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: "star.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(YieldColors.textSecondary)
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(ProjectStatus.qualifiedName(client: fav.clientName, project: fav.projectName))
+                    .font(YieldFonts.dmSans(11, weight: .medium))
+                    .foregroundStyle(YieldColors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Text(fav.taskName)
+                    .font(YieldFonts.dmSans(10))
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            Spacer(minLength: 8)
+
+            Button {
+                favoritesStore.remove(projectId: fav.projectId, taskId: fav.taskId)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 11))
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Remove favorite")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     // MARK: - About Card
