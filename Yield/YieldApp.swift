@@ -81,6 +81,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
                 AppState.shared.isPanelOpen = false
             }
         }
+
+        // Force a hard refresh when the Mac wakes from sleep. The 60s
+        // soft-refresh timer should fire on wake too, but its behavior
+        // across long sleeps isn't 100% reliable — when it misses, the
+        // cache stays pinned to whatever the last refresh saw before
+        // sleep (e.g. yesterday's entries leaking into today, see the
+        // bug report about Sunday's logged hours showing up Monday
+        // morning until the user quit and relaunched).
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                await AppState.shared.viewModel.refresh()
+            }
+        }
     }
 
     // MARK: - SPUStandardUserDriverDelegate (Gentle Reminders)

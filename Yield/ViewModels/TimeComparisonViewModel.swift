@@ -1566,11 +1566,17 @@ final class TimeComparisonViewModel {
 
     private var lastRefreshAt: Date?
 
-    /// Refresh only if we haven't refreshed in the last `interval` seconds.
-    /// Used by menu-open refresh to keep state fresh without hammering the API.
+    /// Refresh only if we haven't refreshed in the last `interval` seconds —
+    /// or if the day has rolled over since the last hard refresh, in which
+    /// case the cached week-entries set is stale regardless of how recently
+    /// a soft refresh ran. Used by the menu-open observer.
     @MainActor
     func refreshIfStale(interval: TimeInterval = 5) async {
-        if let last = lastRefreshAt, Date().timeIntervalSince(last) < interval {
+        let today = DateHelpers.dateFormatter.string(from: Date())
+        let dayChangedSinceHardRefresh = currentRefreshDay != nil && currentRefreshDay != today
+        if !dayChangedSinceHardRefresh,
+           let last = lastRefreshAt,
+           Date().timeIntervalSince(last) < interval {
             return
         }
         await refresh()
