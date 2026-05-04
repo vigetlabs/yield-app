@@ -3,6 +3,28 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.16.0</title>
+      <sparkle:version>41</sparkle:version>
+      <sparkle:shortVersionString>0.9.16.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Favorites.</strong> Save a project + task combo as a favorite from the new/edit timer screen by tapping the star to the right of the pickers. Picking a project auto-selects its most-recently-used favorite task, and favorited tasks light up with a star inside the task dropdown so they're easy to spot. A new "★ Favorites ▾" button next to the project picker opens a popover for one-tap selection of a saved combo, and a Favorites card in Settings lists every favorite with a remove button.</li>
+          <li><strong>Day-filter only shows days you tracked.</strong> Booked projects with no time on the filtered day are now hidden — the day-filter view answers "what did I work on this day" rather than "everything booked plus what I worked on".</li>
+          <li>Fix Sunday's logged hours showing up Monday morning when the app stayed open across a sleep — the cache now invalidates on Mac wake and on day rollover at panel-open, regardless of whether the 60s background-refresh timer fires reliably.</li>
+          <li>Fix the <em>Time's up!</em> notification firing when a timer starts on a project that's already over budget. It now only fires when this tracking session's elapsed time crosses the booking.</li>
+          <li>Trim the popup window so it sizes to its content — short project lists no longer leave a gap between the timer banner and the projects, and the new/edit timer view no longer pads itself below the form.</li>
+          <li>Layout polish: drawer time entries sort newest-day-first (no more running-first hoist), the project list / footer divider no longer renders as a doubled border, the "Recent" tab is renamed to "All", and dropdown text is vertically centered.</li>
+          <li>Notes field gets balanced top/bottom padding so the first line doesn't run along the top border.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.16.0/Yield-0.9.16.0.zip"
+        sparkle:edSignature="PUHwXMKVPu5/y+3fJS6BqnhfLzmU9WnDLE5jnu0yvvYbtruqyYFX7Cld6QX2M0895lzF9aPtVdNfaIb8vgxjAw=="
+        length="2505436"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.15.0</title>
       <sparkle:version>40</sparkle:version>
       <sparkle:shortVersionString>0.9.15.0</sparkle:shortVersionString>
