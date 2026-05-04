@@ -572,8 +572,8 @@ final class TimeComparisonViewModel {
     /// Persisted to UserDefaults so even the first refresh after relaunch
     /// can skip the unfiltered-query cold-start penalty.
     private var cachedTimeOffProjectId: Int? {
-        get { UserDefaults.standard.object(forKey: "forecastTimeOffProjectId") as? Int }
-        set { UserDefaults.standard.set(newValue, forKey: "forecastTimeOffProjectId") }
+        get { UserDefaults.standard.object(forKey: DefaultsKey.forecastTimeOffProjectId) as? Int }
+        set { UserDefaults.standard.set(newValue, forKey: DefaultsKey.forecastTimeOffProjectId) }
     }
     private var cachedHarvestUserId: Int?
     private var cachedForecastPersonId: Int?
@@ -585,14 +585,14 @@ final class TimeComparisonViewModel {
     var authMode: AuthMode {
         // OAuth takes priority
         if KeychainHelper.load(key: "accessToken") != nil,
-           let hId = UserDefaults.standard.string(forKey: "oauthHarvestAccountId"), !hId.isEmpty,
-           let fId = UserDefaults.standard.string(forKey: "oauthForecastAccountId"), !fId.isEmpty {
+           let hId = UserDefaults.standard.string(forKey: DefaultsKey.OAuth.harvestAccountId), !hId.isEmpty,
+           let fId = UserDefaults.standard.string(forKey: DefaultsKey.OAuth.forecastAccountId), !fId.isEmpty {
             return .oauth
         }
         // Fall back to PAT
-        let token = UserDefaults.standard.string(forKey: "harvestToken") ?? ""
-        let harvestId = UserDefaults.standard.string(forKey: "harvestAccountId") ?? ""
-        let forecastId = UserDefaults.standard.string(forKey: "forecastAccountId") ?? ""
+        let token = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestToken) ?? ""
+        let harvestId = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestAccountId) ?? ""
+        let forecastId = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.forecastAccountId) ?? ""
         if !token.isEmpty && !harvestId.isEmpty && !forecastId.isEmpty {
             return .pat
         }
@@ -639,7 +639,7 @@ final class TimeComparisonViewModel {
     /// reads through to the persisted UserDefault each access so the
     /// label updates immediately when the setting changes.
     var menuBarLabelMode: MenuBarLabelMode {
-        let raw = UserDefaults.standard.string(forKey: "menuBarLabelMode")
+        let raw = UserDefaults.standard.string(forKey: DefaultsKey.menuBarLabelMode)
             ?? MenuBarLabelMode.projectTime.rawValue
         return MenuBarLabelMode(rawValue: raw) ?? .projectTime
     }
@@ -787,17 +787,14 @@ final class TimeComparisonViewModel {
     }
 
     /// Format raw hours: "7:50".
-    private func formatHM(_ hours: Double) -> String {
-        let (h, m) = hours.roundedHM
-        return "\(h):\(String(format: "%02d", m))"
-    }
+    private func formatHM(_ hours: Double) -> String { hours.formattedColon }
 
     private func makeServices() -> (HarvestService, ForecastService)? {
         switch authMode {
         case .oauth:
             let oAuth = AppState.shared.oAuthService
-            guard let harvestId = UserDefaults.standard.string(forKey: "oauthHarvestAccountId"),
-                  let forecastId = UserDefaults.standard.string(forKey: "oauthForecastAccountId") else {
+            guard let harvestId = UserDefaults.standard.string(forKey: DefaultsKey.OAuth.harvestAccountId),
+                  let forecastId = UserDefaults.standard.string(forKey: DefaultsKey.OAuth.forecastAccountId) else {
                 return nil
             }
             let tokenProvider: () async throws -> String = { try await oAuth.getAccessToken() }
@@ -806,9 +803,9 @@ final class TimeComparisonViewModel {
                 ForecastService(tokenProvider: tokenProvider, accountId: forecastId)
             )
         case .pat:
-            guard let token = UserDefaults.standard.string(forKey: "harvestToken"),
-                  let harvestId = UserDefaults.standard.string(forKey: "harvestAccountId"),
-                  let forecastId = UserDefaults.standard.string(forKey: "forecastAccountId") else {
+            guard let token = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestToken),
+                  let harvestId = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestAccountId),
+                  let forecastId = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.forecastAccountId) else {
                 return nil
             }
             return (
@@ -889,7 +886,7 @@ final class TimeComparisonViewModel {
 
     @MainActor
     private func checkIdleTime() {
-        let enabled = UserDefaults.standard.bool(forKey: "idleDetectionEnabled")
+        let enabled = UserDefaults.standard.bool(forKey: DefaultsKey.idleDetectionEnabled)
         guard enabled else {
             idleNotificationSent = false
             return
@@ -905,7 +902,7 @@ final class TimeComparisonViewModel {
         // Don't check if we're already showing the idle alert
         guard idleAlertState == nil else { return }
 
-        let idleMinutes = UserDefaults.standard.integer(forKey: "idleMinutes")
+        let idleMinutes = UserDefaults.standard.integer(forKey: DefaultsKey.idleMinutes)
         let thresholdSeconds = Double(max(idleMinutes, 1)) * 60.0
 
         // Get system-wide idle time — shortest idle across major input types.
@@ -1636,7 +1633,7 @@ final class TimeComparisonViewModel {
                     if AppState.shared.oAuthService.userName == nil {
                         let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
                         if !name.isEmpty {
-                            UserDefaults.standard.set(name, forKey: "oauthUserName")
+                            UserDefaults.standard.set(name, forKey: DefaultsKey.OAuth.userName)
                         }
                     }
                 }

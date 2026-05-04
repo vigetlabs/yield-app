@@ -185,7 +185,6 @@ enum YieldRadius {
     static let card: CGFloat = 8
     static let button: CGFloat = 4
     static let dropdown: CGFloat = 6
-    static let dropdownOverlay: CGFloat = 8
     static let progressBar: CGFloat = 4
 }
 
@@ -196,6 +195,48 @@ enum YieldDimensions {
     static let progressBarWidth: CGFloat = 104
     static let progressBarHeight: CGFloat = 4
     static let timerButtonSize: CGFloat = 24
+    /// Standard control height for inline form inputs — pickers,
+    /// favorite-list buttons. Matches the dropdown's intrinsic 32pt
+    /// hit target.
+    static let controlHeight: CGFloat = 32
+    /// Notes field + time-input field tracked together so they read
+    /// as a paired row in the new/edit timer form.
+    static let inputFieldHeight: CGFloat = 52
+    /// Settings row dropdown width — same value used for every
+    /// `enumPickerRow` so all rows align.
+    static let settingsRowControlWidth: CGFloat = 160
+    /// Project row heights — taller when the row carries a progress
+    /// bar (forecasted), shorter when it doesn't.
+    static let projectRowForecastedHeight: CGFloat = 74
+    static let projectRowDefaultHeight: CGFloat = 56
+}
+
+// MARK: - View modifiers
+
+extension View {
+    /// Apply the standard "rounded surface with hairline border"
+    /// treatment — used by dropdowns, the favorites button, the notes
+    /// and time-input fields, and any other inline form control. The
+    /// caller is expected to set its own `.background(...)` (typically
+    /// `YieldColors.surfaceDefault`); this modifier just clips and
+    /// strokes.
+    func yieldBorder(radius: CGFloat = YieldRadius.dropdown) -> some View {
+        self
+            .clipShape(RoundedRectangle(cornerRadius: radius))
+            .overlay(
+                RoundedRectangle(cornerRadius: radius)
+                    .strokeBorder(YieldColors.border, lineWidth: 1)
+            )
+    }
+
+    /// The Settings panel's "card" treatment: surface fill plus the
+    /// standard rounded border. Used for the Account / Preferences /
+    /// Favorites / About sections so their styling stays in sync.
+    func yieldCard() -> some View {
+        self
+            .background(YieldColors.surfaceDefault)
+            .yieldBorder(radius: YieldRadius.card)
+    }
 }
 
 // MARK: - Domain constants

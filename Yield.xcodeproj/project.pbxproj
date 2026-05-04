@@ -35,6 +35,7 @@
 		99ED0D0543AAE1B074741BC6 /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */; };
 		A718514604B129BD1665B93E /* StatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */; };
 		ACB882604B7D20FC84473136 /* DropdownPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82BA76EB59241974EF71AF53 /* DropdownPicker.swift */; };
+		B2874BEB76A001702546E05A /* DefaultsKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */; };
 		BD87BA8B7958E952013CD215 /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */; };
 		C0BFE1EB7FE167CA2FBD34B4 /* NewTimerFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9128BE0471E69DB0E0878DA8 /* NewTimerFormView.swift */; };
 		C4E96F0745CED0E60BA91284 /* HarvestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54F1249B6E2997187DDBD28 /* HarvestService.swift */; };
@@ -89,6 +90,7 @@
 		ECA417D28206A2DBE49C1D74 /* ProjectStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStatus.swift; sourceTree = "<group>"; };
 		F160FBF429C939C04135CD72 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F2BD4C5582428B3456F726D2 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultsKey.swift; sourceTree = "<group>"; };
 		FEA76C955D9D91DB7C944F6F /* DMSans-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-SemiBold.ttf"; sourceTree = "<group>"; };
 		FF707BC7919EFF060031F5B9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -162,6 +164,7 @@
 			children = (
 				22A0F29CD8D3681B5AF53341 /* APIClient.swift */,
 				2C64919FC02138F05B504BF5 /* DateHelpers.swift */,
+				F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */,
 				9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */,
 				EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */,
 				C54F1249B6E2997187DDBD28 /* HarvestService.swift */,
@@ -312,6 +315,7 @@
 			files = (
 				DD5B690291EBA5B1C1FB36F3 /* APIClient.swift in Sources */,
 				CA12BB7BD1F76E62FC87A9F1 /* DateHelpers.swift in Sources */,
+				B2874BEB76A001702546E05A /* DefaultsKey.swift in Sources */,
 				12764D69F0D5F8224898949E /* DesignTokens.swift in Sources */,
 				ACB882604B7D20FC84473136 /* DropdownPicker.swift in Sources */,
 				BD87BA8B7958E952013CD215 /* FavoritesStore.swift in Sources */,

@@ -54,7 +54,7 @@ final class FavoritesStore {
 
     private(set) var favorites: Set<Favorite> = []
 
-    private let storageKey = "favorites"
+    private let storageKey = DefaultsKey.favorites
 
     init() {
         load()

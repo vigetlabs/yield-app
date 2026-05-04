@@ -58,9 +58,8 @@ struct ProjectStatus: Identifiable {
     }
 
     var remainingFormatted: String {
-        let (h, m) = Swift.abs(remainingHours).roundedHM
         let suffix = isOver ? "over this week" : "remaining this week"
-        return "\(h)h \(String(format: "%02d", m))m \(suffix)"
+        return "\(Swift.abs(remainingHours).formattedHoursMinutes) \(suffix)"
     }
 
     var isForecasted: Bool {
@@ -94,6 +93,20 @@ extension Double {
     var roundedHM: (h: Int, m: Int) {
         let total = Int((self * 60).rounded())
         return (total / 60, total % 60)
+    }
+
+    /// `"H:MM"` — colon form used by the menu bar label and tooltips.
+    /// Caller wraps with `Swift.abs(...)` if the value can be negative.
+    var formattedColon: String {
+        let (h, m) = roundedHM
+        return "\(h):\(String(format: "%02d", m))"
+    }
+
+    /// `"Hh MMm"` — long form used in row times, remaining-hours
+    /// labels, and the duplicate banner.
+    var formattedHoursMinutes: String {
+        let (h, m) = roundedHM
+        return "\(h)h \(String(format: "%02d", m))m"
     }
 }
 

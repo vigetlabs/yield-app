@@ -1,0 +1,42 @@
+import Foundation
+
+/// Single source of truth for every UserDefaults key the app reads or
+/// writes. Centralizing prevents typo-driven phantom keys (we had a
+/// historical split between `"harvestAccountId"` and
+/// `"oauthHarvestAccountId"` that this enum makes obvious) and makes
+/// it easier to audit what the app persists.
+///
+/// Keys are exposed as `static let` so `@AppStorage` and direct
+/// `UserDefaults` calls can both reference the same constants.
+enum DefaultsKey {
+    // MARK: - Preferences (Settings panel)
+    static let appearanceMode = "appearanceMode"
+    static let menuBarLabelMode = "menuBarLabelMode"
+    static let idleDetectionEnabled = "idleDetectionEnabled"
+    static let idleMinutes = "idleMinutes"
+
+    // MARK: - User data
+    static let favorites = "favorites"
+    /// Cached Forecast project id for the global "Time Off" project,
+    /// so the first refresh after relaunch doesn't pay for a second
+    /// lookup. See TimeComparisonViewModel.
+    static let forecastTimeOffProjectId = "forecastTimeOffProjectId"
+
+    // MARK: - OAuth tokens (current sign-in path)
+    enum OAuth {
+        static let tokenExpiresAt = "oauthTokenExpiresAt"
+        static let harvestAccountId = "oauthHarvestAccountId"
+        static let forecastAccountId = "oauthForecastAccountId"
+        static let userName = "oauthUserName"
+    }
+
+    // MARK: - Legacy PAT-based credentials
+    /// Personal-access-token credentials from before the OAuth flow.
+    /// Read at startup as a fallback when no OAuth tokens are present;
+    /// migration writes are not implemented (users re-sign in).
+    enum Legacy {
+        static let harvestToken = "harvestToken"
+        static let harvestAccountId = "harvestAccountId"
+        static let forecastAccountId = "forecastAccountId"
+    }
+}

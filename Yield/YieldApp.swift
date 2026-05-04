@@ -30,10 +30,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Register defaults so @AppStorage and UserDefaults agree on initial values
         UserDefaults.standard.register(defaults: [
-            "idleDetectionEnabled": true,
-            "idleMinutes": 10,
-            "menuBarLabelMode": MenuBarLabelMode.projectTime.rawValue,
-            "appearanceMode": AppearanceMode.default.rawValue,
+            DefaultsKey.idleDetectionEnabled: true,
+            DefaultsKey.idleMinutes: 10,
+            DefaultsKey.menuBarLabelMode: MenuBarLabelMode.projectTime.rawValue,
+            DefaultsKey.appearanceMode: AppearanceMode.default.rawValue,
         ])
 
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
@@ -43,7 +43,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
         // Apply the persisted appearance choice. The App's body also
         // observes `appearanceMode` and updates this on change, so the
         // user's selection takes effect without restarting.
-        let raw = UserDefaults.standard.string(forKey: "appearanceMode") ?? AppearanceMode.default.rawValue
+        let raw = UserDefaults.standard.string(forKey: DefaultsKey.appearanceMode) ?? AppearanceMode.default.rawValue
         applyAppearance(raw)
 
         // Refresh whenever the MenuBarExtra panel opens, so state reflects
@@ -129,10 +129,10 @@ struct YieldApp: App {
     /// Read here so SwiftUI tracks the dependency — changing the setting
     /// in Settings re-runs the MenuBarExtra label closure with the new
     /// mode, which produces a different cache key and a new image.
-    @AppStorage("menuBarLabelMode") private var menuBarLabelModeRaw: String = MenuBarLabelMode.projectTime.rawValue
+    @AppStorage(DefaultsKey.menuBarLabelMode) private var menuBarLabelModeRaw: String = MenuBarLabelMode.projectTime.rawValue
     /// Drives `NSApp.appearance` and the panel's preferred color scheme
     /// so the user's appearance choice is honored at runtime.
-    @AppStorage("appearanceMode") private var appearanceModeRaw: String = AppearanceMode.default.rawValue
+    @AppStorage(DefaultsKey.appearanceMode) private var appearanceModeRaw: String = AppearanceMode.default.rawValue
     private var viewModel: TimeComparisonViewModel { AppState.shared.viewModel }
 
     private var appearanceMode: AppearanceMode {

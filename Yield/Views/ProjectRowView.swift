@@ -204,7 +204,7 @@ struct ProjectRowView: View {
             .padding(.leading, 16)
             .padding(.trailing, 16)
         }
-        .frame(height: project.isForecasted ? 74 : 56)
+        .frame(height: project.isForecasted ? YieldDimensions.projectRowForecastedHeight : YieldDimensions.projectRowDefaultHeight)
     }
 
     // MARK: - Status Line
@@ -269,16 +269,14 @@ struct ProjectRowView: View {
     }
 
     private func formatRemainingLabel(_ remaining: Double) -> String {
-        let (h, m) = Swift.abs(remaining).roundedHM
         let suffix = remaining < 0 ? "over this week" : "remaining this week"
-        return "\(h)h \(String(format: "%02d", m))m \(suffix)"
+        return "\(Swift.abs(remaining).formattedHoursMinutes) \(suffix)"
     }
 }
 
 // Shared hours:minutes formatter used by ProjectRowView and TaskEntryRowView
 private func formatHM(_ hours: Double) -> String {
-    let (h, m) = Swift.abs(hours).roundedHM
-    return "\(h)h \(String(format: "%02d", m))m"
+    Swift.abs(hours).formattedHoursMinutes
 }
 
 // MARK: - Progress Bar
@@ -480,10 +478,7 @@ struct SegmentedProgressBarView: View {
     }
 
     /// Format hours as "H:MM" (e.g. 3.25 → "3:15"). Tooltip-friendly.
-    private func formatHMColon(_ hours: Double) -> String {
-        let (h, m) = hours.roundedHM
-        return "\(h):\(String(format: "%02d", m))"
-    }
+    private func formatHMColon(_ hours: Double) -> String { hours.formattedColon }
 }
 
 // MARK: - Task Entry Row

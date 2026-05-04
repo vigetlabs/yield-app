@@ -5,10 +5,10 @@ struct SettingsView: View {
     let oAuthService: OAuthService
     let onDismiss: () -> Void
 
-    @AppStorage("appearanceMode") private var appearanceMode: String = AppearanceMode.default.rawValue
-    @AppStorage("idleDetectionEnabled") private var idleDetectionEnabled = true
-    @AppStorage("idleMinutes") private var idleMinutes = 10
-    @AppStorage("menuBarLabelMode") private var menuBarLabelMode: String = MenuBarLabelMode.projectTime.rawValue
+    @AppStorage(DefaultsKey.appearanceMode) private var appearanceMode: String = AppearanceMode.default.rawValue
+    @AppStorage(DefaultsKey.idleDetectionEnabled) private var idleDetectionEnabled = true
+    @AppStorage(DefaultsKey.idleMinutes) private var idleMinutes = 10
+    @AppStorage(DefaultsKey.menuBarLabelMode) private var menuBarLabelMode: String = MenuBarLabelMode.projectTime.rawValue
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     /// All Harvest projects the current user has access to, fetched
@@ -175,12 +175,7 @@ struct SettingsView: View {
                 .padding(12)
             }
         }
-        .background(YieldColors.surfaceDefault)
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: YieldRadius.card)
-                .strokeBorder(YieldColors.border, lineWidth: 1)
-        )
+        .yieldCard()
     }
 
     // MARK: - Preferences Card
@@ -252,11 +247,7 @@ struct SettingsView: View {
                     .padding(.horizontal, 4)
                     .padding(.vertical, 3)
                     .background(YieldColors.background)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .strokeBorder(YieldColors.border, lineWidth: 1)
-                    )
+                    .yieldBorder(radius: YieldRadius.button)
                     .disabled(!idleDetectionEnabled)
                     .opacity(idleDetectionEnabled ? 1 : 0.4)
                     .onChange(of: idleMinutes) { _, newValue in
@@ -272,12 +263,7 @@ struct SettingsView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
-        .background(YieldColors.surfaceDefault)
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: YieldRadius.card)
-                .strokeBorder(YieldColors.border, lineWidth: 1)
-        )
+        .yieldCard()
     }
 
     // MARK: - Favorites Card
@@ -370,12 +356,7 @@ struct SettingsView: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .background(YieldColors.surfaceDefault)
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: YieldRadius.card)
-                .strokeBorder(YieldColors.border, lineWidth: 1)
-        )
+        .yieldCard()
     }
 
     private func favoriteRow(_ fav: FavoriteEntry) -> some View {
@@ -467,12 +448,7 @@ struct SettingsView: View {
             }
             .buttonStyle(.plain)
         }
-        .background(YieldColors.surfaceDefault)
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: YieldRadius.card)
-                .strokeBorder(YieldColors.border, lineWidth: 1)
-        )
+        .yieldCard()
     }
 
     // MARK: - Helpers
@@ -558,7 +534,7 @@ struct SettingsView: View {
                 guard cases.indices.contains(id) else { return }
                 onSelect(cases[id].rawValue)
             }
-            .frame(width: 160)
+            .frame(width: YieldDimensions.settingsRowControlWidth)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

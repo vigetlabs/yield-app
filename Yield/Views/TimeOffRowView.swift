@@ -41,7 +41,7 @@ struct TimeOffRowView: View {
             .padding(.leading, 16)
             .padding(.trailing, 16)
         }
-        .frame(height: 56)
+        .frame(height: YieldDimensions.projectRowDefaultHeight)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(YieldColors.border)

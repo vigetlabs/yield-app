@@ -212,13 +212,9 @@ struct NewTimerFormView: View {
                             .padding(.horizontal, 8)
                             .padding(.vertical, 8)
                     }
-                    .frame(height: 52)
+                    .frame(height: YieldDimensions.inputFieldHeight)
                     .background(YieldColors.surfaceDefault)
-                    .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: YieldRadius.dropdown)
-                            .strokeBorder(YieldColors.border, lineWidth: 1)
-                    )
+                    .yieldBorder()
 
                     // Manual time entry (HH:MM)
                     TimeInputView(hours: $timeHours, minutes: $timeMinutes)
@@ -421,13 +417,9 @@ struct NewTimerFormView: View {
             }
             .foregroundStyle(YieldColors.textSecondary)
             .padding(.horizontal, 10)
-            .frame(height: 32)
+            .frame(height: YieldDimensions.controlHeight)
             .background(YieldColors.surfaceDefault)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
-            .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.dropdown)
-                    .strokeBorder(YieldColors.border, lineWidth: 1)
-            )
+            .yieldBorder()
         }
         .buttonStyle(.plain)
         .popover(isPresented: $showFavoritesPopover, arrowEdge: .top) {
@@ -812,13 +804,9 @@ private struct TimeInputView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .frame(height: 52)
+            .frame(height: YieldDimensions.inputFieldHeight)
             .background(YieldColors.surfaceDefault)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
-            .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.dropdown)
-                    .strokeBorder(YieldColors.border, lineWidth: 1)
-            )
+            .yieldBorder()
             .fixedSize(horizontal: true, vertical: false)
             .onAppear { text = Self.format(hours: hours, minutes: minutes) }
             // Push parseable text into the bindings on every keystroke

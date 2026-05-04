@@ -467,10 +467,7 @@ struct MenuBarContentView: View {
         }
     }
 
-    private func formatDayHours(_ hours: Double) -> String {
-        let (h, m) = hours.roundedHM
-        return String(format: "%d:%02d", h, m)
-    }
+    private func formatDayHours(_ hours: Double) -> String { hours.formattedColon }
 
     /// Grouped back/forward chevron controls, styled to match the tab
     /// toggle — filled subtle bg, no outer border, thin panel-colored seam

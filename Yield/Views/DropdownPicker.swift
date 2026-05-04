@@ -37,13 +37,9 @@ struct DropdownPicker: View {
                 favoritedIds: favoritedIds,
                 onSelect: onSelect
             )
-            .frame(height: 32)
+            .frame(height: YieldDimensions.controlHeight)
             .background(YieldColors.surfaceDefault)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
-            .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.dropdown)
-                    .strokeBorder(YieldColors.border, lineWidth: 1)
-            )
+            .yieldBorder()
         }
     }
 
@@ -60,14 +56,10 @@ struct DropdownPicker: View {
             Spacer()
         }
         .padding(.horizontal, 12)
-        .frame(height: 32)
+        .frame(height: YieldDimensions.controlHeight)
         .accessibilityLabel(label)
         .background(YieldColors.surfaceDefault)
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
-        .overlay(
-            RoundedRectangle(cornerRadius: YieldRadius.dropdown)
-                .strokeBorder(YieldColors.border, lineWidth: 1)
-        )
+        .yieldBorder()
     }
 }
 

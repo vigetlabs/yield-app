@@ -18,15 +18,15 @@ final class OAuthService {
     }
 
     var harvestAccountId: String? {
-        UserDefaults.standard.string(forKey: "oauthHarvestAccountId")
+        UserDefaults.standard.string(forKey: DefaultsKey.OAuth.harvestAccountId)
     }
 
     var forecastAccountId: String? {
-        UserDefaults.standard.string(forKey: "oauthForecastAccountId")
+        UserDefaults.standard.string(forKey: DefaultsKey.OAuth.forecastAccountId)
     }
 
     var userName: String? {
-        UserDefaults.standard.string(forKey: "oauthUserName")
+        UserDefaults.standard.string(forKey: DefaultsKey.OAuth.userName)
     }
 
     // MARK: - OAuth Flow
@@ -188,7 +188,7 @@ final class OAuthService {
         }
 
         // Check if token needs refresh
-        let expiresAt = UserDefaults.standard.double(forKey: "oauthTokenExpiresAt")
+        let expiresAt = UserDefaults.standard.double(forKey: DefaultsKey.OAuth.tokenExpiresAt)
         if expiresAt > 0 && Date().timeIntervalSince1970 > expiresAt - 300 {
             // Token expires within 5 minutes — refresh it
             return try await refreshToken()
@@ -200,10 +200,10 @@ final class OAuthService {
     func signOut() {
         KeychainHelper.delete(key: "accessToken")
         KeychainHelper.delete(key: "refreshToken")
-        UserDefaults.standard.removeObject(forKey: "oauthTokenExpiresAt")
-        UserDefaults.standard.removeObject(forKey: "oauthHarvestAccountId")
-        UserDefaults.standard.removeObject(forKey: "oauthForecastAccountId")
-        UserDefaults.standard.removeObject(forKey: "oauthUserName")
+        UserDefaults.standard.removeObject(forKey: DefaultsKey.OAuth.tokenExpiresAt)
+        UserDefaults.standard.removeObject(forKey: DefaultsKey.OAuth.harvestAccountId)
+        UserDefaults.standard.removeObject(forKey: DefaultsKey.OAuth.forecastAccountId)
+        UserDefaults.standard.removeObject(forKey: DefaultsKey.OAuth.userName)
         // Forecast's Time Off project ID is account-specific. Clearing it
         // here prevents the first refresh after a re-login from scoping
         // the "Everyone" query against a stale ID from the prior account.
@@ -289,7 +289,7 @@ final class OAuthService {
         try KeychainHelper.save(key: "accessToken", value: response.accessToken)
         try KeychainHelper.save(key: "refreshToken", value: response.refreshToken)
         let expiresAt = Date().timeIntervalSince1970 + Double(response.expiresIn)
-        UserDefaults.standard.set(expiresAt, forKey: "oauthTokenExpiresAt")
+        UserDefaults.standard.set(expiresAt, forKey: DefaultsKey.OAuth.tokenExpiresAt)
     }
 
     private func parseAndStoreAccountIds(from scope: String) {
@@ -300,9 +300,9 @@ final class OAuthService {
             guard segments.count == 2 else { continue }
             switch segments[0] {
             case "harvest":
-                UserDefaults.standard.set(segments[1], forKey: "oauthHarvestAccountId")
+                UserDefaults.standard.set(segments[1], forKey: DefaultsKey.OAuth.harvestAccountId)
             case "forecast":
-                UserDefaults.standard.set(segments[1], forKey: "oauthForecastAccountId")
+                UserDefaults.standard.set(segments[1], forKey: DefaultsKey.OAuth.forecastAccountId)
             default:
                 break
             }
@@ -337,13 +337,13 @@ final class OAuthService {
         let forecastAccount = accountsResponse.accounts.first(where: { $0.product == "forecast" })
 
         if let harvest = harvestAccount {
-            UserDefaults.standard.set(String(harvest.id), forKey: "oauthHarvestAccountId")
+            UserDefaults.standard.set(String(harvest.id), forKey: DefaultsKey.OAuth.harvestAccountId)
         }
         if let forecast = forecastAccount {
-            UserDefaults.standard.set(String(forecast.id), forKey: "oauthForecastAccountId")
+            UserDefaults.standard.set(String(forecast.id), forKey: DefaultsKey.OAuth.forecastAccountId)
         } else if let harvest = harvestAccount {
             // Fallback if no separate Forecast account
-            UserDefaults.standard.set(String(harvest.id), forKey: "oauthForecastAccountId")
+            UserDefaults.standard.set(String(harvest.id), forKey: DefaultsKey.OAuth.forecastAccountId)
         }
     }
 
@@ -357,7 +357,7 @@ final class OAuthService {
         if let user = try? await service.getCurrentUser() {
             let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
             if !name.isEmpty {
-                UserDefaults.standard.set(name, forKey: "oauthUserName")
+                UserDefaults.standard.set(name, forKey: DefaultsKey.OAuth.userName)
             }
         }
     }
