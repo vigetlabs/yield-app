@@ -23,6 +23,7 @@ struct NewTimerFormView: View {
     @State private var availableTasks: [TaskOption] = []
     @State private var spentDate: Date = Date()
     @State private var duplicateConfirmEntries: [TimeEntryInfo]?
+    @State private var showFavoritesPopover = false
 
     init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -174,12 +175,20 @@ struct NewTimerFormView: View {
 
             // Dropdowns + Notes
             VStack(alignment: .leading, spacing: 12) {
-                // Project + task pickers, with the favorite star button
-                // floating to the right so the user can save the
-                // currently-selected combo.
+                // Project + task pickers, with the favorite star
+                // button floating to the right (toggles favorite for
+                // the current selection). When the user has favorites,
+                // a "Favorites" button sits inline with the project
+                // picker — opens a popover for one-tap selection of a
+                // saved combo.
                 HStack(alignment: .center, spacing: 8) {
                     VStack(alignment: .leading, spacing: 12) {
-                        projectPicker
+                        HStack(spacing: 8) {
+                            projectPicker
+                            if !resolvedFavorites.isEmpty {
+                                favoritesPickerButton
+                            }
+                        }
                         taskPicker
                     }
                     favoriteButton
@@ -347,6 +356,139 @@ struct NewTimerFormView: View {
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.4)
         .help(filled ? "Remove from favorites" : "Add to favorites")
+    }
+
+    // MARK: - Favorites Pill Row
+
+    private struct ResolvedFavorite: Identifiable {
+        let projectId: Int
+        let taskId: Int
+        let clientName: String?
+        let projectName: String
+        let taskName: String
+        let lastUsedAt: Date
+
+        var id: String { "\(projectId)-\(taskId)" }
+    }
+
+    /// Favorites resolved against the loaded `allProjects`. Sorted
+    /// most-recently-used first so the pill row reads as the user's
+    /// "recent quick-picks". Drops favorites whose project the user
+    /// no longer has access to since they can't be selected from this
+    /// form anyway (the Settings card still surfaces them for cleanup).
+    private var resolvedFavorites: [ResolvedFavorite] {
+        let projectsById = Dictionary(uniqueKeysWithValues: allProjects.map { ($0.harvestProjectId, $0) })
+        return FavoritesStore.shared.favorites
+            .compactMap { fav -> ResolvedFavorite? in
+                guard let project = projectsById[fav.projectId],
+                      let task = project.taskAssignments.first(where: { $0.task.id == fav.taskId })?.task
+                else { return nil }
+                return ResolvedFavorite(
+                    projectId: fav.projectId,
+                    taskId: fav.taskId,
+                    clientName: project.clientName,
+                    projectName: project.projectName,
+                    taskName: task.name,
+                    lastUsedAt: fav.lastUsedAt
+                )
+            }
+            .sorted { $0.lastUsedAt > $1.lastUsedAt }
+    }
+
+    private var favoritesPickerButton: some View {
+        Button {
+            showFavoritesPopover = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                Text("Favorites")
+                    .font(YieldFonts.dmSans(11, weight: .medium))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+            }
+            .foregroundStyle(YieldColors.textSecondary)
+            .padding(.horizontal, 10)
+            .frame(height: 32)
+            .background(YieldColors.surfaceDefault)
+            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
+            .overlay(
+                RoundedRectangle(cornerRadius: YieldRadius.dropdown)
+                    .strokeBorder(YieldColors.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showFavoritesPopover, arrowEdge: .top) {
+            favoritesPopoverContent
+        }
+    }
+
+    private var favoritesPopoverContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(resolvedFavorites.enumerated()), id: \.element.id) { index, fav in
+                favoritePopoverRow(fav)
+                if index < resolvedFavorites.count - 1 {
+                    Rectangle()
+                        .fill(YieldColors.border)
+                        .frame(height: 1)
+                }
+            }
+        }
+        .frame(minWidth: 260)
+        .padding(.vertical, 4)
+    }
+
+    private func favoritePopoverRow(_ fav: ResolvedFavorite) -> some View {
+        let isSelected = selectedProjectId == fav.projectId && selectedTaskId == fav.taskId
+        return Button {
+            applyFavorite(fav)
+            showFavoritesPopover = false
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .frame(width: 16)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(ProjectStatus.qualifiedName(client: fav.clientName, project: fav.projectName))
+                        .font(YieldFonts.dmSans(11, weight: .medium))
+                        .foregroundStyle(YieldColors.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text(fav.taskName)
+                        .font(YieldFonts.dmSans(10))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+
+                Spacer(minLength: 8)
+
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(YieldColors.greenAccent)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Apply a favorite to the form: select the project (loading its
+    /// tasks) and force the favorited task — the existing
+    /// `selectProject` auto-selects the most-recently-used favorite
+    /// for the project, but here we want THIS favorite specifically.
+    private func applyFavorite(_ fav: ResolvedFavorite) {
+        guard let project = allProjects.first(where: { $0.harvestProjectId == fav.projectId }) else { return }
+        selectedProjectId = project.harvestProjectId
+        availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
+        duplicateConfirmEntries = nil
+        selectTask(fav.taskId)
     }
 
     // MARK: - Project Picker
