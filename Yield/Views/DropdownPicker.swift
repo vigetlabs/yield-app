@@ -17,6 +17,9 @@ struct DropdownPicker: View {
     var groups: [DropdownGroup]? = nil
     var selectedId: Int?
     var isDisabled: Bool = false
+    /// Item ids that should render with a leading star icon — used to
+    /// surface favorited tasks inline with the rest of the list.
+    var favoritedIds: Set<Int> = []
     let onSelect: (Int) -> Void
 
     var body: some View {
@@ -31,6 +34,7 @@ struct DropdownPicker: View {
                 placeholder: placeholder,
                 label: label,
                 isDisabled: isDisabled,
+                favoritedIds: favoritedIds,
                 onSelect: onSelect
             )
             .frame(height: 32)
@@ -76,7 +80,45 @@ private struct NativePopUpButton: NSViewRepresentable {
     let placeholder: String
     let label: String
     let isDisabled: Bool
+    let favoritedIds: Set<Int>
     let onSelect: (Int) -> Void
+
+    /// Build a menu-item attributed title with a leading star glyph
+    /// when `isFavorited`. Inlining the star as a text attachment lets
+    /// us match the text color (`.labelColor` adapts across light and
+    /// dark) and nudge the baseline so it aligns with the text's cap
+    /// height rather than sitting low on the line — controls the
+    /// `NSMenuItem.image` API doesn't expose. The same attributed
+    /// title is rendered both in the open menu and in the closed
+    /// popup's selected state.
+    private static func attributedTitle(for title: String, font: NSFont, isFavorited: Bool) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        if isFavorited, let star = favoriteIcon(forFont: font) {
+            let attachment = NSTextAttachment()
+            attachment.image = star
+            let glyphSize = font.pointSize
+            // Negative y lowers the attachment below the baseline. The
+            // SF Symbol star occupies its full bounds, but visually
+            // reads as sitting above the text baseline at y: 0; -1pt
+            // drops it to align with the cap-to-baseline span of the
+            // surrounding text.
+            attachment.bounds = NSRect(x: 0, y: -1, width: glyphSize, height: glyphSize)
+            result.append(NSAttributedString(attachment: attachment))
+            result.append(NSAttributedString(string: "  ", attributes: [.font: font]))
+        }
+        result.append(NSAttributedString(string: title, attributes: [.font: font]))
+        return result
+    }
+
+    private static func favoriteIcon(forFont font: NSFont) -> NSImage? {
+        let glyphSize = font.pointSize
+        let config = NSImage.SymbolConfiguration(pointSize: glyphSize, weight: .semibold)
+            .applying(.init(paletteColors: [.labelColor]))
+        let image = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favorite")?
+            .withSymbolConfiguration(config)
+        image?.size = NSSize(width: glyphSize, height: glyphSize)
+        return image
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onSelect: onSelect)
@@ -99,13 +141,20 @@ private struct NativePopUpButton: NSViewRepresentable {
         container.addSubview(popup)
 
         NSLayoutConstraint.activate([
-            // Fill the container so the entire visible dropdown area is clickable —
-            // otherwise the button only takes its intrinsic ~22pt height centered in
-            // the 32pt container, leaving ~5pt strips of dead space top and bottom.
+            // Let the popup take its intrinsic ~22pt height and center
+            // vertically in the 32pt container so the text reads as
+            // centered. Stretching top-to-bottom shifted the text up
+            // because `.inline + bordered: false` draws the title at
+            // the popup's baseline, not the stretched frame's center.
+            // ClickForwardingView already forwards clicks from the
+            // padding strips, so we don't need the popup to fill.
             popup.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
             popup.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8),
-            popup.topAnchor.constraint(equalTo: container.topAnchor),
-            popup.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            // Nudged down 1pt — the popup's intrinsic baseline still
+            // reads slightly above the visual center of the 32pt
+            // container, so a small offset lands the title where the
+            // eye expects it.
+            popup.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: 1),
         ])
 
         context.coordinator.popup = popup
@@ -159,9 +208,10 @@ private struct NativePopUpButton: NSViewRepresentable {
                 // Group items (indented)
                 for item in group.items {
                     let menuItem = NSMenuItem()
-                    menuItem.attributedTitle = NSAttributedString(
-                        string: item.title,
-                        attributes: [.font: menuFont]
+                    menuItem.attributedTitle = Self.attributedTitle(
+                        for: item.title,
+                        font: menuFont,
+                        isFavorited: favoritedIds.contains(item.id)
                     )
                     menuItem.tag = item.id
                     menuItem.indentationLevel = group.label != nil ? 1 : 0
@@ -173,9 +223,10 @@ private struct NativePopUpButton: NSViewRepresentable {
             for item in items {
                 popup.addItem(withTitle: item.title)
                 popup.lastItem?.tag = item.id
-                popup.lastItem?.attributedTitle = NSAttributedString(
-                    string: item.title,
-                    attributes: [.font: menuFont]
+                popup.lastItem?.attributedTitle = Self.attributedTitle(
+                    for: item.title,
+                    font: menuFont,
+                    isFavorited: favoritedIds.contains(item.id)
                 )
             }
         }

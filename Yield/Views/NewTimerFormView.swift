@@ -391,11 +391,24 @@ struct NewTimerFormView: View {
             isLoading: false,
             items: availableTasks.map { ($0.id, $0.name) },
             selectedId: selectedTaskId,
-            isDisabled: selectedProjectId == nil
+            isDisabled: selectedProjectId == nil,
+            favoritedIds: favoritedTaskIds
         ) { id in
             selectTask(id)
         }
         .opacity(selectedProjectId == nil ? 0.5 : 1)
+    }
+
+    /// Task ids favorited under the currently-selected project. The
+    /// dropdown lights a star next to each so favorites are surfaced
+    /// inline with the rest of the task list.
+    private var favoritedTaskIds: Set<Int> {
+        guard let projectId = selectedProjectId else { return [] }
+        return Set(
+            FavoritesStore.shared.favorites
+                .filter { $0.projectId == projectId }
+                .map { $0.taskId }
+        )
     }
 
     // MARK: - Actions
@@ -415,7 +428,14 @@ struct NewTimerFormView: View {
         selectedTaskId = nil
         duplicateConfirmEntries = nil
         availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
-        if let onlyTask = availableTasks.first, availableTasks.count == 1 {
+        // Auto-select preference order:
+        //   1. Most-recently-used favorite for this project (covers
+        //      both single-favorite and multi-favorite cases)
+        //   2. Project's only task, if there's just one
+        if let fav = FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: project.harvestProjectId),
+           availableTasks.contains(where: { $0.id == fav.taskId }) {
+            selectTask(fav.taskId)
+        } else if let onlyTask = availableTasks.first, availableTasks.count == 1 {
             selectTask(onlyTask.id)
         }
     }
@@ -453,6 +473,7 @@ struct NewTimerFormView: View {
 
         let hours = enteredHours > 0 ? enteredHours : nil
         let notesToSend = notes.isEmpty ? nil : notes
+        FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
         onDismiss()
         await viewModel.startNewTimer(projectId: projectId, taskId: taskId, hours: hours, notes: notesToSend)
     }
@@ -465,6 +486,7 @@ struct NewTimerFormView: View {
         let hours = enteredHours
         let notesToSend = notes.isEmpty ? nil : notes
         let date = spentDateString
+        FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
         onDismiss()
         await viewModel.logTimeEntry(
             projectId: projectId,
@@ -482,6 +504,7 @@ struct NewTimerFormView: View {
         // Only send notes if the user changed them, to avoid unintentionally clearing
         let notesToSend = notes != (entry.notes ?? "") ? notes : entry.notes ?? ""
 
+        FavoritesStore.shared.markUsed(projectId: entry.harvestProjectId, taskId: taskId)
         onDismiss()
         await viewModel.updateExistingEntry(
             entryId: entry.id,
