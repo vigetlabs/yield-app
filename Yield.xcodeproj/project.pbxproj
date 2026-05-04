@@ -35,6 +35,7 @@
 		99ED0D0543AAE1B074741BC6 /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */; };
 		A718514604B129BD1665B93E /* StatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */; };
 		ACB882604B7D20FC84473136 /* DropdownPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82BA76EB59241974EF71AF53 /* DropdownPicker.swift */; };
+		BD87BA8B7958E952013CD215 /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */; };
 		C0BFE1EB7FE167CA2FBD34B4 /* NewTimerFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9128BE0471E69DB0E0878DA8 /* NewTimerFormView.swift */; };
 		C4E96F0745CED0E60BA91284 /* HarvestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54F1249B6E2997187DDBD28 /* HarvestService.swift */; };
 		CA12BB7BD1F76E62FC87A9F1 /* DateHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C64919FC02138F05B504BF5 /* DateHelpers.swift */; };
@@ -67,6 +68,7 @@
 		863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Regular.ttf"; sourceTree = "<group>"; };
 		8B78953DDC0FEB63661C043A /* HarvestStatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestStatusService.swift; sourceTree = "<group>"; };
 		9128BE0471E69DB0E0878DA8 /* NewTimerFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTimerFormView.swift; sourceTree = "<group>"; };
+		9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
 		9F394448517841A11132011C /* IdleAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertView.swift; sourceTree = "<group>"; };
 		9FE70177FE259AB1C37908F0 /* HarvestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestModels.swift; sourceTree = "<group>"; };
 		A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
@@ -160,6 +162,7 @@
 			children = (
 				22A0F29CD8D3681B5AF53341 /* APIClient.swift */,
 				2C64919FC02138F05B504BF5 /* DateHelpers.swift */,
+				9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */,
 				EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */,
 				C54F1249B6E2997187DDBD28 /* HarvestService.swift */,
 				8B78953DDC0FEB63661C043A /* HarvestStatusService.swift */,
@@ -311,6 +314,7 @@
 				CA12BB7BD1F76E62FC87A9F1 /* DateHelpers.swift in Sources */,
 				12764D69F0D5F8224898949E /* DesignTokens.swift in Sources */,
 				ACB882604B7D20FC84473136 /* DropdownPicker.swift in Sources */,
+				BD87BA8B7958E952013CD215 /* FavoritesStore.swift in Sources */,
 				E334718332CF138B1EAC4ADF /* ForecastModels.swift in Sources */,
 				95B603C14869A370CBA0C1B4 /* ForecastNotesIcon.swift in Sources */,
 				8F8396A0AC2F4F6920926C37 /* ForecastService.swift in Sources */,

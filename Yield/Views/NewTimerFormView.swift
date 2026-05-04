@@ -174,11 +174,16 @@ struct NewTimerFormView: View {
 
             // Dropdowns + Notes
             VStack(alignment: .leading, spacing: 12) {
-                // Project dropdown
-                projectPicker
-
-                // Task dropdown
-                taskPicker
+                // Project + task pickers, with the favorite star button
+                // floating to the right so the user can save the
+                // currently-selected combo.
+                HStack(alignment: .center, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        projectPicker
+                        taskPicker
+                    }
+                    favoriteButton
+                }
 
                 // Notes + Time row
                 HStack(spacing: 12) {
@@ -314,6 +319,34 @@ struct NewTimerFormView: View {
                 selectProject(project)
             }
         }
+    }
+
+    // MARK: - Favorite Button
+
+    /// True when the currently selected (project, task) combo is in the
+    /// favorites store. Drives the star's filled/empty appearance.
+    private var isCurrentSelectionFavorite: Bool {
+        guard let projectId = selectedProjectId, let taskId = selectedTaskId else { return false }
+        return FavoritesStore.shared.isFavorite(projectId: projectId, taskId: taskId)
+    }
+
+    private var favoriteButton: some View {
+        let enabled = selectedProjectId != nil && selectedTaskId != nil
+        let filled = isCurrentSelectionFavorite
+        return Button {
+            guard let projectId = selectedProjectId, let taskId = selectedTaskId else { return }
+            FavoritesStore.shared.toggle(projectId: projectId, taskId: taskId)
+        } label: {
+            Image(systemName: filled ? "star.fill" : "star")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(filled ? YieldColors.yellowAccent : YieldColors.textSecondary)
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.4)
+        .help(filled ? "Remove from favorites" : "Add to favorites")
     }
 
     // MARK: - Project Picker
