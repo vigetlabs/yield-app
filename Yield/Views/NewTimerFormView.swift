@@ -392,7 +392,19 @@ struct NewTimerFormView: View {
                     lastUsedAt: fav.lastUsedAt
                 )
             }
-            .sorted { $0.lastUsedAt > $1.lastUsedAt }
+            // Match the project list's sort: alphabetical by client →
+            // project → task. The most-recently-used favorite still
+            // wins the auto-select inside `selectProject`; this sort
+            // only controls how the popover lists the favorites.
+            .sorted { a, b in
+                let ac = a.clientName ?? ""
+                let bc = b.clientName ?? ""
+                if ac != bc { return ac.localizedCaseInsensitiveCompare(bc) == .orderedAscending }
+                if a.projectName != b.projectName {
+                    return a.projectName.localizedCaseInsensitiveCompare(b.projectName) == .orderedAscending
+                }
+                return a.taskName.localizedCaseInsensitiveCompare(b.taskName) == .orderedAscending
+            }
     }
 
     private var favoritesPickerButton: some View {
