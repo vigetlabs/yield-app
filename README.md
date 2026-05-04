@@ -22,12 +22,13 @@ Unzip, drag Yield to your Applications folder, and launch. It'll take root in yo
 - ◀ ▶ **Week navigation** — step backward through past weeks (read-only, with full drawers and the day-by-day bar) or forward to see what's booked next, with a "This Week" pill to jump back.
 - ⏱️ **Live timer controls** — start, stop, pause, and resume Harvest timers without leaving the menu bar. A duplicate-timer guard offers to resume an existing entry on the same project instead of doubling up.
 - ✏️ **Create & edit time entries** — log time with project and task dropdowns grouped by client. Edit (or double-click to edit) and delete entries inline. Start a timer with pre-filled hours for catch-up tracking.
+- ⭐ **Favorites** — star a project + task combo to save it. Picking a project auto-selects its most-recently-used favorite, a "Favorites" popover next to the project picker gives one-tap selection of any saved combo, and Settings lists every favorite so you can prune.
 - 📅 **Log time to any day** — add entries to any day in the current week, not just today.
 - 📝 **Forecast notes** — assignment notes from Forecast surface on project rows; hover the icon to read the full text.
-- 💤 **Idle detection** — alerts you when you've been idle, with options to continue, stop, or keep the time.
+- 💤 **Idle detection** — alerts you when you've been idle, with options to continue, stop, keep the time, or move the idle minutes to a different timer.
 - 🔔 **Budget notifications** — nudges you when you hit your booked target on a project so you know when to move on.
-- 🔄 **Auto-refresh** — lightweight refresh every minute picks up timer changes; full refresh on menu open and at day or week rollover keeps Forecast data current. Active timers tick locally so numbers always feel real-time.
-- 🚀 **Automatic updates** — checks for new versions daily and prompts you to install them.
+- 📣 **External-change HUD** — when a timer is started or stopped from outside Yield (e.g. the Harvest browser extension), a small panel pops below the menu bar icon to acknowledge the change.
+- 🌗 **Light & dark mode** — pick System, Light, or Dark from Settings. The light palette is tuned for WCAG AA contrast across every accent.
 
 ## 🚜 Getting started
 
