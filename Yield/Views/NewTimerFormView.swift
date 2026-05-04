@@ -210,7 +210,7 @@ struct NewTimerFormView: View {
                             .foregroundStyle(YieldColors.textPrimary)
                             .scrollContentBackground(.hidden)
                             .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.vertical, 8)
                     }
                     .frame(height: 52)
                     .background(YieldColors.surfaceDefault)
