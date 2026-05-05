@@ -33,6 +33,7 @@
 		95B603C14869A370CBA0C1B4 /* ForecastNotesIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */; };
 		95E28CA5455CF73C33B3F1F4 /* HarvestStatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B78953DDC0FEB63661C043A /* HarvestStatusService.swift */; };
 		99ED0D0543AAE1B074741BC6 /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */; };
+		A0D5FB56C0B51BFF22538E58 /* CollectionHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */; };
 		A718514604B129BD1665B93E /* StatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */; };
 		ACB882604B7D20FC84473136 /* DropdownPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82BA76EB59241974EF71AF53 /* DropdownPicker.swift */; };
 		B2874BEB76A001702546E05A /* DefaultsKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */; };
@@ -70,6 +71,7 @@
 		8B78953DDC0FEB63661C043A /* HarvestStatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestStatusService.swift; sourceTree = "<group>"; };
 		9128BE0471E69DB0E0878DA8 /* NewTimerFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTimerFormView.swift; sourceTree = "<group>"; };
 		9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
+		9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionHelpers.swift; sourceTree = "<group>"; };
 		9F394448517841A11132011C /* IdleAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertView.swift; sourceTree = "<group>"; };
 		9FE70177FE259AB1C37908F0 /* HarvestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestModels.swift; sourceTree = "<group>"; };
 		A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
@@ -163,6 +165,7 @@
 			isa = PBXGroup;
 			children = (
 				22A0F29CD8D3681B5AF53341 /* APIClient.swift */,
+				9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */,
 				2C64919FC02138F05B504BF5 /* DateHelpers.swift */,
 				F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */,
 				9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */,
@@ -314,6 +317,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DD5B690291EBA5B1C1FB36F3 /* APIClient.swift in Sources */,
+				A0D5FB56C0B51BFF22538E58 /* CollectionHelpers.swift in Sources */,
 				CA12BB7BD1F76E62FC87A9F1 /* DateHelpers.swift in Sources */,
 				B2874BEB76A001702546E05A /* DefaultsKey.swift in Sources */,
 				12764D69F0D5F8224898949E /* DesignTokens.swift in Sources */,

@@ -372,7 +372,7 @@ struct NewTimerFormView: View {
     /// no longer has access to since they can't be selected from this
     /// form anyway (the Settings card still surfaces them for cleanup).
     private var resolvedFavorites: [ResolvedFavorite] {
-        let projectsById = Dictionary(uniqueKeysWithValues: allProjects.map { ($0.harvestProjectId, $0) })
+        let projectsById = allProjects.indexed(by: \.harvestProjectId)
         return FavoritesStore.shared.favorites
             .compactMap { fav -> ResolvedFavorite? in
                 guard let project = projectsById[fav.projectId],

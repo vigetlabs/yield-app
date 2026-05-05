@@ -284,7 +284,7 @@ struct SettingsView: View {
     /// with unresolved (project no longer accessible to the user) entries
     /// pushed to the bottom under a generic name so they're still removable.
     private var resolvedFavorites: [FavoriteEntry] {
-        let projectsById = Dictionary(uniqueKeysWithValues: allProjects.map { ($0.harvestProjectId, $0) })
+        let projectsById = allProjects.indexed(by: \.harvestProjectId)
         let entries: [FavoriteEntry] = favoritesStore.favorites.map { fav in
             let project = projectsById[fav.projectId]
             let task = project?.taskAssignments.first(where: { $0.task.id == fav.taskId })?.task
