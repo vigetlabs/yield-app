@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.16.1</title>
+      <sparkle:version>42</sparkle:version>
+      <sparkle:shortVersionString>0.9.16.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Fix the new/edit timer popup clipping its top edge (or hovering low) when picking from the Favorites list with a duplicate-entry banner involved. The favorites picker now uses the same native dropdown machinery as the project / task pickers, so the popup resizes cleanly. Visual styling is preserved — leading star, two-line "Project / Task" layout, dividers between items.</li>
+          <li>Sort the favorites list alphabetically by client → project → task to match the project list (was sorted by most-recently-used).</li>
+          <li>Match the new/edit timer notes field's vertical padding to its horizontal padding so the first line doesn't run along the top border.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.16.1/Yield-0.9.16.1.zip"
+        sparkle:edSignature="DPDBlpdlTrU77YwUh93HroJ2SYED8iFaPaC/lSraIXTNl1ASrha2CPR41hg0/bbDNrX8k5wASJIfACD+/LkWCw=="
+        length="2492027"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.16.0</title>
       <sparkle:version>41</sparkle:version>
       <sparkle:shortVersionString>0.9.16.0</sparkle:shortVersionString>
