@@ -20,6 +20,20 @@ struct DropdownPicker: View {
     /// Item ids that should render with a leading star icon — used to
     /// surface favorited tasks inline with the rest of the list.
     var favoritedIds: Set<Int> = []
+    /// When true, the dropdown behaves as an action menu (pull-down)
+    /// rather than a value picker (pop-up). The button's title stays
+    /// pinned to `placeholder`; selecting an item just fires
+    /// `onSelect` and doesn't change the displayed title.
+    var isPullDown: Bool = false
+    /// Pre-composed attributed titles, one per item — overrides
+    /// `items` when supplied. Use this when you need rich per-item
+    /// rendering (multi-line, leading icons, mixed fonts) that the
+    /// plain `items` API can't express.
+    var richItems: [(id: Int, attributedTitle: NSAttributedString)]? = nil
+    /// When true, an `NSMenuItem.separator()` is inserted between
+    /// each item (or rich item). Doesn't apply to grouped mode,
+    /// which already uses separators between groups.
+    var showsItemSeparators: Bool = false
     let onSelect: (Int) -> Void
 
     var body: some View {
@@ -35,6 +49,9 @@ struct DropdownPicker: View {
                 label: label,
                 isDisabled: isDisabled,
                 favoritedIds: favoritedIds,
+                isPullDown: isPullDown,
+                richItems: richItems,
+                showsItemSeparators: showsItemSeparators,
                 onSelect: onSelect
             )
             .frame(height: YieldDimensions.controlHeight)
@@ -73,6 +90,9 @@ private struct NativePopUpButton: NSViewRepresentable {
     let label: String
     let isDisabled: Bool
     let favoritedIds: Set<Int>
+    let isPullDown: Bool
+    let richItems: [(id: Int, attributedTitle: NSAttributedString)]?
+    let showsItemSeparators: Bool
     let onSelect: (Int) -> Void
 
     /// Build a menu-item attributed title with a leading star glyph
@@ -119,8 +139,10 @@ private struct NativePopUpButton: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let container = ClickForwardingView()
 
-        // Popup button
-        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        // Popup button. Pull-down mode pins the title to the first
+        // menu item permanently; pop-up mode updates the title to
+        // reflect the selected item.
+        let popup = NSPopUpButton(frame: .zero, pullsDown: isPullDown)
         popup.bezelStyle = .inline
         popup.isBordered = false
         popup.font = NSFont(name: "Newsreader-Regular", size: 12) ?? NSFont.systemFont(ofSize: 12)
@@ -210,9 +232,23 @@ private struct NativePopUpButton: NSViewRepresentable {
                     popup.menu?.addItem(menuItem)
                 }
             }
+        } else if let richItems {
+            // Rich mode — caller composed attributed titles per item.
+            for (index, item) in richItems.enumerated() {
+                if showsItemSeparators, index > 0 {
+                    popup.menu?.addItem(.separator())
+                }
+                let menuItem = NSMenuItem()
+                menuItem.attributedTitle = item.attributedTitle
+                menuItem.tag = item.id
+                popup.menu?.addItem(menuItem)
+            }
         } else {
             // Flat mode
-            for item in items {
+            for (index, item) in items.enumerated() {
+                if showsItemSeparators, index > 0 {
+                    popup.menu?.addItem(.separator())
+                }
                 popup.addItem(withTitle: item.title)
                 popup.lastItem?.tag = item.id
                 popup.lastItem?.attributedTitle = Self.attributedTitle(

@@ -23,7 +23,6 @@ struct NewTimerFormView: View {
     @State private var availableTasks: [TaskOption] = []
     @State private var spentDate: Date = Date()
     @State private var duplicateConfirmEntries: [TimeEntryInfo]?
-    @State private var showFavoritesPopover = false
 
     init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -403,84 +402,76 @@ struct NewTimerFormView: View {
             }
     }
 
+    /// Favorites picker, built on the same `DropdownPicker` /
+    /// `NSPopUpButton` machinery as the project and task pickers so it
+    /// matches them pixel-for-pixel — same border, background,
+    /// chevron, fonts, and (importantly) the same NSMenu-based
+    /// dispatch that resizes the MenuBarExtra panel cleanly. Unlike
+    /// the project picker we never store a selection: the placeholder
+    /// "★ Favorites" stays in the closed state regardless of what the
+    /// user picks, so the button reads as a trigger rather than a
+    /// selector.
     private var favoritesPickerButton: some View {
-        Button {
-            showFavoritesPopover = true
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 10, weight: .semibold))
-                Text("Favorites")
-                    .font(YieldFonts.dmSans(11, weight: .medium))
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
-            }
-            .foregroundStyle(YieldColors.textSecondary)
-            .padding(.horizontal, 10)
-            .frame(height: YieldDimensions.controlHeight)
-            .background(YieldColors.surfaceDefault)
-            .yieldBorder()
+        DropdownPicker(
+            label: "Favorites",
+            placeholder: "★ Favorites",
+            selectedId: nil,
+            isPullDown: true,
+            richItems: resolvedFavorites.enumerated().map { index, fav in
+                (id: index, attributedTitle: Self.favoriteMenuItemTitle(for: fav))
+            },
+            showsItemSeparators: true
+        ) { index in
+            guard resolvedFavorites.indices.contains(index) else { return }
+            applyFavorite(resolvedFavorites[index])
         }
-        .buttonStyle(.plain)
-        .popover(isPresented: $showFavoritesPopover, arrowEdge: .top) {
-            favoritesPopoverContent
-        }
+        .fixedSize()
     }
 
-    private var favoritesPopoverContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(resolvedFavorites.enumerated()), id: \.element.id) { index, fav in
-                favoritePopoverRow(fav)
-                if index < resolvedFavorites.count - 1 {
-                    Rectangle()
-                        .fill(YieldColors.border)
-                        .frame(height: 1)
-                }
-            }
+    /// Compose a two-line `NSAttributedString` for a favorite menu
+    /// item: leading filled-star glyph + project on top, task on
+    /// bottom in a smaller secondary-color font. The task line is
+    /// indented past the star so it aligns with the project text.
+    private static func favoriteMenuItemTitle(for fav: ResolvedFavorite) -> NSAttributedString {
+        let titleFont = NSFont(name: "Newsreader-Regular", size: 12) ?? NSFont.systemFont(ofSize: 12)
+        let subtitleFont = NSFont(name: "DMSans-Regular", size: 10) ?? NSFont.systemFont(ofSize: 10)
+        let result = NSMutableAttributedString()
+
+        // Star icon (text attachment so the line height stays tight).
+        let starSize = titleFont.pointSize
+        let starConfig = NSImage.SymbolConfiguration(pointSize: starSize, weight: .semibold)
+            .applying(.init(paletteColors: [.labelColor]))
+        if let starImage = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favorite")?
+            .withSymbolConfiguration(starConfig) {
+            starImage.size = NSSize(width: starSize, height: starSize)
+            let attachment = NSTextAttachment()
+            attachment.image = starImage
+            attachment.bounds = NSRect(x: 0, y: -1, width: starSize, height: starSize)
+            result.append(NSAttributedString(attachment: attachment))
+            result.append(NSAttributedString(string: "  ", attributes: [.font: titleFont]))
         }
-        .frame(minWidth: 260)
-        .padding(.vertical, 4)
-    }
 
-    private func favoritePopoverRow(_ fav: ResolvedFavorite) -> some View {
-        let isSelected = selectedProjectId == fav.projectId && selectedTaskId == fav.taskId
-        return Button {
-            applyFavorite(fav)
-            showFavoritesPopover = false
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(YieldColors.textSecondary)
-                    .frame(width: 16)
+        // Project line (Client — Project)
+        let projectText = ProjectStatus.qualifiedName(client: fav.clientName, project: fav.projectName)
+        result.append(NSAttributedString(
+            string: "\(projectText)\n",
+            attributes: [
+                .font: titleFont,
+                .foregroundColor: NSColor.labelColor,
+            ]
+        ))
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(ProjectStatus.qualifiedName(client: fav.clientName, project: fav.projectName))
-                        .font(YieldFonts.dmSans(11, weight: .medium))
-                        .foregroundStyle(YieldColors.textPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Text(fav.taskName)
-                        .font(YieldFonts.dmSans(10))
-                        .foregroundStyle(YieldColors.textSecondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
+        // Task line — leading spaces approximate the star + gap so
+        // the task name aligns under the project text.
+        result.append(NSAttributedString(
+            string: "    \(fav.taskName)",
+            attributes: [
+                .font: subtitleFont,
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ]
+        ))
 
-                Spacer(minLength: 8)
-
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(YieldColors.greenAccent)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        return result
     }
 
     /// Apply a favorite to the form: select the project (loading its
