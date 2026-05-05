@@ -225,7 +225,9 @@ struct MenuBarContentView: View {
         } else if viewModel.selectedTab == .chart {
             ProjectChartView(viewModel: viewModel)
         } else if viewModel.filteredStatuses.isEmpty {
-            Text("No projects found for this week.")
+            Text(viewModel.dayFilter != nil
+                ? "No projects found for this day."
+                : "No projects found for this week.")
                 .foregroundStyle(YieldColors.textSecondary)
                 .font(YieldFonts.dmSans(11))
                 .padding(16)
