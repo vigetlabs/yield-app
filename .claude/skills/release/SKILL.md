@@ -15,7 +15,17 @@ If `$ARGUMENTS` is empty, read the current `MARKETING_VERSION` from `project.yml
 
 Execute each step in order. If any step fails, stop immediately and report the error — do not continue to subsequent steps.
 
-### 1. Bump Version
+### 1. Run Tests
+
+Run the full test suite *before* bumping version or building anything. If any test fails, stop the release immediately — surface the failing test names and don't continue. The release shouldn't take a single further step until tests are green.
+
+```bash
+xcodebuild test -project Yield.xcodeproj -scheme Yield -configuration Debug -destination 'platform=macOS'
+```
+
+A passing run ends with `** TEST SUCCEEDED **`. Anything else is a failure.
+
+### 2. Bump Version
 
 In `project.yml`, update:
 - `MARKETING_VERSION` to the new version (`$ARGUMENTS`)
@@ -35,7 +45,7 @@ git add project.yml Yield.xcodeproj/project.pbxproj Yield/Info.plist
 
 Commit message: `Bump version to VERSION (build N)`
 
-### 2. Archive & Export
+### 3. Archive & Export
 
 Archive:
 ```bash
@@ -65,7 +75,7 @@ Export:
 xcodebuild -exportArchive -archivePath /tmp/Yield.xcarchive -exportPath /tmp/YieldExport -exportOptionsPlist /tmp/export-options.plist
 ```
 
-### 3. Re-sign Sparkle & Zip
+### 4. Re-sign Sparkle & Zip
 
 Re-sign Sparkle so it matches the app's identity:
 ```bash
@@ -77,7 +87,7 @@ Create the zip. This MUST use `COPYFILE_DISABLE=1` and `--norsrc` to strip macOS
 cd /tmp/YieldExport && COPYFILE_DISABLE=1 ditto -c -k --norsrc --keepParent Yield.app /tmp/Yield-VERSION.zip
 ```
 
-### 4. Notarize & Staple
+### 5. Notarize & Staple
 
 Submit for notarization (this takes 1-3 minutes):
 ```bash
@@ -99,7 +109,7 @@ Re-zip the stapled app (replaces the previous zip):
 cd /tmp/YieldExport && rm -f /tmp/Yield-VERSION.zip && COPYFILE_DISABLE=1 ditto -c -k --norsrc --keepParent Yield.app /tmp/Yield-VERSION.zip
 ```
 
-### 5. Sparkle Signature
+### 6. Sparkle Signature
 
 Sign the zip for Sparkle auto-updates:
 ```bash
@@ -108,7 +118,7 @@ Sign the zip for Sparkle auto-updates:
 
 Capture the `sparkle:edSignature="..."` and `length=...` values from the output — these go in the appcast.
 
-### 6. Update Appcast
+### 7. Update Appcast
 
 Generate release notes from commits since the last tag:
 ```bash
@@ -124,7 +134,7 @@ git add appcast.xml
 
 Commit message: `Update appcast for vVERSION`
 
-### 7. Push, Tag & GitHub Release
+### 8. Push, Tag & GitHub Release
 
 Push commits, then create and push the tag *before* creating the release. This ensures the tag exists on the correct commit when GitHub fires the `published` event (otherwise the Slack notification workflow may not trigger):
 

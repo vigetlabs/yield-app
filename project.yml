@@ -57,3 +57,35 @@ targets:
         DEVELOPMENT_TEAM: 7G49Y875S8
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_ENTITLEMENTS: Yield/Yield.entitlements
+
+  YieldTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - YieldTests
+    dependencies:
+      - target: Yield
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yield.tests
+        SWIFT_VERSION: "5.9"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Yield.app/Contents/MacOS/Yield"
+        # Match the host app's signing identity so dyld will load the
+        # test bundle into the signed Yield.app process.
+        CODE_SIGN_IDENTITY: "Developer ID Application: Jeremy Fields (7G49Y875S8)"
+        DEVELOPMENT_TEAM: 7G49Y875S8
+        CODE_SIGN_STYLE: Manual
+
+schemes:
+  Yield:
+    build:
+      targets:
+        Yield: all
+        YieldTests: [test]
+    test:
+      targets:
+        - YieldTests
+      gatherCoverageData: true
