@@ -15,7 +15,10 @@ concurrency:
 jobs:
   xcodebuild-test:
     name: Build & test
-    runs-on: macos-14
+    # macos-15 ships Xcode 16, which can read xcodegen's current
+    # project format (77). The macos-14 image is stuck on Xcode 15.4
+    # and rejects projects produced by newer xcodegen versions.
+    runs-on: macos-15
 
     steps:
       - name: Checkout
