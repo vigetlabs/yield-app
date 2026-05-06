@@ -80,10 +80,10 @@ struct SettingsView: View {
             // main panel's project list uses.
             ScrollView {
                 VStack(spacing: 12) {
+                    aboutCard
                     accountCard
                     preferencesCard
                     favoritesCard
-                    aboutCard
                 }
                 .padding(16)
             }
