@@ -661,12 +661,48 @@ struct MenuBarContentView: View {
 
     // MARK: - Footer
 
+    /// Open a new GitHub issue with a body pre-populated with the
+    /// app version, macOS version, last error, last refresh time,
+    /// and the local log path. Without this, every report arrives
+    /// blank and we have to ask the user for these details — most
+    /// will skip filing.
+    private func openBugReport() {
+        let appVersion = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "?"
+        let buildNumber = (Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "?"
+        let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
+        let lastRefresh = viewModel.lastUpdated
+            .map { ISO8601DateFormatter().string(from: $0) }
+            ?? "(never)"
+        let lastError = LogStore.shared.lastError ?? "(none)"
+        let logPath = LogStore.shared.fileURLDescription ?? "(unavailable)"
+
+        let body = """
+        ## What happened?
+        <!-- Describe what you saw, what you expected, and the steps to reproduce. -->
+
+
+        ## Environment (auto-filled)
+        - **Yield**: \(appVersion) (build \(buildNumber))
+        - **macOS**: \(osVersion)
+        - **Last refresh**: \(lastRefresh)
+        - **Last error**: \(lastError)
+
+        ## Logs
+        Log file location: `\(logPath)`
+        <!-- Open Settings → About → Reveal Logs in Finder, then drag-and-drop the log into this issue. -->
+        """
+
+        var components = URLComponents(string: "https://github.com/vigetlabs/yield-app/issues/new")
+        components?.queryItems = [URLQueryItem(name: "body", value: body)]
+        if let url = components?.url {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     private var footerView: some View {
         HStack {
             Button {
-                if let url = URL(string: "https://github.com/vigetlabs/yield-app/issues/new") {
-                    NSWorkspace.shared.open(url)
-                }
+                openBugReport()
             } label: {
                 Image(systemName: "ladybug.fill")
                     .font(.system(size: 11))

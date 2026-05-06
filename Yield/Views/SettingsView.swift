@@ -19,6 +19,16 @@ struct SettingsView: View {
     /// Bump on toggle so the favorites list re-derives from the store.
     private var favoritesStore: FavoritesStore { FavoritesStore.shared }
 
+    /// Cap on the cards' scroll area so the Settings panel can't
+    /// grow past the screen's visible frame on short displays. The
+    /// `48` accounts for the back-button header + small breathing
+    /// room. The `400` floor protects the very first frame before
+    /// `NSScreen.main` is meaningful.
+    private var settingsContentMaxHeight: CGFloat {
+        let visible = NSScreen.main?.visibleFrame.height ?? 800
+        return max(400, visible - 48)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
@@ -61,14 +71,24 @@ struct SettingsView: View {
                     .frame(height: 1)
             }
 
-            // Content
-            VStack(spacing: 12) {
-                accountCard
-                preferencesCard
-                favoritesCard
-                aboutCard
+            // Content — scrollable so a long Settings panel (e.g.
+            // many favorites) doesn't push past the menu-bar panel's
+            // available height on short screens. `fixedSize(vertical:
+            // true)` lets the scroll view shrink to its content's
+            // ideal height when everything fits — same pattern the
+            // main panel's project list uses.
+            ScrollView {
+                VStack(spacing: 12) {
+                    accountCard
+                    preferencesCard
+                    favoritesCard
+                    aboutCard
+                }
+                .padding(16)
             }
-            .padding(16)
+            .scrollIndicators(.automatic)
+            .frame(maxHeight: settingsContentMaxHeight)
+            .fixedSize(horizontal: false, vertical: true)
         }
         .task {
             isLoadingProjects = true
@@ -403,7 +423,8 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
             sectionHeader("About")
 
-            // Version row
+            // Version + Check for Updates inline so the action sits
+            // alongside the info it acts on.
             HStack {
                 Image(systemName: "info.circle")
                     .font(.system(size: 10))
@@ -412,10 +433,32 @@ struct SettingsView: View {
                 Text("Version")
                     .font(YieldFonts.dmSans(11))
                     .foregroundStyle(YieldColors.textSecondary)
-                Spacer()
                 Text(appVersion)
                     .font(YieldFonts.monoXS)
                     .foregroundStyle(YieldColors.textPrimary)
+                Spacer()
+                Button {
+                    // Close the MenuBarExtra panel first — it runs at
+                    // `.statusBar` window level, which sits above
+                    // Sparkle's normal-level update window. Without
+                    // closing it, the Sparkle dialog opens *behind*
+                    // the popup and can look like nothing happened.
+                    if let panel = NSApp.windows.first(where: {
+                        String(describing: type(of: $0)).contains("MenuBarExtra")
+                    }) {
+                        panel.orderOut(nil)
+                    }
+                    NSApp.activate(ignoringOtherApps: true)
+                    AppState.shared.updaterController?.checkForUpdates(nil)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 9, weight: .semibold))
+                        Text("Check for Updates")
+                            .font(YieldFonts.dmSans(10, weight: .semibold))
+                    }
+                }
+                .buttonStyle(.greenOutlined)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -424,17 +467,17 @@ struct SettingsView: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
 
-            // Check for updates
+            // Reveal logs in Finder — utility row for attaching
+            // logs to a bug report.
             Button {
-                NSApp.activate(ignoringOtherApps: true)
-                AppState.shared.updaterController?.checkForUpdates(nil)
+                LogStore.shared.revealInFinder()
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 10))
                         .foregroundStyle(YieldColors.textSecondary)
                         .frame(width: 16)
-                    Text("Check for Updates")
+                    Text("Reveal Logs in Finder")
                         .font(YieldFonts.dmSans(11))
                         .foregroundStyle(YieldColors.textPrimary)
                     Spacer()
@@ -447,6 +490,7 @@ struct SettingsView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .help("Open ~/Library/Logs/Yield in Finder so you can attach logs to a bug report")
         }
         .yieldCard()
     }

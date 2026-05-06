@@ -74,8 +74,30 @@ final class TimeComparisonViewModel {
     private(set) var weekLabel: String = ""
     private(set) var lastUpdated: Date? = nil
     private(set) var isLoading: Bool = false
-    private(set) var errorMessage: String? = nil
-    private(set) var serviceErrors: [ServiceError] = []
+    private(set) var errorMessage: String? = nil {
+        didSet {
+            // Mirror user-visible errors to the local log so bug
+            // reports include them. Empty strings and clears (set
+            // to nil) aren't logged — they're noise.
+            if let errorMessage, !errorMessage.isEmpty, errorMessage != oldValue {
+                LogStore.shared.log(errorMessage)
+            }
+        }
+    }
+    private(set) var serviceErrors: [ServiceError] = [] {
+        didSet {
+            // Log newly-appended service errors as warnings. We use
+            // a count delta rather than diffing contents — close
+            // enough for an event log, avoids dragging Equatable
+            // requirements through ServiceError.
+            if serviceErrors.count > oldValue.count {
+                let newCount = serviceErrors.count - oldValue.count
+                for err in serviceErrors.suffix(newCount) {
+                    LogStore.shared.log("\(err.service.rawValue): \(err.message)", category: .warning)
+                }
+            }
+        }
+    }
     /// Snapshot of harveststatus.com state, fetched on demand whenever
     /// `serviceErrors` is non-empty. Lets the error banner enrich its
     /// message with confirmed-incident context (or note when the status
