@@ -323,7 +323,8 @@ final class TimeComparisonViewModel {
     /// project's `isTracking` flag based on whether any other entries
     /// are still running on it.
     @MainActor
-    private func optimisticallyStopEntry(_ entryId: Int) {
+    /// Internal (vs. private) so XCTest can drive it directly.
+    func optimisticallyStopEntry(_ entryId: Int) {
         for i in projectStatuses.indices {
             var didChange = false
             for j in projectStatuses[i].timeEntries.indices
@@ -344,7 +345,8 @@ final class TimeComparisonViewModel {
     /// reset the elapsed-offset clock. The banner will start counting
     /// from now until the refresh lands.
     @MainActor
-    private func optimisticallyStartEntry(_ entryId: Int) {
+    /// Internal (vs. private) so XCTest can drive it directly.
+    func optimisticallyStartEntry(_ entryId: Int) {
         for i in projectStatuses.indices {
             var anyRunning = false
             for j in projectStatuses[i].timeEntries.indices {
@@ -1193,7 +1195,8 @@ final class TimeComparisonViewModel {
     }
 
     @MainActor
-    private func checkBookedHoursReached() {
+    /// Internal (vs. private) so XCTest can drive it directly.
+    func checkBookedHoursReached() {
         for project in projectStatuses where project.isTracking {
             guard project.bookedHours > 0,
                   !notifiedProjectIds.contains(project.id) else { continue }
@@ -1217,6 +1220,10 @@ final class TimeComparisonViewModel {
 
     @MainActor
     private func sendBookedHoursNotification(for project: ProjectStatus) {
+        // No-op under XCTest so unit tests can drive
+        // `checkBookedHoursReached` without scheduling real
+        // user-visible notifications.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
         let content = UNMutableNotificationContent()
         content.title = "Time's up!"
         let hours = project.bookedHours == project.bookedHours.rounded()
@@ -1887,7 +1894,9 @@ final class TimeComparisonViewModel {
     /// Rebuild projectStatuses and derived view state from entries + Forecast data.
     /// Called by both full refresh and soft refresh.
     @MainActor
-    private func applyRefreshedData(
+    /// Internal (vs. private) so XCTest can drive it directly with
+    /// fixture entries / Forecast data.
+    func applyRefreshedData(
         entries: [HarvestTimeEntry],
         bookedByForecastProject: [Int: Double],
         projectMap: [Int: ForecastProject],
@@ -2507,4 +2516,45 @@ final class TimeComparisonViewModel {
         }
         return error.localizedDescription
     }
+}
+
+// MARK: - Test-only state helpers
+//
+// XCTest needs to seed internal state (projectStatuses, the
+// budget-notification baselines, change-detection bookkeeping)
+// before exercising the methods that depend on it. An extension
+// declared in the same file as the type can reach `private` and
+// `private(set)` members, so this surface is testable without
+// weakening visibility in production.
+extension TimeComparisonViewModel {
+    /// Bulk-set the bookkeeping state needed by tests. Every
+    /// argument is optional so a test only sets what it needs.
+    @MainActor
+    func _setStateForTesting(
+        projectStatuses: [ProjectStatus]? = nil,
+        notifiedProjectIds: Set<String>? = nil,
+        trackingSessionBaseline: [String: Double]? = nil,
+        elapsedOffset: Double? = nil,
+        currentWeekStart: Date? = nil,
+        currentRefreshDay: String? = nil,
+        hasSeenInitialTrackingState: Bool? = nil,
+        lastTrackingEntryId: Int? = nil,
+        suppressNextTimerChangeHUD: Bool? = nil
+    ) {
+        if let projectStatuses { self.projectStatuses = projectStatuses }
+        if let notifiedProjectIds { self.notifiedProjectIds = notifiedProjectIds }
+        if let trackingSessionBaseline { self.trackingSessionBaseline = trackingSessionBaseline }
+        if let elapsedOffset { self.elapsedOffset = elapsedOffset }
+        if let currentWeekStart { self.currentWeekStart = currentWeekStart }
+        if let currentRefreshDay { self.currentRefreshDay = currentRefreshDay }
+        if let hasSeenInitialTrackingState { self.hasSeenInitialTrackingState = hasSeenInitialTrackingState }
+        if let lastTrackingEntryId { self.lastTrackingEntryId = lastTrackingEntryId }
+        if let suppressNextTimerChangeHUD { self.suppressNextTimerChangeHUD = suppressNextTimerChangeHUD }
+    }
+
+    /// Read-only mirror of `notifiedProjectIds`. The set itself stays
+    /// `private` so production code can't accidentally write to it
+    /// from outside the budget-notification gate.
+    @MainActor
+    var _notifiedProjectIdsForTesting: Set<String> { notifiedProjectIds }
 }

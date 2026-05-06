@@ -1,0 +1,48 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs for the same ref when a new commit lands —
+# we only care about the latest result per branch / PR.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  xcodebuild-test:
+    name: Build & test
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        # macos-14 ships with multiple Xcode versions; pin to the
+        # latest 15.x so SDK / Swift behavior stays stable across runs.
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build & test
+        # `test` builds the host app, builds the test bundle, and
+        # runs every test in the YieldTests target. Disable code
+        # signing on CI — the runner has no developer cert and the
+        # tests don't need a signed binary to execute.
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Yield.xcodeproj \
+            -scheme Yield \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
