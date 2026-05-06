@@ -1720,11 +1720,22 @@ final class TimeComparisonViewModel {
                     }
                 }
 
-                entries = try await harvestService.getTimeEntries(
+                // Date-range fetch + an unfiltered running-entries
+                // fetch in parallel. A timer started before midnight
+                // and still running afterward keeps its original
+                // `spent_date`, so the date-range query alone misses
+                // it on the next day. The running fetch is
+                // best-effort — its failure doesn't block refresh.
+                async let weekEntries = harvestService.getTimeEntries(
                     userId: userId,
                     from: weekDates.start,
                     to: weekDates.end
                 )
+                async let runningEntries = harvestService.getRunningTimeEntries(userId: userId)
+                let dateRangeEntries = try await weekEntries
+                let extraRunning = ((try? await runningEntries) ?? [])
+                    .filter { running in !dateRangeEntries.contains(where: { $0.id == running.id }) }
+                entries = dateRangeEntries + extraRunning
             } catch {
                 serviceErrors.append(ServiceError(service: .harvest, message: friendlyErrorMessage(error)))
                 throw error
@@ -2099,14 +2110,31 @@ final class TimeComparisonViewModel {
         guard let (harvestService, _) = makeServices() else { return }
 
         do {
-            let todayEntries = try await harvestService.getTimeEntries(
+            // Today's entries + any currently-running entry, in
+            // parallel. The running fetch covers timers started
+            // before midnight that are still going on the next day —
+            // those keep their original `spent_date` and would
+            // otherwise be missed by the today-only query (and would
+            // have been pruned out of `cachedWeekEntries` on the
+            // most recent week-rollover hard refresh).
+            async let todayEntries = harvestService.getTimeEntries(
                 userId: userId,
                 from: todayString,
                 to: todayString
             )
-            // Replace today's slice of the cached week with fresh data
+            async let runningEntries = harvestService.getRunningTimeEntries(userId: userId)
+            let fetchedToday = try await todayEntries
+            let fetchedRunning = (try? await runningEntries) ?? []
+
+            // Replace today's slice of the cached week with fresh
+            // data, then layer in any running entries that aren't
+            // already part of the merged set (covers cross-midnight
+            // running timers attached to past dates).
             let nonTodayEntries = cachedWeekEntries.filter { $0.spentDate != todayString }
-            let merged = nonTodayEntries + todayEntries
+            let baseMerged = nonTodayEntries + fetchedToday
+            let mergedIds = Set(baseMerged.map { $0.id })
+            let extraRunning = fetchedRunning.filter { !mergedIds.contains($0.id) }
+            let merged = baseMerged + extraRunning
             cachedWeekEntries = merged
 
             applyRefreshedData(

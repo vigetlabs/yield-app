@@ -39,6 +39,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
         Task { @MainActor in
             await NotificationPermission.shared.requestAndRefresh()
         }
+        DateHelpers.installTimezoneChangeObserver()
         AppState.shared.updaterController = updaterController
         AppState.shared.start()
 

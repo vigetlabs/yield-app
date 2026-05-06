@@ -8,6 +8,27 @@ enum DateHelpers {
         return f
     }()
 
+    /// Subscribe to system timezone-change notifications so the
+    /// shared `dateFormatter` re-pins to the new timezone when the
+    /// user travels with the app open. Without this, `.timeZone =
+    /// .current` is captured once at type-init and "today" can drift
+    /// off by a day near a date boundary in the new timezone — which
+    /// would mis-attribute time entries via `spent_date` matching.
+    /// Call once at launch from `AppDelegate`.
+    static func installTimezoneChangeObserver() {
+        NotificationCenter.default.addObserver(
+            forName: .NSSystemTimeZoneDidChange,
+            object: nil,
+            queue: .main
+        ) { _ in
+            dateFormatter.timeZone = .current
+            LogStore.shared.log(
+                "System timezone changed to \(TimeZone.current.identifier); date formatter re-pinned.",
+                category: .info
+            )
+        }
+    }
+
     /// Short weekday labels, Monday-first. Used everywhere we need to label
     /// day-of-week cells (chart axis, weekday mini-bar, time-off breakdown).
     static let weekdayLabels: [String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]

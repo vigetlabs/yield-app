@@ -48,6 +48,35 @@ final class HarvestService {
         return allEntries
     }
 
+    /// Fetch all currently-running time entries for a user, regardless
+    /// of `spent_date`. Used to surface timers started before the
+    /// current week's start but still running — the most common case
+    /// is a timer started before midnight that's still going on the
+    /// next day, since Harvest keeps such entries pinned to their
+    /// original `spent_date` and the date-range fetch above would
+    /// otherwise miss them.
+    func getRunningTimeEntries(userId: Int) async throws -> [HarvestTimeEntry] {
+        var allEntries: [HarvestTimeEntry] = []
+        var page = 1
+
+        while true {
+            let response: HarvestTimeEntriesResponse = try await client.request(
+                "/time_entries",
+                queryItems: [
+                    URLQueryItem(name: "user_id", value: String(userId)),
+                    URLQueryItem(name: "is_running", value: "true"),
+                    URLQueryItem(name: "page", value: String(page)),
+                ]
+            )
+            allEntries.append(contentsOf: response.timeEntries)
+
+            guard response.totalPages > 0, page < response.totalPages else { break }
+            page += 1
+        }
+
+        return allEntries
+    }
+
     func stopTimer(entryId: Int) async throws -> HarvestTimeEntry {
         try await client.request("/time_entries/\(entryId)/stop", method: "PATCH")
     }
