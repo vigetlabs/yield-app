@@ -1784,8 +1784,8 @@ final class TimeComparisonViewModel {
             }
 
             // Build lookups
-            let projectMap = projects.indexed(by: \.id)
-            let clientMap = clients.indexed(by: \.id)
+            let projectMap = projects.indexed { $0.id }
+            let clientMap = clients.indexed { $0.id }
 
             // Identify Forecast's built-in time-off project by name so we
             // can surface those assignments separately from real work.
@@ -2288,8 +2288,8 @@ final class TimeComparisonViewModel {
         clients: [ForecastClient],
         fallbackTimeOffProjectId: Int?
     ) -> WeekSnapshot {
-        let projectMap = projects.indexed(by: \.id)
-        let clientMap = clients.indexed(by: \.id)
+        let projectMap = projects.indexed { $0.id }
+        let clientMap = clients.indexed { $0.id }
         // Same defensive fallback as the current-week refresh: if /projects
         // didn't include the Time Off project this time, use the last-known
         // good ID so PTO doesn't disappear and leak into booked totals.

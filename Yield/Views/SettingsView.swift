@@ -352,7 +352,7 @@ struct SettingsView: View {
     /// with unresolved (project no longer accessible to the user) entries
     /// pushed to the bottom under a generic name so they're still removable.
     private var resolvedFavorites: [FavoriteEntry] {
-        let projectsById = allProjects.indexed(by: \.harvestProjectId)
+        let projectsById = allProjects.indexed { $0.harvestProjectId }
         let entries: [FavoriteEntry] = favoritesStore.favorites.map { fav in
             let project = projectsById[fav.projectId]
             let task = project?.taskAssignments.first(where: { $0.task.id == fav.taskId })?.task
@@ -588,7 +588,7 @@ struct SettingsView: View {
             label: "Appearance",
             cases: AppearanceMode.allCases,
             selectedRawValue: appearanceMode,
-            title: \.label
+            title: { $0.label }
         ) { appearanceMode = $0 }
     }
 
@@ -598,7 +598,7 @@ struct SettingsView: View {
             label: "Menu bar display",
             cases: MenuBarLabelMode.allCases,
             selectedRawValue: menuBarLabelMode,
-            title: \.label
+            title: { $0.label }
         ) { menuBarLabelMode = $0 }
     }
 
@@ -610,10 +610,14 @@ struct SettingsView: View {
         label: String,
         cases: [T],
         selectedRawValue: String,
-        title: KeyPath<T, String>,
+        title: (T) -> String,
         onSelect: @escaping (String) -> Void
     ) -> some View where T.RawValue == String {
-        let items = cases.enumerated().map { (id: $0.offset, title: $0.element[keyPath: title]) }
+        // `title` was `KeyPath<T, String>` until a launch crash on
+        // macOS 14.6.1 (`EXC_BREAKPOINT` in `AnyKeyPath` equality)
+        // pushed us off generic-context KeyPaths — closures avoid
+        // the runtime's KeyPath cache.
+        let items = cases.enumerated().map { (id: $0.offset, title: title($0.element)) }
         let selectedId = cases.firstIndex { $0.rawValue == selectedRawValue } ?? 0
 
         return HStack(spacing: 8) {
