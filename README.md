@@ -36,6 +36,31 @@ Unzip, drag Yield to your Applications folder, and launch. It'll take root in yo
 2. **Sign in with Harvest** — click the icon and hit "Sign in with Harvest." This connects your Forecast data automatically.
 3. **That's it.** Your week's projects, hours, and timers are all right there.
 
+## 🔁 Updates
+
+Yield checks for new versions daily and prompts you to install them. You can also trigger a check anytime from **Settings → Check for Updates**.
+
+## 🔐 Data & privacy
+
+Yield talks to two services and stores nothing on a server we control:
+
+- **Harvest API** for time entries, timers, projects, tasks, and your account profile.
+- **Forecast API** (via the same Harvest OAuth token) for weekly assignments, projects, clients, and time-off blocks.
+
+Locally on your machine:
+
+- **OAuth access + refresh tokens** are stored in the macOS **Keychain**.
+- **Preferences and favorites** (appearance, idle setting, menu-bar display mode, favorited project/task pairs) live in **UserDefaults**.
+- **Error logs** are written to `~/Library/Logs/Yield/yield.log` (rotated at 256 KB) so you can attach them to bug reports. Nothing in the log leaves your machine unless you upload it yourself.
+
+Yield doesn't include any analytics, telemetry, or crash reporters that phone home.
+
+## 🐞 Reporting issues
+
+Click the 🐞 icon in the bottom-left of the popup to open a pre-filled GitHub issue with your version, macOS version, last error, and last refresh time. Drag the log file (Settings → Reveal Logs in Finder) into the issue if you can.
+
+If something is on fire and you need a fast turnaround, drop it in the `#yield-app` Slack channel — patch releases ship within a day.
+
 ---
 
 For development info, see [CONTRIBUTING.md](CONTRIBUTING.md).

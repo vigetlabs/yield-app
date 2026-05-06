@@ -16,6 +16,7 @@ struct SettingsView: View {
     /// resolve `(projectId, taskId)` pairs to human-readable names.
     @State private var allProjects: [TimeComparisonViewModel.TimerProjectOption] = []
     @State private var isLoadingProjects = false
+    @State private var showSignOutConfirm = false
     /// Bump on toggle so the favorites list re-derives from the store.
     private var favoritesStore: FavoritesStore { FavoritesStore.shared }
 
@@ -101,7 +102,10 @@ struct SettingsView: View {
 
     private var accountCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionHeader("Account")
+            sectionHeader(
+                "Account",
+                info: "Your Harvest sign-in token is stored in the macOS Keychain. Your preferences live locally in UserDefaults. Nothing leaves your machine except API calls to Harvest and Forecast."
+            )
 
             if oAuthService.isAuthenticated {
                 // User info
@@ -143,10 +147,7 @@ struct SettingsView: View {
 
                 // Sign out row
                 Button {
-                    oAuthService.signOut()
-                    Task {
-                        await AppState.shared.viewModel.refresh()
-                    }
+                    showSignOutConfirm = true
                 } label: {
                     HStack {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
@@ -161,6 +162,19 @@ struct SettingsView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .confirmationDialog(
+                    "Sign out of Harvest?",
+                    isPresented: $showSignOutConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Sign Out", role: .destructive) {
+                        oAuthService.signOut()
+                        AppState.shared.viewModel.resetForSignOut()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Yield will disconnect from your Harvest account and clear cached projects, timers, and favorites from view. Any timer running in Harvest itself will keep running there.")
+                }
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Connect your Harvest account to compare logged hours against Forecast bookings.")
@@ -282,8 +296,42 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+
+            // Notification permission warning — only renders when
+            // permission is denied. Without this, the over-budget
+            // "Time's up!" notification silently doesn't fire and
+            // the user has no way to know why.
+            if NotificationPermission.shared.status == .denied {
+                Rectangle()
+                    .fill(YieldColors.border)
+                    .frame(height: 1)
+
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(YieldColors.yellowAccent)
+                    Text("Notifications are off — over-budget alerts won't fire.")
+                        .font(YieldFonts.dmSans(10))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .lineLimit(2)
+                    Spacer(minLength: 4)
+                    Button("Open Settings") {
+                        NotificationPermission.shared.openSystemSettings()
+                    }
+                    .buttonStyle(.yieldBordered)
+                    .font(YieldFonts.dmSans(10, weight: .medium))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            }
         }
         .yieldCard()
+        .task {
+            // Re-check permission whenever Settings appears so the
+            // warning updates if the user toggled it from System
+            // Settings between visits.
+            await NotificationPermission.shared.refresh()
+        }
     }
 
     // MARK: - Favorites Card
@@ -516,14 +564,22 @@ struct SettingsView: View {
             .clipShape(RoundedRectangle(cornerRadius: 3))
     }
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title.uppercased())
-            .font(YieldFonts.dmSans(9, weight: .semibold))
-            .foregroundStyle(YieldColors.textSecondary)
-            .tracking(0.5)
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
+    private func sectionHeader(_ title: String, info: String? = nil) -> some View {
+        HStack(spacing: 4) {
+            Text(title.uppercased())
+                .font(YieldFonts.dmSans(9, weight: .semibold))
+                .foregroundStyle(YieldColors.textSecondary)
+                .tracking(0.5)
+            if let info {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 10))
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .help(info)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
+        .padding(.bottom, 6)
     }
 
     private var appearanceRow: some View {

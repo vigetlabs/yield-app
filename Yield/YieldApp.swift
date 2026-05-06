@@ -36,7 +36,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
             DefaultsKey.appearanceMode: AppearanceMode.default.rawValue,
         ])
 
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        Task { @MainActor in
+            await NotificationPermission.shared.requestAndRefresh()
+        }
         AppState.shared.updaterController = updaterController
         AppState.shared.start()
 

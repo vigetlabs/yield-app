@@ -885,6 +885,66 @@ final class TimeComparisonViewModel {
         stopElapsedTimer()
     }
 
+    /// Wipe every piece of view-model state that's tied to a Harvest
+    /// account so the UI lands in a clean "not signed in" state and a
+    /// subsequent sign-in (potentially with a different account) can't
+    /// see any leakage from the prior session. Call after
+    /// `OAuthService.signOut()`.
+    @MainActor
+    func resetForSignOut() {
+        stopAutoRefresh()
+
+        // UI state
+        projectStatuses = []
+        totalLogged = 0
+        totalBooked = 0
+        totalUnbookedLogged = 0
+        totalTodayLogged = 0
+        dailyHours = []
+        timeOffBlock = nil
+        weekOffset = 0
+        weekSnapshots.removeAll()
+        transitionSnapshot = TransitionSnapshot()
+        isLoadingOtherWeek = false
+        otherWeekError = nil
+        weekLabel = ""
+        lastUpdated = nil
+        isLoading = false
+        errorMessage = nil
+        serviceErrors = []
+        statusSnapshot = nil
+        dayFilter = nil
+        selectedTab = .recent
+
+        // Tracking + pause + idle state
+        pausedState = nil
+        idleAlertState = nil
+        pendingIdleMove = nil
+        notifiedProjectIds.removeAll()
+        trackingSessionBaseline.removeAll()
+        currentWeekStart = nil
+        currentRefreshDay = nil
+        elapsedOffset = 0
+
+        // External-change detection state
+        hasSeenInitialTrackingState = false
+        suppressNextTimerChangeHUD = false
+        lastTrackingEntryId = nil
+        lastTrackingClientName = nil
+        lastTrackingProjectName = nil
+        lastTrackingTaskName = nil
+
+        // API-fetch caches
+        cachedWeekEntries = []
+        cachedForecastBookings = [:]
+        cachedProjectMap = [:]
+        cachedClientMap = [:]
+        cachedTimeOffBlock = nil
+        cachedForecastNotes = [:]
+        cachedHarvestUserId = nil
+        cachedForecastPersonId = nil
+    }
+
     @MainActor
     private func startElapsedTimer() {
         elapsedTimer?.invalidate()

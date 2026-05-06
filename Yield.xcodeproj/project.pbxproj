@@ -14,6 +14,7 @@
 		1777566CD97D2CB223E29E5D /* TimerBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0E8E50D8DEBFD70A32D925 /* TimerBannerView.swift */; };
 		1F625C8CFBDABCD6BBAD3BC1 /* TimeOffRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */; };
 		232E3E8034BF33986F220DD0 /* ProjectChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */; };
+		2D388FC29B1A836CDD8816E4 /* NotificationPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7FA56DB72AFA51348B3FA62 /* NotificationPermission.swift */; };
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
 		427EA4BFD575944A859EF6CF /* DoubleFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD48D786838656DCBEEFF94 /* DoubleFormattersTests.swift */; };
 		428D5AEC2E6086C0999F9F7E /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */; };
@@ -100,6 +101,7 @@
 		C0FD7AEC1C89E1F04B5509F7 /* JetBrainsMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Regular.ttf"; sourceTree = "<group>"; };
 		C28B33F4048310D0D6B01D7C /* YieldButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YieldButtonStyles.swift; sourceTree = "<group>"; };
 		C54F1249B6E2997187DDBD28 /* HarvestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestService.swift; sourceTree = "<group>"; };
+		C7FA56DB72AFA51348B3FA62 /* NotificationPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermission.swift; sourceTree = "<group>"; };
 		C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Medium.ttf"; sourceTree = "<group>"; };
 		CA00826B19142EA4BF7E31AE /* ProjectStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStatusTests.swift; sourceTree = "<group>"; };
 		D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOffRowView.swift; sourceTree = "<group>"; };
@@ -205,6 +207,7 @@
 				7AC15EED42FBAABA8E309340 /* KeychainHelper.swift */,
 				381BBDC41541927F83D08FC9 /* LogStore.swift */,
 				A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */,
+				C7FA56DB72AFA51348B3FA62 /* NotificationPermission.swift */,
 				38C069FFB775F69282E721C8 /* OAuthService.swift */,
 			);
 			path = Services;
@@ -401,6 +404,7 @@
 				7C1545B79A40F59B462C2BE3 /* MenuBarContentView.swift in Sources */,
 				43AA55D2394219B22349EECD /* NetworkMonitor.swift in Sources */,
 				C0BFE1EB7FE167CA2FBD34B4 /* NewTimerFormView.swift in Sources */,
+				2D388FC29B1A836CDD8816E4 /* NotificationPermission.swift in Sources */,
 				6D46A5BB044C89897B4AB4D9 /* OAuthService.swift in Sources */,
 				232E3E8034BF33986F220DD0 /* ProjectChartView.swift in Sources */,
 				0A4CD72A293DB291F4C6F20D /* ProjectRowView.swift in Sources */,
