@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.17.0</title>
+      <sparkle:version>43</sparkle:version>
+      <sparkle:shortVersionString>0.9.17.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>Speculative fix for a launch crash on macOS 14.x: the `Array.indexed(by:)` helper and the Settings <em>Appearance</em> / <em>Menu bar display</em> pickers now take closures instead of generic-context KeyPaths, which avoids a buggy KeyPath caching path in older Sonoma builds.</li>
+          <li>Reorder the Settings cards: About → Account → Preferences → Favorites, so the most-glanced content is at the top and the long-tail Favorites list is at the bottom.</li>
+          <li>Stability + observability work under the hood: cross-midnight running-timer detection, automatic timezone-change handling, hardened sign-out (clears all in-memory state), graceful notification-permission degradation with a Settings warning + System Settings deep link, a local rolling log at <code>~/Library/Logs/Yield/yield.log</code>, and pre-filled GitHub bug reports that include version / OS / last refresh / last error.</li>
+          <li>Test coverage: 92 unit tests now cover date helpers, hour formatters, project status thresholds, the refresh merge pipeline, optimistic timer mutations, and the budget-notification gate. CI runs them on every push.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.17.0/Yield-0.9.17.0.zip"
+        sparkle:edSignature="L5HDcTxS7k9cs7cXeO1HdWA9Zop8oXm2yggtW7At4KRpr3vMnoMKXtY87IMqDDsuWYMZ35N+DalQfKni7AbYDA=="
+        length="2543578"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.16.1</title>
       <sparkle:version>42</sparkle:version>
       <sparkle:shortVersionString>0.9.16.1</sparkle:shortVersionString>
