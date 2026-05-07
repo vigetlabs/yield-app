@@ -12,22 +12,35 @@ Unzip, drag Yield to your Applications folder, and launch. It'll take root in yo
 
 ## ✨ Features
 
-- 📊 **At-a-glance weekly overview** — every project with color-coded progress bars showing logged vs. booked hours. Green when under budget, red when over.
+- 🤝 **Harvest + Forecast, side by side** — your logged hours and your booked hours in a single view, so you always know where the week stands.
+- ⏱️ **Full-featured time tracker** — start, stop, pause, resume, edit, and delete Harvest timers without leaving the menu bar. A duplicate-timer guard offers to resume an existing entry instead of doubling up.
+- 📊 **Color-coded progress bars** — every project shows status at a glance: green when under budget or on track, red when over.
+- 📐 **Day-by-day breakdown** — expand any project to see a segmented bar of its daily contribution to the week, alongside its individual time entries.
+- 🔭 **Past and future weeks** — peek ahead at what's booked (expected hours, holidays, your time off, prospective Forecast bookings) or step backward through past weeks for a read-only review.
+
+### And more
+
+**Time tracking**
+
+- ✏️ **Entry workflow** — project + task dropdowns grouped by client. Add to any day of the week, not just today. Double-click any entry to edit it, or start a timer with pre-filled hours for catch-up tracking.
+- ⭐ **Favorites** — star a project + task combo to save it. Picking a project auto-selects its most-recently-used favorite, a "Favorites" popover next to the project picker gives one-tap selection of any saved combo, and Settings lists every favorite so you can prune.
+- 📣 **External-change HUD** — when a timer is started or stopped from outside Yield (e.g. the Harvest browser extension), a small panel pops below the menu bar icon to acknowledge the change.
+
+**Visualizations & navigation**
+
 - 🎛️ **Configurable menu bar display** — pick what shows next to the icon: tracked vs. booked for the running project, current timer vs. today's total, or just the running timer. The icon itself rotates as a gauge tied to your progress on the active project.
 - 📈 **Weekly time chart** — stacked area chart showing hours by project across the week. Click a legend row to isolate a single project, or export the chart as a PNG.
-- 📐 **Day-by-day breakdown** — expand any project to see a segmented bar of its daily contribution to the week, alongside its individual time entries.
 - 🔍 **Day-of-week filter** — click a weekday in the header to narrow the list to projects you spent time on (or are booked on) that day.
-- 🔭 **Look-ahead** — see what's still ahead this week: expected hours per day, company holidays, your scheduled time off, and prospective Forecast bookings that aren't tied to a Harvest project yet.
-- 🌴 **Time off awareness** — your Forecast PTO surfaces as a dedicated summary row, and the menu bar icon switches to a moon when you're off for the full day.
-- ◀ ▶ **Week navigation** — step backward through past weeks (read-only, with full drawers and the day-by-day bar) or forward to see what's booked next, with a "This Week" pill to jump back.
-- ⏱️ **Live timer controls** — start, stop, pause, and resume Harvest timers without leaving the menu bar. A duplicate-timer guard offers to resume an existing entry on the same project instead of doubling up.
-- ✏️ **Create & edit time entries** — log time with project and task dropdowns grouped by client. Edit (or double-click to edit) and delete entries inline. Start a timer with pre-filled hours for catch-up tracking.
-- ⭐ **Favorites** — star a project + task combo to save it. Picking a project auto-selects its most-recently-used favorite, a "Favorites" popover next to the project picker gives one-tap selection of any saved combo, and Settings lists every favorite so you can prune.
-- 📅 **Log time to any day** — add entries to any day in the current week, not just today.
+
+**Awareness**
+
+- 🌴 **Time off** — your Forecast PTO surfaces as a dedicated summary row, and the menu bar icon switches to a moon when you're off for the full day.
 - 📝 **Forecast notes** — assignment notes from Forecast surface on project rows; hover the icon to read the full text.
 - 💤 **Idle detection** — alerts you when you've been idle, with options to continue, stop, keep the time, or move the idle minutes to a different timer.
 - 🔔 **Budget notifications** — nudges you when you hit your booked target on a project so you know when to move on.
-- 📣 **External-change HUD** — when a timer is started or stopped from outside Yield (e.g. the Harvest browser extension), a small panel pops below the menu bar icon to acknowledge the change.
+
+**Polish**
+
 - 🌗 **Light & dark mode** — pick System, Light, or Dark from Settings. The light palette is tuned for WCAG AA contrast across every accent.
 
 ## 🚜 Getting started
