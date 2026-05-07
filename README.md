@@ -2,11 +2,11 @@
 
 Know what you've sown and what's left to reap. Yield sits in your macOS menu bar and shows how your logged hours in [Harvest](https://www.getharvest.com/) stack up against your booked hours in [Forecast](https://www.getharvest.com/forecast) — so you always know where your week stands.
 
-## ⬇️ Download
+## ⬇️ Get started
 
 **[Download the latest version](https://github.com/vigetlabs/yield-app/releases/latest)**
 
-Unzip, drag Yield to your Applications folder, and launch. It'll take root in your menu bar. Sign in with your Harvest account and you're ready to go.
+Unzip, drag Yield to your Applications folder, and launch — it'll take root in your menu bar. Click the gauge icon and hit "Sign in with Harvest"; Yield connects your Forecast data automatically using the same login. Your week's projects, hours, and timers are all right there.
 
 *Requires macOS 14 (Sonoma) or later and a Harvest account with Forecast enabled.*
 
@@ -42,12 +42,6 @@ Unzip, drag Yield to your Applications folder, and launch. It'll take root in yo
 **Polish**
 
 - 🌗 **Light & dark mode** — pick System, Light, or Dark from Settings. The light palette is tuned for WCAG AA contrast across every accent.
-
-## 🚜 Getting started
-
-1. **Launch Yield** — look for the gauge icon in your menu bar
-2. **Sign in with Harvest** — click the icon and hit "Sign in with Harvest." This connects your Forecast data automatically.
-3. **That's it.** Your week's projects, hours, and timers are all right there.
 
 ## 🔁 Updates
 
