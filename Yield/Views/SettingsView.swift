@@ -392,12 +392,14 @@ struct SettingsView: View {
                         .font(YieldFonts.dmSans(11))
                         .foregroundStyle(YieldColors.textSecondary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
             } else if resolvedFavorites.isEmpty {
                 Text("No favorites yet. Add one from the new/edit timer screen.")
                     .font(YieldFonts.dmSans(11))
                     .foregroundStyle(YieldColors.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
             } else {
