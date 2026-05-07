@@ -1033,20 +1033,9 @@ final class TimeComparisonViewModel {
     }
 
     /// Programmatically open the MenuBarExtra panel by clicking its NSStatusItem button.
+    @MainActor
     private func openMenuBarPanel() {
-        // `NSApp` is `NSApplication!` — bail if not yet set.
-        // `responds(to:)` gates the KVC probe (probing windows that
-        // don't expose `statusItem` raises NSUndefinedKeyException).
-        guard let app = NSApp else { return }
-        let sel = NSSelectorFromString("statusItem")
-        guard let button = app.windows
-            .compactMap({ window -> NSStatusItem? in
-                guard window.responds(to: sel) else { return nil }
-                return window.value(forKey: "statusItem") as? NSStatusItem
-            })
-            .first?.button
-        else { return }
-        button.performClick(nil)
+        MenuBarStatusItem.button?.performClick(nil)
     }
 
     // MARK: - Idle Alert Actions

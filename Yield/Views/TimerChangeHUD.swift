@@ -105,7 +105,7 @@ final class TimerChangeHUDController {
         let edgeInset: CGFloat = 8
         let gapBelowMenuBar: CGFloat = 6
 
-        guard let button = statusItemButton(),
+        guard let button = MenuBarStatusItem.button,
               let buttonWindow = button.window else {
             let screen = NSScreen.main ?? NSScreen.screens.first
             let visible = screen?.visibleFrame ?? .zero
@@ -125,23 +125,6 @@ final class TimerChangeHUDController {
         x = max(visible.minX + edgeInset, min(x, visible.maxX - size.width - edgeInset))
         let y = buttonScreenRect.minY - size.height - gapBelowMenuBar
         return NSRect(x: x, y: y, width: size.width, height: size.height)
-    }
-
-    /// Walks `NSApp.windows` to find the menu bar status item — same
-    /// trick used by the tooltip helper in YieldApp. The
-    /// `responds(to:)` gate keeps the KVC probe from raising on
-    /// windows that don't expose `statusItem`.
-    private static let statusItemSelector = NSSelectorFromString("statusItem")
-    private func statusItemButton() -> NSStatusBarButton? {
-        // `NSApp` is `NSApplication!` — bail if it's not yet set
-        // (early-launch path on macOS 14.x).
-        guard let app = NSApp else { return nil }
-        return app.windows
-            .compactMap { window -> NSStatusItem? in
-                guard window.responds(to: Self.statusItemSelector) else { return nil }
-                return window.value(forKey: "statusItem") as? NSStatusItem
-            }
-            .first?.button
     }
 }
 

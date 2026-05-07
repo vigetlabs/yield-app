@@ -52,6 +52,7 @@
 		DD5B690291EBA5B1C1FB36F3 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A0F29CD8D3681B5AF53341 /* APIClient.swift */; };
 		E06685FE380D69C1A83B581B /* LogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 381BBDC41541927F83D08FC9 /* LogStore.swift */; };
 		E334718332CF138B1EAC4ADF /* ForecastModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */; };
+		E668F374FE5C32E40B8F3CCE /* MenuBarStatusItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457D60FE27EF219D36D1901E /* MenuBarStatusItem.swift */; };
 		EA70B3A5695C4282ACE6316F /* BudgetNotificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168140D146C953F805F0D8AE /* BudgetNotificationTests.swift */; };
 		EE882AB59C60F5BAE74C3B8A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF707BC7919EFF060031F5B9 /* SettingsView.swift */; };
 		F0AB8C77798AB287C998660E /* TimerChangeHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2A0B87C5615E7220576980 /* TimerChangeHUD.swift */; };
@@ -81,6 +82,7 @@
 		38C069FFB775F69282E721C8 /* OAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthService.swift; sourceTree = "<group>"; };
 		3B0E8E50D8DEBFD70A32D925 /* TimerBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerBannerView.swift; sourceTree = "<group>"; };
 		4269FF2D4C89CC7CD8668F99 /* DateHelpersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateHelpersTests.swift; sourceTree = "<group>"; };
+		457D60FE27EF219D36D1901E /* MenuBarStatusItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusItem.swift; sourceTree = "<group>"; };
 		6CD7C88B49D2E0356F35FCF4 /* Newsreader-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Newsreader-Regular.ttf"; sourceTree = "<group>"; };
 		77C42827589B10C29C0772BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectRowView.swift; sourceTree = "<group>"; };
@@ -215,6 +217,7 @@
 				8B78953DDC0FEB63661C043A /* HarvestStatusService.swift */,
 				7AC15EED42FBAABA8E309340 /* KeychainHelper.swift */,
 				381BBDC41541927F83D08FC9 /* LogStore.swift */,
+				457D60FE27EF219D36D1901E /* MenuBarStatusItem.swift */,
 				A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */,
 				C7FA56DB72AFA51348B3FA62 /* NotificationPermission.swift */,
 				38C069FFB775F69282E721C8 /* OAuthService.swift */,
@@ -414,6 +417,7 @@
 				E06685FE380D69C1A83B581B /* LogStore.swift in Sources */,
 				42DB3888BEBE6DE88987C012 /* LookAheadRowView.swift in Sources */,
 				7C1545B79A40F59B462C2BE3 /* MenuBarContentView.swift in Sources */,
+				E668F374FE5C32E40B8F3CCE /* MenuBarStatusItem.swift in Sources */,
 				43AA55D2394219B22349EECD /* NetworkMonitor.swift in Sources */,
 				C0BFE1EB7FE167CA2FBD34B4 /* NewTimerFormView.swift in Sources */,
 				2D388FC29B1A836CDD8816E4 /* NotificationPermission.swift in Sources */,
