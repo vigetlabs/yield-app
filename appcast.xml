@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.17.1</title>
+      <sparkle:version>44</sparkle:version>
+      <sparkle:shortVersionString>0.9.17.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Fixes the macOS 14.x launch crash.</strong> Confirmed by symbolicating a 0.9.17.0 crash on Sonoma 14.8.5: SwiftUI on 14.x evaluates the menu bar label closure during scene-graph build, before macOS finishes setting up the app's NSApplication pointer. The unguarded access to that pointer crashed at launch. Now guarded; the body re-evaluates a moment later when the pointer is live, and the tooltip / panel hooks land then.</li>
+          <li>Centralize the status-item lookup that finds the menu bar button — three near-duplicate copies collapse to one shared helper, with both the launch-time guard and a defensive KVC <code>responds(to:)</code> check living in a single place.</li>
+          <li>Settings: the Favorites card no longer shrinks to text width on a fresh install (no favorites yet) — empty and loading states now fill the card.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.17.1/Yield-0.9.17.1.zip"
+        sparkle:edSignature="kKjeH92qIrTq3TK8YZiLivaO1KpKRQ3oFYt+3hf8+562AieuXClWgX5AaqRRrnuzAEyt+XYxT+GgwFtwp9L6BA=="
+        length="2543593"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.17.0</title>
       <sparkle:version>43</sparkle:version>
       <sparkle:shortVersionString>0.9.17.0</sparkle:shortVersionString>
