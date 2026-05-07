@@ -128,10 +128,19 @@ final class TimerChangeHUDController {
     }
 
     /// Walks `NSApp.windows` to find the menu bar status item — same
-    /// trick used by the tooltip helper in YieldApp.
+    /// trick used by the tooltip helper in YieldApp. The
+    /// `responds(to:)` gate keeps the KVC probe from raising on
+    /// windows that don't expose `statusItem`.
+    private static let statusItemSelector = NSSelectorFromString("statusItem")
     private func statusItemButton() -> NSStatusBarButton? {
-        NSApp.windows
-            .compactMap { $0.value(forKey: "statusItem") as? NSStatusItem }
+        // `NSApp` is `NSApplication!` — bail if it's not yet set
+        // (early-launch path on macOS 14.x).
+        guard let app = NSApp else { return nil }
+        return app.windows
+            .compactMap { window -> NSStatusItem? in
+                guard window.responds(to: Self.statusItemSelector) else { return nil }
+                return window.value(forKey: "statusItem") as? NSStatusItem
+            }
             .first?.button
     }
 }

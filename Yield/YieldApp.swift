@@ -193,11 +193,28 @@ struct YieldApp: App {
     /// Skips the AppKit hop when nothing changed so the label closure's
     /// hot path doesn't pay for it on every timer tick.
     private static var lastAppliedTooltip: String?
+    private static let statusItemSelector = NSSelectorFromString("statusItem")
     private static func applyStatusItemTooltip(_ tooltip: String) {
+        // `NSApp` is imported from AppKit as `NSApplication!`
+        // (implicitly-unwrapped optional). On macOS 14.x, SwiftUI
+        // evaluates the `MenuBarExtra` label closure during scene-
+        // graph build — *before* `NSApplicationMain` has set the
+        // global `NSApp` pointer — and the implicit unwrap traps
+        // (confirmed by symbolicating a launch crash on 14.8.5).
+        // Bail out when `NSApp` is nil; the body re-evaluates after
+        // launch completes, and the tooltip gets applied then.
+        guard let app = NSApp else { return }
         guard tooltip != lastAppliedTooltip else { return }
         lastAppliedTooltip = tooltip
-        let button = NSApp.windows
-            .compactMap { $0.value(forKey: "statusItem") as? NSStatusItem }
+        // `value(forKey: "statusItem")` is a KVC probe to find the
+        // MenuBarExtra's NSStatusItem. Probing windows that don't
+        // declare that key raises `NSUndefinedKeyException` →
+        // Swift fatal trap. Gate with `responds(to:)`.
+        let button = app.windows
+            .compactMap { window -> NSStatusItem? in
+                guard window.responds(to: Self.statusItemSelector) else { return nil }
+                return window.value(forKey: "statusItem") as? NSStatusItem
+            }
             .first?.button
         button?.toolTip = tooltip.isEmpty ? nil : tooltip
     }
