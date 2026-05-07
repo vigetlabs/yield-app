@@ -149,7 +149,7 @@ Create the GitHub release pointing at the existing tag:
 gh release create vVERSION /tmp/Yield-VERSION.zip --title "vVERSION" --notes "RELEASE_NOTES" --verify-tag
 ```
 
-The release notes for GitHub should be formatted with markdown headers and bullet points.
+The release notes for GitHub should be formatted with markdown headers and bullet points. Do NOT append a "Generated with Claude Code" line to release notes — keep them attribution-free.
 
 The GitHub Actions workflow (`.github/workflows/slack-release-notify.yml`) will automatically post to #yield-app when the release is created — no manual Slack step needed.
 
