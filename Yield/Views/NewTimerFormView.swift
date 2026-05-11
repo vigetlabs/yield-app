@@ -23,6 +23,7 @@ struct NewTimerFormView: View {
     @State private var availableTasks: [TaskOption] = []
     @State private var spentDate: Date = Date()
     @State private var duplicateConfirmEntries: [TimeEntryInfo]?
+    @State private var showDeleteConfirm = false
 
     init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -277,11 +278,30 @@ struct NewTimerFormView: View {
                     .buttonStyle(.yieldBordered)
                     .disabled(!canLog)
                     .opacity(canLog ? 1 : 0.5)
+                } else if isEditing {
+                    Button {
+                        showDeleteConfirm = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .buttonStyle(.redOutlined)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
             .padding(.bottom, 16)
+            .confirmationDialog(
+                "Delete this time entry?",
+                isPresented: $showDeleteConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    Task { await deleteEntry() }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("The entry will be removed from Harvest. This can't be undone.")
+            }
         }
         .task {
             // Initialize spent date. Priority:
@@ -649,6 +669,12 @@ struct NewTimerFormView: View {
             hours: hours,
             notes: notesToSend
         )
+    }
+
+    private func deleteEntry() async {
+        guard let entry = editingEntry else { return }
+        onDismiss()
+        await viewModel.deleteTimeEntry(entryId: entry.id)
     }
 
     /// Commit the idle-move flow with a brand-new entry on the chosen

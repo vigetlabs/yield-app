@@ -182,7 +182,8 @@ struct TimerBannerView: View {
                         }
                         .buttonStyle(TimerControlButtonStyle(
                             borderColor: YieldColors.buttonBorder,
-                            foregroundColor: YieldColors.textSecondary
+                            foregroundColor: YieldColors.textSecondary,
+                            destructiveOnHover: true
                         ))
                         .disabledWhenHarvestDown(viewModel.isHarvestDown)
                     }

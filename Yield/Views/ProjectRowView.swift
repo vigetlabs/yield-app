@@ -569,7 +569,8 @@ struct TaskEntryRowView: View {
                 }
                 .buttonStyle(TimerControlButtonStyle(
                     borderColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.buttonBorder,
-                    foregroundColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.textSecondary
+                    foregroundColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.textSecondary,
+                    destructiveOnHover: entry.isRunning
                 ))
                 .disabledWhenHarvestDown(isHarvestDown)
             }
