@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.18.1</title>
+      <sparkle:version>46</sparkle:version>
+      <sparkle:shortVersionString>0.9.18.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>New <strong>External timer change notifications</strong> toggle in Settings → Preferences. Lets you silence the HUD that pops below the menu bar icon when a timer starts or stops outside Yield (e.g. via the Harvest browser extension). Defaults on; existing behavior unchanged unless you turn it off.</li>
+          <li>Idle detection's toggle now sits at the far right of its row, matching Launch at Login and the new HUD toggle.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.18.1/Yield-0.9.18.1.zip"
+        sparkle:edSignature="DMsoAoqVThRDGOQviK9kpieNNNfQst9ZpEFNr1z7DANyDAQdWaqSUXqtLqZa8EqpQ3WhuP20Bh8Samg7A4YeBA=="
+        length="2555866"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.18.0</title>
       <sparkle:version>45</sparkle:version>
       <sparkle:shortVersionString>0.9.18.0</sparkle:shortVersionString>
