@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.18.0</title>
+      <sparkle:version>45</sparkle:version>
+      <sparkle:shortVersionString>0.9.18.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Quick Start and Resume Timer in the project right-click menu.</strong> Right-click any project to skip the new-timer form: <em>Resume Timer</em> appears when you have a today entry that isn't running and continues accumulating to it; <em>Quick Start</em> appears when you've starred a favorite for that project and starts a fresh timer with that task. Old <em>Add Time</em> still works the same.</li>
+          <li><strong>Delete button on the edit-timer form</strong> in the right slot where Log Time sits in create mode. Includes a confirmation dialog so misclicks don't nuke entries.</li>
+          <li><strong>Destructive-red treatment on stop and delete controls.</strong> The banner Stop button and the inline Stop on a running entry now hover in red, signalling "you're about to terminate" before you click. Pulled directly from the Figma design tokens.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.18.0/Yield-0.9.18.0.zip"
+        sparkle:edSignature="My/KrLSLwhsGbk+sZg5mT286eKRV1ajlSuASFFe9RJtcskjR1Gngil4LG8OdFoSA/5PkIqr1In5Dqts3+DNMAg=="
+        length="2555449"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.17.1</title>
       <sparkle:version>44</sparkle:version>
       <sparkle:shortVersionString>0.9.17.1</sparkle:shortVersionString>
