@@ -19,6 +19,15 @@ struct ProjectRowView: View {
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
     var isHarvestDown: Bool = false
     var onStartTimerForProject: (() -> Void)? = nil
+    /// Quick-start a timer using this project's most-recently-used
+    /// favorite task, bypassing the new-timer form. Wired only when
+    /// `FavoritesStore` has a favorite for `project.harvestProjectId`.
+    /// Receives `(projectId, taskId)` for the favorite to start.
+    var onQuickStartFavorite: ((Int, Int) -> Void)? = nil
+    /// Restart this project's most recent today entry. Shown in the
+    /// right-click menu when there's a today entry on the project and
+    /// it's not currently running. Receives the entry id.
+    var onResumeToday: ((Int) -> Void)? = nil
     /// When true, all write interactions are suppressed — no play/stop
     /// buttons, no context menus, no double-click-to-edit. Used for
     /// rendering past weeks (Harvest "submits" those entries and locking
@@ -58,7 +67,23 @@ struct ProjectRowView: View {
                     // Hide for prospective / proposal-stage projects that
                     // have no Harvest link — you can't track time to them
                     // yet.
-                    if !isReadOnly, project.harvestProjectId != nil {
+                    if !isReadOnly, let projectId = project.harvestProjectId {
+                        if !project.isTracking, let entryId = project.todayEntryId {
+                            Button {
+                                onResumeToday?(entryId)
+                            } label: {
+                                Label("Resume Timer", systemImage: "arrow.clockwise")
+                            }
+                            .disabled(isHarvestDown)
+                        }
+                        if let favorite = FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: projectId) {
+                            Button {
+                                onQuickStartFavorite?(projectId, favorite.taskId)
+                            } label: {
+                                Label("Quick Start", systemImage: "bolt.fill")
+                            }
+                            .disabled(isHarvestDown)
+                        }
                         Button {
                             onStartTimerForProject?()
                         } label: {

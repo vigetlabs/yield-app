@@ -258,6 +258,16 @@ struct MenuBarContentView: View {
                             preselectedProjectId = project.harvestProjectId
                             showNewTimerForm = true
                         }
+                    },
+                    onQuickStartFavorite: { projectId, taskId in
+                        // Mark the favorite used before the await so the
+                        // next auto-select picks the right one — same
+                        // ordering NewTimerFormView uses.
+                        FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
+                        Task { await viewModel.startNewTimer(projectId: projectId, taskId: taskId) }
+                    },
+                    onResumeToday: { entryId in
+                        Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false) }
                     }
                 )
             }
