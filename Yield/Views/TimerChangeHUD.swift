@@ -33,6 +33,9 @@ final class TimerChangeHUDController {
         // No-op under XCTest — tests drive the view model directly and
         // shouldn't paint floating panels onto the host's screen.
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        // Respect the user's preference. The default registered at
+        // launch is `true`, so an unset key still surfaces the HUD.
+        guard UserDefaults.standard.bool(forKey: DefaultsKey.timerChangeHUDEnabled) else { return }
         // Suppressed while the panel is open — the user is already
         // looking at the timer state, the HUD would be noise.
         guard !AppState.shared.isPanelOpen else { return }

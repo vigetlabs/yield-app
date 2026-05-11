@@ -14,6 +14,10 @@ enum DefaultsKey {
     static let menuBarLabelMode = "menuBarLabelMode"
     static let idleDetectionEnabled = "idleDetectionEnabled"
     static let idleMinutes = "idleMinutes"
+    /// Whether the HUD that announces externally-triggered timer
+    /// starts/stops (e.g. from the Harvest browser extension) is shown.
+    /// On = surface the HUD; off = silent.
+    static let timerChangeHUDEnabled = "timerChangeHUDEnabled"
 
     // MARK: - User data
     static let favorites = "favorites"

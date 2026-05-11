@@ -34,6 +34,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
             DefaultsKey.idleMinutes: 10,
             DefaultsKey.menuBarLabelMode: MenuBarLabelMode.projectTime.rawValue,
             DefaultsKey.appearanceMode: AppearanceMode.default.rawValue,
+            DefaultsKey.timerChangeHUDEnabled: true,
         ])
 
         Task { @MainActor in

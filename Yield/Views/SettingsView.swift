@@ -7,6 +7,7 @@ struct SettingsView: View {
 
     @AppStorage(DefaultsKey.appearanceMode) private var appearanceMode: String = AppearanceMode.default.rawValue
     @AppStorage(DefaultsKey.idleDetectionEnabled) private var idleDetectionEnabled = true
+    @AppStorage(DefaultsKey.timerChangeHUDEnabled) private var timerChangeHUDEnabled = true
     @AppStorage(DefaultsKey.idleMinutes) private var idleMinutes = 10
     @AppStorage(DefaultsKey.menuBarLabelMode) private var menuBarLabelMode: String = MenuBarLabelMode.projectTime.rawValue
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -261,13 +262,6 @@ struct SettingsView: View {
                     .foregroundStyle(YieldColors.textSecondary)
                     .frame(width: 16)
 
-                Toggle("Idle detection", isOn: $idleDetectionEnabled)
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
-                    .font(YieldFonts.dmSans(11))
-                    .foregroundStyle(YieldColors.textPrimary)
-                    .labelsHidden()
-
                 Text("Idle detection after")
                     .font(YieldFonts.dmSans(11))
                     .foregroundStyle(idleDetectionEnabled ? YieldColors.textPrimary : YieldColors.textSecondary)
@@ -293,9 +287,24 @@ struct SettingsView: View {
                     .foregroundStyle(YieldColors.textSecondary)
 
                 Spacer()
+
+                Toggle("Idle detection", isOn: $idleDetectionEnabled)
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .labelsHidden()
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+
+            settingsToggleRow(
+                icon: "megaphone",
+                label: "External timer change notifications",
+                isOn: $timerChangeHUDEnabled
+            )
 
             // Notification permission warning — only renders when
             // permission is denied. Without this, the over-budget
