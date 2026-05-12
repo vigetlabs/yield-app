@@ -1641,6 +1641,10 @@ final class TimeComparisonViewModel {
     func stopBannerTimer() async {
         if let entry = trackingEntry,
            let (harvestService, _) = makeServices() {
+            // Suppress the external-change HUD — the refresh below
+            // would otherwise see the running→stopped transition and
+            // announce it as if it came from outside Yield.
+            markUserTimerMutation()
             optimisticallyStopEntry(entry.id)
             do {
                 _ = try await harvestService.stopTimer(entryId: entry.id)
