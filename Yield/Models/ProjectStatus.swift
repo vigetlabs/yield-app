@@ -96,10 +96,16 @@ extension Double {
     }
 
     /// `"H:MM"` — colon form used by the menu bar label and tooltips.
-    /// Caller wraps with `Swift.abs(...)` if the value can be negative.
+    /// Handles negative values by applying a single leading minus and
+    /// formatting the magnitude (so `-2.5` renders as `"-2:30"`, not
+    /// `"-2:-30"`).
     var formattedColon: String {
-        let (h, m) = roundedHM
-        return "\(h):\(String(format: "%02d", m))"
+        let totalMinutes = Int((self * 60).rounded())
+        let isNegative = totalMinutes < 0
+        let mag = abs(totalMinutes)
+        let h = mag / 60
+        let m = mag % 60
+        return "\(isNegative ? "-" : "")\(h):\(String(format: "%02d", m))"
     }
 
     /// `"Hh MMm"` — long form used in row times, remaining-hours

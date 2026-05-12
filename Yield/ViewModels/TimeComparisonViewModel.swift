@@ -678,9 +678,10 @@ final class TimeComparisonViewModel {
         guard lastUpdated != nil else { return "" }
 
         switch menuBarLabelMode {
-        case .projectTime:  return projectTimeLabel()
-        case .dayTime:      return dayTimeLabel()
-        case .currentTimer: return currentTimerLabel()
+        case .projectTime:      return projectTimeLabel()
+        case .dayTime:          return dayTimeLabel()
+        case .currentRemaining: return currentRemainingLabel()
+        case .currentTimer:     return currentTimerLabel()
         }
     }
 
@@ -722,6 +723,37 @@ final class TimeComparisonViewModel {
             return formatPair(paused.frozenHours, totalTodayLogged)
         }
         return formatPair(totalTodayLogged, YieldConstants.workdayHours)
+    }
+
+    /// `currentEntry / projectRemaining` for the running project. Falls
+    /// back to `entryHours / todayTotal` on unbooked projects and to
+    /// `weekTotal / weeklyBudget` (40h floor) when nothing is running —
+    /// mirroring `projectTimeLabel` so the two modes feel consistent.
+    /// Remaining goes negative (with a leading minus) when the project
+    /// is over budget; the gauge icon already signals over-state, so
+    /// the negative is just the precise amount.
+    private func currentRemainingLabel() -> String {
+        if let tracking = projectStatuses.first(where: { $0.isTracking }) {
+            let entryHours = (trackingEntry?.hours ?? 0) + elapsedOffset
+            if tracking.bookedHours == 0 {
+                let todayTotal = totalTodayLogged + elapsedOffset
+                return formatPair(entryHours, todayTotal)
+            }
+            let trackedOnProject = tracking.loggedHours + elapsedOffset
+            let remaining = tracking.bookedHours - trackedOnProject
+            return formatPair(entryHours, remaining)
+        }
+        if let project = pausedProject {
+            let entryHours = pausedState?.frozenHours ?? 0
+            if project.bookedHours == 0 {
+                return formatPair(entryHours, totalTodayLogged)
+            }
+            let remaining = project.bookedHours - project.loggedHours
+            return formatPair(entryHours, remaining)
+        }
+        let allTracked = totalLogged + totalUnbookedLogged
+        let budget = max(totalBooked, Self.minimumWeeklyBudget)
+        return formatPair(allTracked, budget)
     }
 
     /// Just the current timer's hours, no denominator. A paused timer

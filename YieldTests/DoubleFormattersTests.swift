@@ -82,6 +82,15 @@ final class DoubleFormattersTests: XCTestCase {
         XCTAssertEqual(Double(88.5).formattedColon, "88:30")
     }
 
+    func test_formattedColon_negative() {
+        // Negatives get a single leading minus, not a minus on each
+        // component — required for the menu bar "current / remaining"
+        // label to render an over-budget remaining cleanly.
+        XCTAssertEqual(Double(-2.5).formattedColon, "-2:30")
+        XCTAssertEqual(Double(-0.5).formattedColon, "-0:30")
+        XCTAssertEqual(Double(-1).formattedColon, "-1:00")
+    }
+
     // MARK: - formattedHoursMinutes
 
     func test_formattedHoursMinutes_basic() {
