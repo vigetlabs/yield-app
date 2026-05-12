@@ -110,8 +110,9 @@ final class HarvestService {
         )
     }
 
-    func updateTimeEntry(entryId: Int, hours: Double? = nil, taskId: Int? = nil, notes: String?) async throws -> HarvestTimeEntry {
+    func updateTimeEntry(entryId: Int, projectId: Int? = nil, hours: Double? = nil, taskId: Int? = nil, notes: String?) async throws -> HarvestTimeEntry {
         var body: [String: Any] = [:]
+        if let projectId { body["project_id"] = projectId }
         if let hours { body["hours"] = hours }
         if let taskId { body["task_id"] = taskId }
         // Always send notes — empty string clears them, nil omits the field

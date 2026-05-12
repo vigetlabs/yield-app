@@ -1558,14 +1558,15 @@ final class TimeComparisonViewModel {
         }
     }
 
-    /// Update an existing time entry's task, hours, and/or notes
+    /// Update an existing time entry's project, task, hours, and/or notes
     @MainActor
-    func updateExistingEntry(entryId: Int, taskId: Int, hours: Double, notes: String) async {
+    func updateExistingEntry(entryId: Int, projectId: Int, taskId: Int, hours: Double, notes: String) async {
         guard let (harvestService, _) = makeServices() else { return }
 
         do {
             _ = try await harvestService.updateTimeEntry(
                 entryId: entryId,
+                projectId: projectId,
                 hours: hours,
                 taskId: taskId,
                 notes: notes

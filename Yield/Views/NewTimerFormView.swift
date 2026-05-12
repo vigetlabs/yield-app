@@ -656,15 +656,17 @@ struct NewTimerFormView: View {
 
     private func saveEntry() async {
         guard let entry = editingEntry,
+              let projectId = selectedProjectId,
               let taskId = selectedTaskId else { return }
         let hours = enteredHours > 0 ? enteredHours : entry.hours
         // Only send notes if the user changed them, to avoid unintentionally clearing
         let notesToSend = notes != (entry.notes ?? "") ? notes : entry.notes ?? ""
 
-        FavoritesStore.shared.markUsed(projectId: entry.harvestProjectId, taskId: taskId)
+        FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
         onDismiss()
         await viewModel.updateExistingEntry(
             entryId: entry.id,
+            projectId: projectId,
             taskId: taskId,
             hours: hours,
             notes: notesToSend
