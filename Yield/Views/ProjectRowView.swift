@@ -39,6 +39,11 @@ struct ProjectRowView: View {
     var weekStart: Date? = nil
     @State private var isExpanded: Bool = false
     @State private var isHovered: Bool = false
+    /// True while the cursor is over the row's right-side zone
+    /// (time / progress / actions). Drives the second stage of the
+    /// quick-action reveal: row-hover shows a peek; zone-hover shows
+    /// the icons in full.
+    @State private var isActionZoneHovered: Bool = false
 
     private var hasEntries: Bool { !visibleEntries.isEmpty }
 
@@ -184,34 +189,62 @@ struct ProjectRowView: View {
 
                 Spacer(minLength: 8)
 
-                // Right: time + progress bar
-                VStack(alignment: .trailing, spacing: 8) {
-                    timeLabel
+                // Right-side zone: time/progress + quick actions.
+                // Wrapped so we can attach a focused `.onHover` that
+                // triggers the second stage of the action reveal.
+                // Stage 1 (row-hover): icons peek at a few pt of width
+                // — hint that they're there. Stage 2 (zone-hover):
+                // icons reveal fully and the progress bar reflows. No
+                // popover (popovers inside MenuBarExtra panels cause
+                // window resize jumps).
+                HStack {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        timeLabel
 
-                    if project.isForecasted {
-                        ProgressBarView(
-                            logged: effectiveLoggedHours,
-                            booked: project.bookedHours,
-                            dayLogged: dayFilteredHours
-                        )
+                        if project.isForecasted {
+                            ProgressBarView(
+                                logged: effectiveLoggedHours,
+                                booked: project.bookedHours,
+                                dayLogged: dayFilteredHours
+                            )
+                        }
+                    }
+
+                    if hasOverflowActions {
+                        // Cross-faded reveal:
+                        //   - Row hover → ellipsis "peek" icon (single
+                        //     22pt affordance hinting that actions
+                        //     exist).
+                        //   - Zone hover → icon fades out, action bar
+                        //     fades in with its trailing-aligned slide.
+                        // Both children share the ZStack's trailing
+                        // edge so the visual swap happens in place.
+                        ZStack(alignment: .trailing) {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(YieldColors.textSecondary)
+                                .frame(width: 22, height: 22)
+                                .opacity(showPeekIcon ? 1 : 0)
+
+                            quickActionsBar
+                                .fixedSize()
+                                .opacity(isActionZoneHovered ? 1 : 0)
+                        }
+                        .frame(width: rightZoneWidth, alignment: .trailing)
+                        .clipped()
                     }
                 }
-
-                // Hover-revealed quick-action buttons. The HStack's
-                // intrinsic width animates 0 ↔ natural-width via the
-                // existing isHovered state — the progress bar reflows
-                // smoothly. Icons additionally slide in from the right
-                // (offset 10 → 0) while fading, so they look like
-                // they're "arriving" from the trailing edge rather than
-                // popping in place. No popover (popovers inside
-                // MenuBarExtra panels cause window resize jumps).
-                // Hidden entirely for projects with no actionable items.
-                if hasOverflowActions {
-                    quickActionsBar
-                        .fixedSize()
-                        .frame(width: isHovered ? nil : 0, alignment: .leading)
-                        .opacity(isHovered ? 1 : 0)
-                        .clipped()
+                // Make the whole right-side zone a single hover target,
+                // including any transparent gaps between the time
+                // VStack and the action bar. Without `contentShape`,
+                // hover flips false/true as the cursor crosses
+                // invisible HStack-spacing gaps, which animates the
+                // bar in and out repeatedly.
+                .contentShape(Rectangle())
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        isActionZoneHovered = hovering
+                    }
                 }
             }
             .padding(.leading, 16)
@@ -224,6 +257,43 @@ struct ProjectRowView: View {
 
     private var hasOverflowActions: Bool {
         !isReadOnly && project.harvestProjectId != nil
+    }
+
+    /// Number of quick-action buttons that will render for this row.
+    /// Add Time is always present (when actionable); Resume and Quick
+    /// Start are conditional on entry/favorite state.
+    private var quickActionCount: Int {
+        guard let projectId = project.harvestProjectId else { return 0 }
+        var count = 1 // Add Time
+        if !project.isTracking, project.todayEntryId != nil { count += 1 }
+        if FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: projectId) != nil { count += 1 }
+        return count
+    }
+
+    /// Full natural width of the action bar: 22pt per button, 4pt
+    /// spacing between, +4pt leading padding.
+    private var quickActionsFullWidth: CGFloat {
+        let n = quickActionCount
+        guard n > 0 else { return 0 }
+        return CGFloat(n) * 22 + CGFloat(max(n - 1, 0)) * 4 + 4
+    }
+
+    /// Three-stage reveal width for the right-side zone:
+    ///   - Zone hovered → full action-bar width
+    ///   - Row hovered  → 22pt (single peek-icon slot)
+    ///   - Neither      → 0
+    private var rightZoneWidth: CGFloat {
+        guard hasOverflowActions else { return 0 }
+        if isActionZoneHovered { return quickActionsFullWidth }
+        if isHovered { return 22 }
+        return 0
+    }
+
+    /// The peek ellipsis shows only when the row is hovered but the
+    /// zone is not — i.e. the user has surfaced the affordance but
+    /// hasn't committed to using it.
+    private var showPeekIcon: Bool {
+        hasOverflowActions && isHovered && !isActionZoneHovered
     }
 
     /// Row of icon buttons that appears on the right side of the
