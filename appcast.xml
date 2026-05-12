@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.19.1</title>
+      <sparkle:version>49</sparkle:version>
+      <sparkle:shortVersionString>0.9.19.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Quick Resume now picks the timer you most recently used</strong>, not the one most recently created. If a project has multiple today entries (you started Timer A, then Timer B, then bounced back to A), Quick Resume from the project's hover icon now correctly resumes A.</li>
+          <li>New <strong>info icon next to the task name in the timer banner</strong>. Hover it to see when the current run started and how long it's been going (e.g. "Started at 11:18 AM · 2:35 elapsed"). Only appears while a timer is actively running.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.19.1/Yield-0.9.19.1.zip"
+        sparkle:edSignature="Chi+W4tgepVE5lfBAXkCJfxk9qLvJYkSHiv8mPKecZiOmczIn3hbO6BwnLSXELNWRaHTCUHvNC9mHAp/A8SwCQ=="
+        length="2594719"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.19.0</title>
       <sparkle:version>48</sparkle:version>
       <sparkle:shortVersionString>0.9.19.0</sparkle:shortVersionString>
