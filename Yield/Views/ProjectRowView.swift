@@ -63,35 +63,6 @@ struct ProjectRowView: View {
                         isExpanded.toggle()
                     }
                 }
-                .contextMenu {
-                    // Hide for prospective / proposal-stage projects that
-                    // have no Harvest link — you can't track time to them
-                    // yet.
-                    if !isReadOnly, let projectId = project.harvestProjectId {
-                        if !project.isTracking, let entryId = project.todayEntryId {
-                            Button {
-                                onResumeToday?(entryId)
-                            } label: {
-                                Label("Resume Timer", systemImage: "arrow.clockwise")
-                            }
-                            .disabled(isHarvestDown)
-                        }
-                        if let favorite = FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: projectId) {
-                            Button {
-                                onQuickStartFavorite?(projectId, favorite.taskId)
-                            } label: {
-                                Label("Quick Start", systemImage: "bolt.fill")
-                            }
-                            .disabled(isHarvestDown)
-                        }
-                        Button {
-                            onStartTimerForProject?()
-                        } label: {
-                            Label("Add Time", systemImage: "play.fill")
-                        }
-                        .disabled(isHarvestDown)
-                    }
-                }
 
             // Accordion drawer: day-by-day breakdown bar at the top, then the
             // project's time entries. Always in the view tree so the container
@@ -225,11 +196,75 @@ struct ProjectRowView: View {
                         )
                     }
                 }
+
+                // Hover-revealed quick-action buttons. The HStack's
+                // intrinsic width animates 0 ↔ natural-width via the
+                // existing isHovered state — the progress bar reflows
+                // smoothly. Icons additionally slide in from the right
+                // (offset 10 → 0) while fading, so they look like
+                // they're "arriving" from the trailing edge rather than
+                // popping in place. No popover (popovers inside
+                // MenuBarExtra panels cause window resize jumps).
+                // Hidden entirely for projects with no actionable items.
+                if hasOverflowActions {
+                    quickActionsBar
+                        .fixedSize()
+                        .frame(width: isHovered ? nil : 0, alignment: .leading)
+                        .opacity(isHovered ? 1 : 0)
+                        .clipped()
+                }
             }
             .padding(.leading, 16)
             .padding(.trailing, 16)
         }
         .frame(height: project.isForecasted ? YieldDimensions.projectRowForecastedHeight : YieldDimensions.projectRowDefaultHeight)
+    }
+
+    // MARK: - Hover Quick-Action Buttons
+
+    private var hasOverflowActions: Bool {
+        !isReadOnly && project.harvestProjectId != nil
+    }
+
+    /// Row of icon buttons that appears on the right side of the
+    /// project row while hovered. Each icon is a direct action — no
+    /// menu / popover layer, so the click count drops from two to one.
+    /// Number of buttons varies (1–3) depending on which actions apply.
+    @ViewBuilder
+    private var quickActionsBar: some View {
+        HStack(spacing: 4) {
+            if let projectId = project.harvestProjectId {
+                if !project.isTracking, let entryId = project.todayEntryId {
+                    quickActionButton(systemImage: "arrow.clockwise", help: "Resume Timer") {
+                        onResumeToday?(entryId)
+                    }
+                }
+                if let favorite = FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: projectId) {
+                    quickActionButton(systemImage: "bolt.fill", help: "Quick Start") {
+                        onQuickStartFavorite?(projectId, favorite.taskId)
+                    }
+                }
+                quickActionButton(systemImage: "play.fill", help: "Add Time") {
+                    onStartTimerForProject?()
+                }
+            }
+        }
+        .padding(.leading, 4)
+    }
+
+    @ViewBuilder
+    private func quickActionButton(systemImage: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(YieldColors.textSecondary)
+                .frame(width: 22, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .disabled(isHarvestDown)
+        .opacity(isHarvestDown ? 0.4 : 1)
     }
 
     // MARK: - Status Line
