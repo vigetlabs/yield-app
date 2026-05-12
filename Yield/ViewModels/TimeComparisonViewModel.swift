@@ -1966,9 +1966,21 @@ final class TimeComparisonViewModel {
                     runningHarvestProjectIds.insert(entry.project.id)
                     todayEntryByProject[entry.project.id] = entry
                 }
-                // Track today's entry (prefer running, then most recent for today)
-                if entry.spentDate == todayString && todayEntryByProject[entry.project.id] == nil {
-                    todayEntryByProject[entry.project.id] = entry
+                // Track today's entry: a running entry always wins;
+                // otherwise pick the entry with the latest updated_at
+                // (i.e. the one the user touched most recently).
+                // Iteration-order picking (the previous behavior)
+                // returned whatever Harvest sorted first — which is by
+                // `id DESC`, so it locked onto the newest-CREATED entry
+                // even after the user restarted an older one. Quick
+                // Resume then resumed the wrong entry.
+                if entry.spentDate == todayString {
+                    let existing = todayEntryByProject[entry.project.id]
+                    let existingIsRunning = existing?.isRunning ?? false
+                    if !existingIsRunning,
+                       existing == nil || entry.updatedAt > existing!.updatedAt {
+                        todayEntryByProject[entry.project.id] = entry
+                    }
                 }
                 // Track latest entry overall (for task ID when creating new entries)
                 if latestEntryByProject[entry.project.id] == nil {
