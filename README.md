@@ -22,13 +22,14 @@ Unzip, drag Yield to your Applications folder, and launch — it'll take root in
 
 **Time tracking**
 
+- ⚡ **Quick actions on project rows** — hover a project to surface one-click icons on the right side: Resume your most-recently-used timer on that project, Quick Start a favorited task, or Add Time to open the full form. Skips the form/menu steps for the common cases.
 - ✏️ **Entry workflow** — project + task dropdowns grouped by client. Add to any day of the week, not just today. Double-click any entry to edit it, or start a timer with pre-filled hours for catch-up tracking.
 - ⭐ **Favorites** — star a project + task combo to save it. Picking a project auto-selects its most-recently-used favorite, a "Favorites" popover next to the project picker gives one-tap selection of any saved combo, and Settings lists every favorite so you can prune.
-- 📣 **External-change HUD** — when a timer is started or stopped from outside Yield (e.g. the Harvest browser extension), a small panel pops below the menu bar icon to acknowledge the change.
+- 📣 **External-change HUD** — when a timer is started or stopped from outside Yield (e.g. the Harvest browser extension), a small panel pops below the menu bar icon to acknowledge the change. Toggle off in Settings → Preferences if you don't want it.
 
 **Visualizations & navigation**
 
-- 🎛️ **Configurable menu bar display** — pick what shows next to the icon: tracked vs. booked for the running project, current timer vs. today's total, or just the running timer. The icon itself rotates as a gauge tied to your progress on the active project.
+- 🎛️ **Configurable menu bar display** — pick what shows next to the icon: project tracked vs. booked, current timer vs. day total, current timer vs. project remaining, or just the running timer. The icon itself rotates as a gauge tied to your progress on the active project.
 - 📈 **Weekly time chart** — stacked area chart showing hours by project across the week. Click a legend row to isolate a single project, or export the chart as a PNG.
 - 🔍 **Day-of-week filter** — click a weekday in the header to narrow the list to projects you spent time on (or are booked on) that day.
 
@@ -38,6 +39,7 @@ Unzip, drag Yield to your Applications folder, and launch — it'll take root in
 - 📝 **Forecast notes** — assignment notes from Forecast surface on project rows; hover the icon to read the full text.
 - 💤 **Idle detection** — alerts you when you've been idle, with options to continue, stop, keep the time, or move the idle minutes to a different timer.
 - 🔔 **Budget notifications** — nudges you when you hit your booked target on a project so you know when to move on.
+- 🔒 **Locked weeks** — when Harvest has locked a past week from edits, a small lock icon appears next to each weekday in the header strip so you know the week is read-only.
 
 **Polish**
 
