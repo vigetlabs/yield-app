@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.19.0</title>
+      <sparkle:version>48</sparkle:version>
+      <sparkle:shortVersionString>0.9.19.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Quick actions on project rows.</strong> Hover any project to see a small ellipsis hint at the right edge; move into the right zone to reveal the action icons themselves — Resume Timer (when there's a stopped today entry), Quick Start (when you've starred a favorite for that project), and Add Time. Each icon is a one-click action; the right-click menu is gone.</li>
+          <li><strong>Fix:</strong> changing the project on an existing time entry would fail with a 422 error. The save flow only sent the new task ID, never the new project ID — so Harvest got a task that didn't belong to the entry's (unchanged) project and rejected it. Both fields now go through with every edit.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.19.0/Yield-0.9.19.0.zip"
+        sparkle:edSignature="6EG4ai99xS1rDLKtVP+xQB997lSI8JodUKrYMbhk5OVoVGeffccCjKV8CgzRadIz26IZFVjO5QMGy1laLup1Aw=="
+        length="2574216"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.18.2</title>
       <sparkle:version>47</sparkle:version>
       <sparkle:shortVersionString>0.9.18.2</sparkle:shortVersionString>
