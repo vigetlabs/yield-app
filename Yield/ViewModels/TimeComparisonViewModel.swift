@@ -1274,9 +1274,16 @@ final class TimeComparisonViewModel {
         UNUserNotificationCenter.current().add(request)
     }
 
+    private static let iso8601Parser: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
     private static func makeEntryInfos(from entries: [HarvestTimeEntry]) -> [TimeEntryInfo] {
         entries.compactMap { entry in
             guard let taskId = entry.task?.id ?? entry.taskAssignment?.task?.id else { return nil }
+            let startedAt = entry.timerStartedAt.flatMap { iso8601Parser.date(from: $0) }
             return TimeEntryInfo(
                 id: entry.id,
                 harvestProjectId: entry.project.id,
@@ -1285,7 +1292,8 @@ final class TimeComparisonViewModel {
                 hours: entry.hours,
                 date: entry.spentDate,
                 isRunning: entry.isRunning,
-                notes: entry.notes
+                notes: entry.notes,
+                timerStartedAt: startedAt
             )
         }.sorted { a, b in
             // Newest day first so today's entries sit at the top of the

@@ -48,7 +48,8 @@ final class BudgetNotificationTests: XCTestCase {
                     hours: logged,
                     date: "2026-05-06",
                     isRunning: isTracking,
-                    notes: nil
+                    notes: nil,
+                    timerStartedAt: nil
                 )
             ],
             forecastNotes: nil
@@ -335,6 +336,7 @@ final class BudgetNotificationTests: XCTestCase {
             updatedAt: "2026-05-06T00:00:00Z",
             notes: nil,
             isLocked: nil,
+            timerStartedAt: nil,
             project: HarvestProjectRef(id: projectId, name: "Project"),
             client: nil,
             task: nil,
@@ -354,6 +356,7 @@ final class BudgetNotificationTests: XCTestCase {
             updatedAt: "2026-05-06T00:00:00Z",
             notes: nil,
             isLocked: nil,
+            timerStartedAt: nil,
             project: HarvestProjectRef(id: projectId, name: "Project"),
             client: nil,
             task: nil,

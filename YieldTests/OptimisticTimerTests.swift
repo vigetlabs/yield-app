@@ -24,7 +24,8 @@ final class OptimisticTimerTests: XCTestCase {
             hours: 1.0,
             date: "2026-05-06",
             isRunning: isRunning,
-            notes: nil
+            notes: nil,
+            timerStartedAt: nil
         )
     }
 

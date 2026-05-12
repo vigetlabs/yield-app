@@ -33,6 +33,9 @@ struct HarvestTimeEntry: Codable, Identifiable {
     /// Optional so older API responses (and our test fixtures) decode
     /// without complaint. Treat nil as unlocked at the use site.
     let isLocked: Bool?
+    /// ISO-8601 timestamp of when the currently-running timer was last
+    /// started by the user. Non-nil iff `isRunning` is true.
+    let timerStartedAt: String?
     let project: HarvestProjectRef
     let client: HarvestClientRef?
     let task: HarvestTaskRef?

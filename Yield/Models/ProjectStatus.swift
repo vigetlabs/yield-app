@@ -13,6 +13,10 @@ struct TimeEntryInfo: Identifiable {
     /// refresh reconciles to the server's actual value.
     var isRunning: Bool
     let notes: String?
+    /// When the current run of this timer started, parsed from
+    /// Harvest's `timer_started_at`. Non-nil iff the entry is running.
+    /// Drives the "Started at HH:MM" hover info on the banner.
+    let timerStartedAt: Date?
 }
 
 struct ProjectStatus: Identifiable {

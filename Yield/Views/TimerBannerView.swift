@@ -68,6 +68,24 @@ struct TimerBannerView: View {
         return viewModel.pausedState?.frozenHours ?? 0
     }
 
+    /// Tooltip shown on the timer display: "Started at 11:18 AM · 2:35 elapsed".
+    /// Sourced from Harvest's `timer_started_at` which is non-nil iff
+    /// the entry is currently running, so paused/stopped timers return
+    /// an empty string (and SwiftUI omits the tooltip).
+    private var timerStartedTooltip: String {
+        guard let started = viewModel.trackingEntry?.timerStartedAt else { return "" }
+        let startedString = Self.timeOfDayFormatter.string(from: started)
+        let elapsedHours = Date().timeIntervalSince(started) / 3600.0
+        return "Started at \(startedString) · \(elapsedHours.formattedColon) elapsed"
+    }
+
+    private static let timeOfDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        f.dateStyle = .none
+        return f
+    }()
+
     var body: some View {
         ZStack(alignment: .top) {
             LinearGradient(
@@ -141,10 +159,24 @@ struct TimerBannerView: View {
                             .foregroundStyle(YieldColors.textSecondary)
                             .lineLimit(1)
 
-                        Text(taskName)
-                            .font(YieldFonts.titleMedium)
-                            .foregroundStyle(YieldColors.textPrimary)
-                            .lineLimit(1)
+                        HStack(spacing: 4) {
+                            Text(taskName)
+                                .font(YieldFonts.titleMedium)
+                                .foregroundStyle(YieldColors.textPrimary)
+                                .lineLimit(1)
+
+                            // Discoverable affordance for the timer
+                            // start info. Only shows when the timer is
+                            // actually running — Harvest only populates
+                            // `timer_started_at` while a timer is live.
+                            if !timerStartedTooltip.isEmpty {
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(YieldColors.textSecondary)
+                                    .offset(y: -1)
+                                    .help(timerStartedTooltip)
+                            }
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
