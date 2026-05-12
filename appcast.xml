@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.18.2</title>
+      <sparkle:version>47</sparkle:version>
+      <sparkle:shortVersionString>0.9.18.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li>New <strong>Current / remaining</strong> menu bar display mode. Shows the running timer's hours over the budget you have left on the project — e.g. <code>1:30 / 14:00</code> when you've been at it 90 minutes on a project with 14h still booked. Goes negative when you're over budget so you see the precise amount.</li>
+          <li>The existing menu bar modes got clearer labels: <em>Project time</em> → <em>Project tracked / booked</em>, <em>Day time</em> → <em>Current / day total</em>. <em>Current timer</em> keeps its name (single value, no slash). Your existing selection is preserved.</li>
+          <li><strong>Lock icon on the weekday strip</strong> when Harvest has locked the week. Hover for "This week is locked in Harvest." Lock detection is week-granular — any locked entry marks every day of the week, including the trailing untracked weekend days.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.18.2/Yield-0.9.18.2.zip"
+        sparkle:edSignature="hb7WGJkfIh1lhW4i/tP/IV35/qHIAqzP0ji4iA2xCzyRtOJLOB2K5pL6qqXymeHLiYMtRzkSye9MHcWai5+dDg=="
+        length="2561853"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.18.1</title>
       <sparkle:version>46</sparkle:version>
       <sparkle:shortVersionString>0.9.18.1</sparkle:shortVersionString>
