@@ -30,6 +30,9 @@ struct HarvestTimeEntry: Codable, Identifiable {
     let isRunning: Bool
     let updatedAt: String
     let notes: String?
+    /// Optional so older API responses (and our test fixtures) decode
+    /// without complaint. Treat nil as unlocked at the use site.
+    let isLocked: Bool?
     let project: HarvestProjectRef
     let client: HarvestClientRef?
     let task: HarvestTaskRef?

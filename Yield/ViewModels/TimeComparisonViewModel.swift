@@ -60,6 +60,12 @@ final class TimeComparisonViewModel {
         let dayLabel: String    // "Mon", "Tue", etc.
         let hours: Double
         let isToday: Bool
+        /// True when any entry in the displayed week is locked in
+        /// Harvest. Lock state is week-granular — a single locked
+        /// entry marks every day of the week (including untracked
+        /// days) so the user sees the whole locked period at a
+        /// glance. Drives the lock icon in the weekday strip.
+        let isLocked: Bool
     }
 
     /// Summary of Forecast time-off bookings for the current week. Forecast
@@ -2027,6 +2033,10 @@ final class TimeComparisonViewModel {
             for entry in entries {
                 hoursByDate[entry.spentDate, default: 0] += entry.hours
             }
+            // Lock state is week-granular: if any entry in the displayed
+            // week is locked, mark every day of the week as locked
+            // (including empty days the user didn't track).
+            let weekIsLocked = entries.contains { $0.isLocked == true }
             let calendar = Calendar.current
             let dayLabels = DateHelpers.weekdayLabels
             dailyHours = DateHelpers.weekDays(starting: weekBounds.start).enumerated().map { i, day in
@@ -2034,7 +2044,8 @@ final class TimeComparisonViewModel {
                     id: day.str,
                     dayLabel: dayLabels[i],
                     hours: hoursByDate[day.str] ?? 0,
-                    isToday: calendar.isDateInToday(day.date)
+                    isToday: calendar.isDateInToday(day.date),
+                    isLocked: weekIsLocked
                 )
             }
 
@@ -2426,13 +2437,16 @@ final class TimeComparisonViewModel {
                 hoursByDate[entry.spentDate, default: 0] += entry.hours
             }
         }
+        // See applyRefreshedData: lock state is week-granular.
+        let weekIsLocked = entries.contains { $0.isLocked == true }
         var dailyHours: [DayHours] = []
         for (i, day) in weekDays.enumerated() {
             dailyHours.append(DayHours(
                 id: day.str,
                 dayLabel: dayLabels[i],
                 hours: hoursByDate[day.str] ?? 0,
-                isToday: calendar.isDateInToday(day.date)
+                isToday: calendar.isDateInToday(day.date),
+                isLocked: weekIsLocked
             ))
         }
 

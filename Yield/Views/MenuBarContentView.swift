@@ -422,9 +422,17 @@ struct MenuBarContentView: View {
                 let isFiltered = isCurrent && viewModel.dayFilter == day.id
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(day.dayLabel)
-                        .font(YieldFonts.dmSans(9, weight: (day.isToday || isFiltered) ? .semibold : .medium))
-                        .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
+                    HStack(spacing: 3) {
+                        Text(day.dayLabel)
+                            .font(YieldFonts.dmSans(9, weight: (day.isToday || isFiltered) ? .semibold : .medium))
+                            .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
+                        if day.isLocked {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 7))
+                                .foregroundStyle(YieldColors.textSecondary)
+                                .help("This week is locked in Harvest")
+                        }
+                    }
 
                     HStack(spacing: 2) {
                         Text(formatDayHours(displayHours))
