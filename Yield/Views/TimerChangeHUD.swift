@@ -25,7 +25,7 @@ final class TimerChangeHUDController {
     private var panel: NSPanel?
     private var dismissTask: Task<Void, Never>?
 
-    private static let displayDuration: TimeInterval = 8.0
+    private static let displayDuration: TimeInterval = 5.0
     private static let fadeIn: TimeInterval = 0.18
     private static let fadeOut: TimeInterval = 0.30
 
