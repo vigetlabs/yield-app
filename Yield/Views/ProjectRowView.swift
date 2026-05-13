@@ -546,6 +546,39 @@ struct SegmentedProgressBarView: View {
 
     private var totalHours: Double { days.reduce(0) { $0 + $1.hours } }
 
+    /// Each day's hours split into the portion that fits within the
+    /// remaining budget (under color) and the portion that pushes past
+    /// it (over color). Built in calendar order so cumulative tracking
+    /// is accurate. For unbooked projects, every day is fully "under"
+    /// (there's no budget to bust).
+    private struct DaySegment: Identifiable {
+        let id: String
+        let label: String
+        let isToday: Bool
+        let totalHours: Double
+        let underHours: Double
+        let overHours: Double
+    }
+
+    private var segmentedDays: [DaySegment] {
+        let cap = booked > 0 ? booked : .infinity
+        var cumulative: Double = 0
+        return activeDays.map { day in
+            let remaining = max(cap - cumulative, 0)
+            let under = min(day.hours, remaining)
+            let over = day.hours - under
+            cumulative += day.hours
+            return DaySegment(
+                id: day.id,
+                label: day.label,
+                isToday: day.isToday,
+                totalHours: day.hours,
+                underHours: under,
+                overHours: over
+            )
+        }
+    }
+
     var body: some View {
         GeometryReader { geo in
             segmentedBar(totalWidth: geo.size.width)
@@ -568,42 +601,36 @@ struct SegmentedProgressBarView: View {
         }
     }
 
-    /// Over budget when booked is positive and total logged exceeds it.
-    /// Mirrors ProgressBarView's semantics so the two stay in sync.
-    private var isOver: Bool {
-        booked > 0 && totalHours > booked
-    }
-
-    private var barColor: Color {
-        isOver ? YieldStatusColors.over : YieldStatusColors.under
-    }
-
-    private var backgroundColor: Color {
-        isOver ? YieldStatusColors.over.opacity(0.4) : YieldColors.surfaceActive
-    }
-
     @ViewBuilder
     private func segmentedBar(totalWidth: CGFloat) -> some View {
         let denominator = max(booked, totalHours, 0.0001)
         ZStack(alignment: .leading) {
-            // Background — over color (dim) when past budget, matches the
-            // mini ProgressBarView treatment.
+            // Neutral background; over/under is conveyed per-segment.
             Rectangle()
-                .fill(backgroundColor)
+                .fill(YieldColors.surfaceActive)
 
-            // Per-day filled segments, separated by 2px gaps. Widths are
-            // scaled by fillProgress (0→1) so the bar "sweeps" in when the
-            // drawer opens. Native .help() tooltip reveals day + hours on
-            // hover.
+            // Per-day filled segments, separated by 2px gaps. Within
+            // each day, an inner HStack stacks the under and over
+            // portions adjacent (no gap) so the transition between
+            // colors lands at the exact hour when budget was crossed.
+            // Both portions scale with fillProgress so the sweep-in
+            // animation still works.
             HStack(spacing: 2) {
-                ForEach(activeDays) { day in
-                    let fullWidth = CGFloat(day.hours / denominator) * totalWidth
-                    let w = max(fullWidth * fillProgress, 0)
-                    Rectangle()
-                        .fill(barColor)
-                        .frame(width: w)
-                        .opacity(day.isToday ? 1.0 : 0.75)
-                        .help("\(day.label): \(formatHMColon(day.hours))")
+                ForEach(segmentedDays) { day in
+                    HStack(spacing: 0) {
+                        if day.underHours > 0 {
+                            Rectangle()
+                                .fill(YieldStatusColors.under)
+                                .frame(width: max(CGFloat(day.underHours / denominator) * totalWidth * fillProgress, 0))
+                        }
+                        if day.overHours > 0 {
+                            Rectangle()
+                                .fill(YieldStatusColors.over)
+                                .frame(width: max(CGFloat(day.overHours / denominator) * totalWidth * fillProgress, 0))
+                        }
+                    }
+                    .opacity(day.isToday ? 1.0 : 0.75)
+                    .help("\(day.label): \(formatHMColon(day.totalHours))")
                 }
             }
         }
