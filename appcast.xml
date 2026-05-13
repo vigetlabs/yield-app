@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 0.9.19.2</title>
+      <sparkle:version>50</sparkle:version>
+      <sparkle:shortVersionString>0.9.19.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Fix:</strong> clicking <em>Stop</em> on the timer banner was triggering the external-change notification HUD. That HUD is meant only for changes from outside Yield (e.g. the Harvest browser extension); banner Stop is suppressed now, matching every other in-app timer mutation.</li>
+          <li>Polish on the project-row quick actions: the Add Time icon is now <code>plus.circle.fill</code> instead of <code>play.fill</code> so it doesn't read as "start a timer" without a label. Icon size bumped slightly for readability, and the hover zone now spans the full row height so the cursor doesn't drop out of it when straying above or below the icons.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v0.9.19.2/Yield-0.9.19.2.zip"
+        sparkle:edSignature="PyBIL2HUImb+JTjwiKBy6rn7pEXqwZ/d18RA4IFq30Lvp87uWNbxGBQf4H2r5+Z6OkM1R0iiU2yh16Wq1owTCg=="
+        length="2595523"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.19.1</title>
       <sparkle:version>49</sparkle:version>
       <sparkle:shortVersionString>0.9.19.1</sparkle:shortVersionString>
