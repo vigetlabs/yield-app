@@ -234,12 +234,16 @@ struct ProjectRowView: View {
                         .clipped()
                     }
                 }
-                // Make the whole right-side zone a single hover target,
-                // including any transparent gaps between the time
-                // VStack and the action bar. Without `contentShape`,
-                // hover flips false/true as the cursor crosses
-                // invisible HStack-spacing gaps, which animates the
-                // bar in and out repeatedly.
+                // Expand the hit area to the full row height so the
+                // cursor doesn't drift out of the hover zone when it
+                // strays above or below the icons. The visible content
+                // stays centered (HStack default), only the hit-test
+                // frame grows. `.contentShape` applied after the frame
+                // uses the taller bounds; it also collapses any
+                // transparent gaps between the time VStack and the
+                // action bar so hover doesn't flip false/true as the
+                // cursor crosses invisible HStack-spacing.
+                .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
                 .onHover { hovering in
                     withAnimation(.easeInOut(duration: 0.1)) {
@@ -314,7 +318,7 @@ struct ProjectRowView: View {
                         onQuickStartFavorite?(projectId, favorite.taskId)
                     }
                 }
-                quickActionButton(systemImage: "play.fill", help: "Add Time") {
+                quickActionButton(systemImage: "plus.circle.fill", help: "Add Time") {
                     onStartTimerForProject?()
                 }
             }
@@ -326,7 +330,7 @@ struct ProjectRowView: View {
     private func quickActionButton(systemImage: String, help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(YieldColors.textSecondary)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
