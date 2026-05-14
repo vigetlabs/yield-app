@@ -1,6 +1,6 @@
 # <img src="app-icon.png" width="32" height="32" alt="Yield app icon" /> Yield
 
-Know what you've sown and what's left to reap. Yield sits in your macOS menu bar and shows how your logged hours in [Harvest](https://www.getharvest.com/) stack up against your booked hours in [Forecast](https://www.getharvest.com/forecast) — so you always know where your week stands.
+Yield is a macOS menu bar app that brings your [Forecast](https://www.getharvest.com/forecast) bookings and your [Harvest](https://www.getharvest.com/) time entries together in one place. If you use both tools, you know the friction: Forecast tells you what you planned, Harvest tells you what you tracked, and figuring out where you actually stand means flipping between the two all week. Yield does that reconciliation for you and keeps the answer in your menu bar — which projects have hours left, which are over, how today fits into the week — so it's easier to decide what to work on next. When you're ready, you can start or stop a Harvest timer right from the dropdown.
 
 ## ⬇️ Get started
 
