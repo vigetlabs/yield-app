@@ -1,3 +1,4 @@
 build/
 *.xcuserstate
 Secrets.xcconfig
+.DS_Store
