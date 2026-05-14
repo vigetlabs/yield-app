@@ -56,18 +56,30 @@ struct ProjectRowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            projectHeader
+            // Header. When there are no entries to expand into (booked-
+            // only forecast projects, past-week rows without logged
+            // time), render as a plain view rather than a disabled
+            // Button — `.disabled` would dim the content even though
+            // the row's data is still meant to be readable.
+            let header = projectHeader
                 .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
                 .contentShape(Rectangle())
                 .onHover { hovering in
                     withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
                 }
-                .onTapGesture {
-                    guard hasEntries else { return }
+
+            if hasEntries {
+                Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isExpanded.toggle()
                     }
+                } label: {
+                    header
                 }
+                .buttonStyle(.plain)
+            } else {
+                header
+            }
 
             // Accordion drawer: day-by-day breakdown bar at the top, then the
             // project's time entries. Always in the view tree so the container
@@ -594,7 +606,8 @@ struct SegmentedProgressBarView: View {
                 // before snapping the fill back to 0, so the bar stays
                 // visible during the close and the reset happens while
                 // the drawer is already clipped out of view.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
                     fillProgress = 0
                 }
             }

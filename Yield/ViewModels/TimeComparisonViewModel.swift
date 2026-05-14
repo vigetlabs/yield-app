@@ -4,12 +4,12 @@ import SwiftUI
 import UserNotifications
 
 @Observable
+@MainActor
 final class TimeComparisonViewModel {
-    deinit {
-        refreshTimer?.invalidate()
-        activeRefreshTask?.cancel()
-        elapsedTimer?.invalidate()
-    }
+    // No deinit cleanup: this VM is singleton-held by `AppState.shared`
+    // for the app's lifetime, and all scheduled timers / tasks use
+    // `[weak self]` so they don't keep the instance alive. The system
+    // reclaims them at process termination.
 
     private(set) var projectStatuses: [ProjectStatus] = []
     private(set) var totalLogged: Double = 0
@@ -2271,21 +2271,25 @@ final class TimeComparisonViewModel {
             // Forecast, and the Harvest user lookup for past weeks. The
             // person and user IDs are account-stable, so cached values are
             // used when available.
-            async let personId: Int = {
+            // Explicit @MainActor on the async let closures because
+            // they touch MainActor-isolated cache state. Network
+            // awaits inside still release the actor, so the four
+            // closures still overlap.
+            async let personId: Int = { @MainActor in
                 if let id = cachedForecastPersonId { return id }
                 let person = try await forecastService.getCurrentPerson()
                 cachedForecastPersonId = person.id
                 return person.id
             }()
-            async let projects: [ForecastProject] = {
+            async let projects: [ForecastProject] = { @MainActor in
                 if !cachedProjectMap.isEmpty { return Array(cachedProjectMap.values) }
                 return try await forecastService.getProjects()
             }()
-            async let clients: [ForecastClient] = {
+            async let clients: [ForecastClient] = { @MainActor in
                 if !cachedClientMap.isEmpty { return Array(cachedClientMap.values) }
                 return try await forecastService.getClients()
             }()
-            async let harvestUserId: Int? = {
+            async let harvestUserId: Int? = { @MainActor in
                 guard offset < 0 else { return nil }
                 if let id = cachedHarvestUserId { return id }
                 let user = try await harvestService.getCurrentUser()

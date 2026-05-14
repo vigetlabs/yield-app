@@ -95,14 +95,15 @@ final class OAuthService {
         }
         listener?.start(queue: .main)
 
-        // Timeout after 2 minutes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 120) { [weak self] in
-            MainActor.assumeIsolated {
-                guard let self, self.isAuthenticating else { return }
-                self.stopLocalServer()
-                self.authError = "Sign-in timed out. Please try again."
-                self.isAuthenticating = false
-            }
+        // Timeout after 2 minutes. Fire-and-forget — the
+        // `isAuthenticating` guard makes this a no-op if auth
+        // completed first.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(120))
+            guard let self, self.isAuthenticating else { return }
+            self.stopLocalServer()
+            self.authError = "Sign-in timed out. Please try again."
+            self.isAuthenticating = false
         }
     }
 

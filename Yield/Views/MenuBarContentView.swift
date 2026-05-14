@@ -209,7 +209,7 @@ struct MenuBarContentView: View {
             // so the panel sizes naturally when the list fits and caps
             // (with scrolling) when it doesn't.
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     listSection
                 }
             }
@@ -228,11 +228,14 @@ struct MenuBarContentView: View {
     /// the scrollable container.
     @ViewBuilder
     private var listSection: some View {
+        // `filteredStatuses` re-runs the tab/day filters on every
+        // access, so cache once per body pass.
+        let statuses = viewModel.filteredStatuses
         if viewModel.isViewingOtherWeek {
             otherWeekList
         } else if viewModel.selectedTab == .chart {
             ProjectChartView(viewModel: viewModel)
-        } else if viewModel.filteredStatuses.isEmpty {
+        } else if statuses.isEmpty {
             Text(viewModel.dayFilter != nil
                 ? "No projects found for this day."
                 : "No projects found for this week.")
@@ -240,7 +243,7 @@ struct MenuBarContentView: View {
                 .font(YieldFonts.dmSans(11))
                 .padding(16)
         } else {
-            ForEach(viewModel.filteredStatuses) { project in
+            ForEach(statuses) { project in
                 ProjectRowView(
                     project: project,
                     effectiveLoggedHours: viewModel.effectiveLoggedHours(for: project),
@@ -429,7 +432,7 @@ struct MenuBarContentView: View {
                 let displayHours = day.hours + (day.isToday ? liveOffset : 0)
                 let isFiltered = isCurrent && viewModel.dayFilter == day.id
 
-                VStack(alignment: .leading, spacing: 4) {
+                let cell = VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 3) {
                         Text(day.dayLabel)
                             .font(YieldFonts.dmSans(9, weight: (day.isToday || isFiltered) ? .semibold : .medium))
@@ -459,20 +462,27 @@ struct MenuBarContentView: View {
                 .padding(.vertical, 4)
                 .background(isFiltered ? YieldColors.surfaceActive : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    guard isCurrent else { return }
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.toggleDayFilter(day.id)
+
+                // Past/future weeks render the cell as a static label
+                // (no Button) so `.disabled` doesn't dim it. Only the
+                // current week is interactive.
+                if isCurrent {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.toggleDayFilter(day.id)
+                        }
+                    } label: {
+                        cell.contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .help(isFiltered ? "Show all projects" : "Show only \(day.dayLabel)")
+                } else {
+                    cell
                 }
-                .help(isCurrent
-                    ? (isFiltered ? "Show all projects" : "Show only \(day.dayLabel)")
-                    : "")
             }
 
             // Week total — doubles as "clear filter" when a day is filtered.
-            VStack(alignment: .trailing, spacing: 4) {
+            let totalCell = VStack(alignment: .trailing, spacing: 4) {
                 Text("Week")
                     .font(YieldFonts.dmSans(9, weight: .semibold))
                     .foregroundStyle(YieldColors.textSecondary)
@@ -484,14 +494,20 @@ struct MenuBarContentView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                guard isCurrent, viewModel.dayFilter != nil else { return }
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    viewModel.clearDayFilter()
+
+            if isCurrent && viewModel.dayFilter != nil {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.clearDayFilter()
+                    }
+                } label: {
+                    totalCell.contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .help("Show all projects")
+            } else {
+                totalCell
             }
-            .help(isCurrent && viewModel.dayFilter != nil ? "Show all projects" : "")
         }
     }
 
@@ -849,7 +865,9 @@ private struct OpaqueMenuBarPanel: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        DispatchQueue.main.async {
+        // Defer until the view is in a window — `makeNSView` returns
+        // before the view is attached, so `view.window` is nil here.
+        Task { @MainActor in
             guard let window = view.window else { return }
             window.isOpaque = true
             window.backgroundColor = .windowBackgroundColor

@@ -35,9 +35,11 @@ struct ProjectChartView: View {
         let name: String
     }
 
-    /// Unique projects in the series, in display order (alphabetical by name).
-    private var projectList: [ProjectRef] {
-        let points = viewModel.chartSeries
+    /// Unique projects in the series, in display order (alphabetical
+    /// by name). Takes the points as a parameter so the body can pass
+    /// in its already-captured `chartSeries` value, instead of this
+    /// helper recomputing the whole nested-loop traversal.
+    private func projectList(from points: [TimeComparisonViewModel.ChartPoint]) -> [ProjectRef] {
         var seen = Set<Int>()
         var out: [ProjectRef] = []
         for p in points where !seen.contains(p.projectId) {
@@ -82,22 +84,24 @@ struct ProjectChartView: View {
 
     var body: some View {
         let allPoints = viewModel.chartSeries
-        let projects = projectList
+        let projects = projectList(from: allPoints)
         let isolated = activeIsolation(projects: projects)
         let points = visiblePoints(allPoints: allPoints, isolatedId: isolated)
+        let days = viewModel.chartDays
 
         if allPoints.isEmpty {
             emptyState
         } else {
             VStack(alignment: .leading, spacing: 12) {
                 ZStack(alignment: .topTrailing) {
-                    chart(points: points, allPoints: allPoints, projects: projects)
+                    chart(points: points, allPoints: allPoints, projects: projects, days: days)
                         .frame(height: 200)
 
                     Button {
                         exportChartAsPNG(
                             allPoints: allPoints,
-                            projects: projects
+                            projects: projects,
+                            days: days
                         )
                     } label: {
                         Image(systemName: "square.and.arrow.down")
@@ -148,14 +152,14 @@ struct ProjectChartView: View {
     private func chart(
         points: [TimeComparisonViewModel.ChartPoint],
         allPoints: [TimeComparisonViewModel.ChartPoint],
-        projects: [ProjectRef]
+        projects: [ProjectRef],
+        days: [String]
     ) -> some View {
         // Use the full (unfiltered) series to set the Y-axis upper bound so the
         // chart's vertical scale stays constant when a project is isolated —
         // otherwise zeroed-out non-isolated points shrink the total per-day
         // peak and the axis rescales downward.
         let upper = yMax(for: allPoints)
-        let days = viewModel.chartDays
 
         // Use numeric x-values (day indices) rather than String categories so the
         // first/last points land on the plot edges instead of being centered in a
@@ -296,10 +300,10 @@ struct ProjectChartView: View {
     /// Explicit dark background, week title, and wider layout for a clean PNG.
     private func exportableView(
         allPoints: [TimeComparisonViewModel.ChartPoint],
-        projects: [ProjectRef]
+        projects: [ProjectRef],
+        days: [String]
     ) -> some View {
         let upper = yMax(for: allPoints)
-        let days = viewModel.chartDays
         let dayIndex: [String: Double] = Dictionary(
             uniqueKeysWithValues: days.enumerated().map { ($1, Double($0)) }
         )
@@ -397,9 +401,10 @@ struct ProjectChartView: View {
     @MainActor
     private func exportChartAsPNG(
         allPoints: [TimeComparisonViewModel.ChartPoint],
-        projects: [ProjectRef]
+        projects: [ProjectRef],
+        days: [String]
     ) {
-        let view = exportableView(allPoints: allPoints, projects: projects)
+        let view = exportableView(allPoints: allPoints, projects: projects, days: days)
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2.0  // Retina
 

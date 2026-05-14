@@ -68,7 +68,7 @@ final class LogStore {
     /// hasn't been created yet (no errors have been logged).
     func revealInFinder() {
         guard let fileURL else { return }
-        DispatchQueue.main.async {
+        Task { @MainActor in
             // Reveal the directory rather than the file so the user
             // sees the rotated `.1` companion too.
             let target = FileManager.default.fileExists(atPath: fileURL.path)

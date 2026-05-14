@@ -55,7 +55,7 @@ final class TimerChangeHUDController {
         }
 
         dismissTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(Self.displayDuration * 1_000_000_000))
+            try? await Task.sleep(for: .seconds(Self.displayDuration))
             guard !Task.isCancelled else { return }
             await self?.dismiss()
         }
