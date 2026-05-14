@@ -1401,69 +1401,6 @@ final class TimeComparisonViewModel {
         elapsedOffset = 0
     }
 
-    @MainActor
-    func toggleTimer(for project: ProjectStatus) async {
-        guard let (harvestService, _) = makeServices() else { return }
-        let service = harvestService
-        guard let harvestProjectId = project.harvestProjectId else { return }
-        markUserTimerMutation()
-        pausedState = nil
-
-        // Snapshot the previously-running entry before we mutate state
-        // optimistically — the API still needs to know which timer to
-        // stop on the server side.
-        let previouslyRunningEntryId = projectStatuses
-            .first(where: { $0.isTracking })?
-            .todayEntryId
-        let runningEntryIdForThisProject = project.timeEntries
-            .first(where: { $0.isRunning })?.id
-
-        // Optimistic UI: flip immediately for the cases where we know
-        // the entry id (stop or restart-existing). The create-new path
-        // has no id until the API responds, so it stays non-optimistic.
-        if project.isTracking, let runningId = runningEntryIdForThisProject {
-            optimisticallyStopEntry(runningId)
-        } else if let todayEntryId = project.todayEntryId {
-            optimisticallyStartEntry(todayEntryId)
-        }
-
-        do {
-            // Stop any currently running timer first
-            if let prev = previouslyRunningEntryId {
-                _ = try await service.stopTimer(entryId: prev)
-            }
-
-            if project.isTracking {
-                // We just stopped it above — done
-            } else if let todayEntryId = project.todayEntryId {
-                // There's already an entry for today — restart it
-                suppressBookedHoursNotificationIfOver(project)
-                _ = try await service.restartTimer(entryId: todayEntryId)
-            } else {
-                // No entry for today — create a new one (timer starts automatically)
-                // Use known task ID, or fetch the first active task for this project
-                var taskId = project.lastTaskId
-                if taskId == nil {
-                    let assignments = try await service.getMyProjectAssignments()
-                    let tasks = assignments.first(where: { $0.project.id == harvestProjectId })?.taskAssignments.filter { $0.isActive }
-                    taskId = tasks?.first?.task.id
-                }
-                guard let resolvedTaskId = taskId else {
-                    errorMessage = "No tasks assigned to this project in Harvest."
-                    await refresh()  // reconcile (the optimistic stop above, if any, needs undoing)
-                    return
-                }
-                suppressBookedHoursNotificationIfOver(project)
-                _ = try await service.createTimeEntry(projectId: harvestProjectId, taskId: resolvedTaskId)
-            }
-
-            await refresh()
-        } catch {
-            errorMessage = error.localizedDescription
-            await refresh()  // reconcile
-        }
-    }
-
     /// Fetch all active projects assigned to the current user (used by NewTimerFormView)
     func fetchAllProjects() async throws -> [TimerProjectOption] {
         guard let (harvestService, _) = makeServices() else { return [] }
@@ -1503,11 +1440,23 @@ final class TimeComparisonViewModel {
         markUserTimerMutation()
         pausedState = nil
 
+        // Snapshot the previously-running entry id BEFORE the optimistic
+        // flip clears it, so the API call still has it to stop server-side.
+        let previouslyRunningEntryId = projectStatuses
+            .first(where: { $0.isTracking })?
+            .todayEntryId
+
+        // Optimistic stop of the previous timer. The new timer's create
+        // can't be optimistic (no entry id until the API responds) but
+        // the old timer flips off in the UI immediately.
+        if let prev = previouslyRunningEntryId {
+            optimisticallyStopEntry(prev)
+        }
+
         do {
             // Stop any currently running timer
-            if let running = projectStatuses.first(where: { $0.isTracking }),
-               let runningEntryId = running.todayEntryId {
-                _ = try await harvestService.stopTimer(entryId: runningEntryId)
+            if let prev = previouslyRunningEntryId {
+                _ = try await harvestService.stopTimer(entryId: prev)
             }
 
             // Suppress over-budget notification if the target project is already over
@@ -1525,6 +1474,7 @@ final class TimeComparisonViewModel {
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
+            await refresh()  // reconcile — undo the optimistic stop if the API never landed
         }
     }
 
@@ -1608,12 +1558,19 @@ final class TimeComparisonViewModel {
             frozenHours: frozenEntryHours
         )
 
+        // Optimistic flip: with `pausedState` set and the entry no
+        // longer running, the banner immediately switches green→yellow
+        // and the pause button becomes play.fill, instead of waiting
+        // for the API round-trip + refresh.
+        optimisticallyStopEntry(entry.id)
+
         do {
             _ = try await harvestService.stopTimer(entryId: entry.id)
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
             pausedState = nil
+            await refresh()  // reconcile — undo the optimistic stop
         }
     }
 
@@ -1623,6 +1580,11 @@ final class TimeComparisonViewModel {
               let (harvestService, _) = makeServices() else { return }
 
         markUserTimerMutation()
+
+        // Optimistic flip: re-mark the paused entry as running so the
+        // banner switches yellow→green and play.fill→pause.fill before
+        // the restart API call lands.
+        optimisticallyStartEntry(paused.entryId)
 
         do {
             _ = try await harvestService.restartTimer(entryId: paused.entryId)
@@ -1634,6 +1596,7 @@ final class TimeComparisonViewModel {
             pausedState = nil
         } catch {
             errorMessage = error.localizedDescription
+            await refresh()  // reconcile — undo the optimistic start
         }
     }
 

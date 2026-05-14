@@ -13,7 +13,6 @@ struct ProjectRowView: View {
     /// contributes to the week total. Progress bar still reflects the
     /// week against booked.
     var dayFilteredHours: Double? = nil
-    var onToggleTimer: (() -> Void)? = nil
     var onToggleEntryTimer: ((Int, Bool) -> Void)? = nil
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
