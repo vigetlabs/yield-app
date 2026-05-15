@@ -3,6 +3,26 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.0.0</title>
+      <sparkle:version>51</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>🎉 Yield 1.0 is here.</strong> A real version number for an app that's been earning it across nineteen 0.9.x releases. Thanks to everyone who tried it, broke it, and reported it back along the way.</li>
+          <li><strong>Snappier timer controls.</strong> Pause, resume, and Quick Start now flip the UI immediately instead of waiting for the Harvest round-trip. The banner switches green↔yellow the moment you click, and Quick Start visibly stops the previous timer before the new one is created.</li>
+          <li><strong>Day-by-day bar shows where you crossed the budget.</strong> The segmented progress bar in each project's drawer now colors each weekday by cumulative over/under: under-budget days stay green, the day you crossed your booked total is split, and everything after is red.</li>
+          <li>External-change HUD shortened from 8 to 5 seconds — long enough to read, short enough to stay out of the way.</li>
+          <li>Under-the-hood: SwiftUI and concurrency modernization pass for better performance and lower idle overhead.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.0.0/Yield-1.0.0.zip"
+        sparkle:edSignature="TtzN9KBG4YiIHFDVVzBJLoD8I6e7HIDi5TcAlBvOk1DVOHlIwRWD7vw4+04ds0iyChkihrhN6ZXdezdfW1xnDw=="
+        length="2600122"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 0.9.19.2</title>
       <sparkle:version>50</sparkle:version>
       <sparkle:shortVersionString>0.9.19.2</sparkle:shortVersionString>
