@@ -167,35 +167,32 @@ struct SettingsView: View {
                 // fires. Inline confirmation keeps everything within
                 // the panel so the action lands.
                 if showSignOutConfirm {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Yield will disconnect from your Harvest account and clear cached projects, timers, and favorites from view. Any timer running in Harvest itself will keep running there.")
+                    HStack(spacing: 8) {
+                        Text("Are you sure?")
                             .font(YieldFonts.dmSans(11))
                             .foregroundStyle(YieldColors.textSecondary)
-                            .lineSpacing(2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                        HStack(spacing: 8) {
-                            Spacer()
-                            Button("Cancel") {
-                                showSignOutConfirm = false
-                            }
-                            .buttonStyle(.yieldBordered)
+                        Spacer()
 
-                            Button("Sign Out") {
-                                showSignOutConfirm = false
-                                oAuthService.signOut()
-                                AppState.shared.viewModel.resetForSignOut()
-                                // Return to the main panel — once
-                                // signed out, the Settings page has
-                                // little meaningful content to show
-                                // (no account, no projects), and the
-                                // main panel surfaces the onboarding
-                                // prompt the user needs to act on
-                                // next.
-                                onDismiss()
-                            }
-                            .buttonStyle(.redOutlined)
+                        Button("Cancel") {
+                            showSignOutConfirm = false
                         }
+                        .buttonStyle(.yieldBordered)
+
+                        Button("Sign Out") {
+                            showSignOutConfirm = false
+                            oAuthService.signOut()
+                            AppState.shared.viewModel.resetForSignOut()
+                            // Return to the main panel — once
+                            // signed out, the Settings page has
+                            // little meaningful content to show
+                            // (no account, no projects), and the
+                            // main panel surfaces the onboarding
+                            // prompt the user needs to act on
+                            // next.
+                            onDismiss()
+                        }
+                        .buttonStyle(.redOutlined)
                     }
                     .padding(12)
                 } else {
