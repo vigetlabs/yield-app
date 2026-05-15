@@ -2080,35 +2080,31 @@ final class TimeComparisonViewModel {
             totalUnbookedLogged = unbooked.reduce(0) { $0 + $1.loggedHours }
             totalTodayLogged = statuses.reduce(0) { $0 + $1.todayHours }
 
-            // Build daily hours breakdown (Mon–Sun) plus per-day lock
-            // tracking. Harvest's `is_locked` is per-entry and can fire
-            // for reasons unrelated to week submission — closed
-            // projects, invoiced entries, project-level time-tracking
-            // restrictions. A day is treated as locked only when it
-            // has entries AND all of them are locked, which matches
-            // the functional meaning ("you can't add more entries
-            // here"). Empty days are never locked.
+            // Build daily hours breakdown (Mon–Sun). Lock state is
+            // week-granular: Harvest submits an entire timesheet at
+            // once, so if any entry in the visible week has been
+            // submitted or approved, the whole week is locked from
+            // edits — including empty weekend days the user didn't
+            // track. We key off `approvalStatus` rather than the
+            // looser `isLocked` (which also fires for invoiced
+            // entries on closed projects, leading to false positives
+            // on the current week).
             var hoursByDate: [String: Double] = [:]
-            var lockSummaryByDate: [String: (locked: Int, total: Int)] = [:]
             for entry in entries {
                 hoursByDate[entry.spentDate, default: 0] += entry.hours
-                let prior = lockSummaryByDate[entry.spentDate] ?? (0, 0)
-                lockSummaryByDate[entry.spentDate] = (
-                    locked: prior.locked + ((entry.isLocked == true) ? 1 : 0),
-                    total: prior.total + 1
-                )
+            }
+            let weekIsSubmitted = entries.contains { entry in
+                entry.approvalStatus == "submitted" || entry.approvalStatus == "approved"
             }
             let calendar = Calendar.current
             let dayLabels = DateHelpers.weekdayLabels
             dailyHours = DateHelpers.weekDays(starting: weekBounds.start).enumerated().map { i, day in
-                let summary = lockSummaryByDate[day.str]
-                let dayIsLocked = (summary?.total ?? 0) > 0 && summary?.locked == summary?.total
-                return DayHours(
+                DayHours(
                     id: day.str,
                     dayLabel: dayLabels[i],
                     hours: hoursByDate[day.str] ?? 0,
                     isToday: calendar.isDateInToday(day.date),
-                    isLocked: dayIsLocked
+                    isLocked: weekIsSubmitted
                 )
             }
 
@@ -2507,27 +2503,21 @@ final class TimeComparisonViewModel {
                 hoursByDate[entry.spentDate, default: 0] += entry.hours
             }
         }
-        // See applyRefreshedData: per-day lock state, computed from
-        // whether all of a day's entries are locked. Empty days are
-        // never locked.
-        var lockSummaryByDate: [String: (locked: Int, total: Int)] = [:]
-        for entry in entries {
-            let prior = lockSummaryByDate[entry.spentDate] ?? (0, 0)
-            lockSummaryByDate[entry.spentDate] = (
-                locked: prior.locked + ((entry.isLocked == true) ? 1 : 0),
-                total: prior.total + 1
-            )
+        // See applyRefreshedData: lock state is week-granular,
+        // derived from `approvalStatus` so weekend days without
+        // entries still inherit the lock icon when the timesheet
+        // was submitted.
+        let weekIsSubmitted = entries.contains { entry in
+            entry.approvalStatus == "submitted" || entry.approvalStatus == "approved"
         }
         var dailyHours: [DayHours] = []
         for (i, day) in weekDays.enumerated() {
-            let summary = lockSummaryByDate[day.str]
-            let dayIsLocked = (summary?.total ?? 0) > 0 && summary?.locked == summary?.total
             dailyHours.append(DayHours(
                 id: day.str,
                 dayLabel: dayLabels[i],
                 hours: hoursByDate[day.str] ?? 0,
                 isToday: calendar.isDateInToday(day.date),
-                isLocked: dayIsLocked
+                isLocked: weekIsSubmitted
             ))
         }
 

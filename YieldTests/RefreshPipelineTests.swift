@@ -44,6 +44,7 @@ final class RefreshPipelineTests: XCTestCase {
             updatedAt: "2026-05-06T00:00:00Z",
             notes: nil,
             isLocked: nil,
+            approvalStatus: nil,
             timerStartedAt: nil,
             project: HarvestProjectRef(id: projectId, name: projectName, code: nil),
             client: clientName.map { HarvestClientRef(id: 1, name: $0) },

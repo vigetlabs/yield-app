@@ -32,7 +32,17 @@ struct HarvestTimeEntry: Codable, Identifiable {
     let notes: String?
     /// Optional so older API responses (and our test fixtures) decode
     /// without complaint. Treat nil as unlocked at the use site.
+    /// Note: `is_locked` is a *functional* lock — it's true when the
+    /// entry can't be edited for any reason (submitted, approved,
+    /// invoiced, project closed). For the "you've submitted this
+    /// week" semantic the lock icon represents, prefer
+    /// `approvalStatus` instead.
     let isLocked: Bool?
+    /// Submission/approval workflow state. One of `"unsubmitted"`,
+    /// `"submitted"`, or `"approved"`. Optional for the same reason
+    /// as `isLocked` (older fixtures, defensive decoding).
+    /// Replaces the deprecated `is_closed` field.
+    let approvalStatus: String?
     /// ISO-8601 timestamp of when the currently-running timer was last
     /// started by the user. Non-nil iff `isRunning` is true.
     let timerStartedAt: String?

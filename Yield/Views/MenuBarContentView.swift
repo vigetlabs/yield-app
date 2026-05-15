@@ -438,7 +438,7 @@ struct MenuBarContentView: View {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 7))
                                 .foregroundStyle(YieldColors.textSecondary)
-                                .help("Entries on this day are locked in Harvest")
+                                .help("This week has been submitted in Harvest")
                         }
                     }
 
