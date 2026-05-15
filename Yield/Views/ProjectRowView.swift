@@ -615,6 +615,14 @@ struct SegmentedProgressBarView: View {
 
     @ViewBuilder
     private func segmentedBar(totalWidth: CGFloat) -> some View {
+        // Reserve space for the 2pt gaps between days *before*
+        // dividing the remaining width across segments. Without this,
+        // a fully-filled bar (at-budget or over-budget projects)
+        // overflows the container by gapCount × 2pt because each
+        // segment is sized against the full width while the HStack
+        // *also* inserts gaps between them.
+        let gapCount = max(segmentedDays.count - 1, 0)
+        let segmentSpace = max(totalWidth - CGFloat(gapCount) * 2, 0)
         let denominator = max(booked, totalHours, 0.0001)
         ZStack(alignment: .leading) {
             // Neutral background; over/under is conveyed per-segment.
@@ -633,12 +641,12 @@ struct SegmentedProgressBarView: View {
                         if day.underHours > 0 {
                             Rectangle()
                                 .fill(YieldStatusColors.under)
-                                .frame(width: max(CGFloat(day.underHours / denominator) * totalWidth * fillProgress, 0))
+                                .frame(width: max(CGFloat(day.underHours / denominator) * segmentSpace * fillProgress, 0))
                         }
                         if day.overHours > 0 {
                             Rectangle()
                                 .fill(YieldStatusColors.over)
-                                .frame(width: max(CGFloat(day.overHours / denominator) * totalWidth * fillProgress, 0))
+                                .frame(width: max(CGFloat(day.overHours / denominator) * segmentSpace * fillProgress, 0))
                         }
                     }
                     .opacity(day.isToday ? 1.0 : 0.75)
@@ -646,7 +654,10 @@ struct SegmentedProgressBarView: View {
                 }
             }
         }
-        .frame(height: 8)
+        // Pin the ZStack's width so the HStack can't push the
+        // background rectangle past the container, even before the
+        // clipShape masks the visual overflow.
+        .frame(width: totalWidth, height: 8, alignment: .leading)
         .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
