@@ -21,6 +21,11 @@ enum DefaultsKey {
 
     // MARK: - User data
     static let favorites = "favorites"
+    /// Cap-bounded `[normalizedTitle: (projectId, taskId, lastUsedAt)]`
+    /// map used to pre-fill the new-timer form when a calendar event
+    /// title matches a previous time entry's notes. See
+    /// `MeetingHistoryStore`.
+    static let meetingHistory = "meetingHistory"
     /// Cached Forecast project id for the global "Time Off" project,
     /// so the first refresh after relaunch doesn't pay for a second
     /// lookup. See TimeComparisonViewModel.
@@ -32,6 +37,16 @@ enum DefaultsKey {
         static let harvestAccountId = "oauthHarvestAccountId"
         static let forecastAccountId = "oauthForecastAccountId"
         static let userName = "oauthUserName"
+    }
+
+    // MARK: - Google Calendar OAuth (separate provider)
+    /// Google Calendar uses its own OAuth client and tokens. The
+    /// access/refresh tokens themselves live in the Keychain under
+    /// `googleAccessToken`/`googleRefreshToken`; only the expiry stamp
+    /// and user-facing identity (email) live in UserDefaults.
+    enum GoogleCalendar {
+        static let tokenExpiresAt = "googleCalendarTokenExpiresAt"
+        static let userEmail      = "googleCalendarUserEmail"
     }
 
     // MARK: - Legacy PAT-based credentials

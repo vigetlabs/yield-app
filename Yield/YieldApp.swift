@@ -9,6 +9,10 @@ final class AppState {
     static let shared = AppState()
     let viewModel = TimeComparisonViewModel()
     let oAuthService = OAuthService()
+    /// Google Calendar OAuth client. Independent of the Harvest
+    /// `oAuthService`; used by the Add Time form's calendar picker
+    /// to fetch the signed-in user's events.
+    let googleAuthService = GoogleAuthService()
     var updaterController: SPUStandardUpdaterController?
     /// Whether the MenuBarExtra panel is currently open. Maintained by
     /// the AppDelegate's window key/resign observers. The HUD that

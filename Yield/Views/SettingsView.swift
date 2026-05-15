@@ -18,8 +18,14 @@ struct SettingsView: View {
     @State private var allProjects: [TimeComparisonViewModel.TimerProjectOption] = []
     @State private var isLoadingProjects = false
     @State private var showSignOutConfirm = false
+    @State private var showGoogleDisconnectConfirm = false
     /// Bump on toggle so the favorites list re-derives from the store.
     private var favoritesStore: FavoritesStore { FavoritesStore.shared }
+    /// Pulled from `AppState.shared` rather than the init signature
+    /// so existing `SettingsView(oAuthService:onDismiss:)` call sites
+    /// don't need updating. SwiftUI tracks the observable correctly
+    /// either way.
+    private var googleAuth: GoogleAuthService { AppState.shared.googleAuthService }
 
     /// Cap on the cards' scroll area so the Settings panel can't
     /// grow past the screen's visible frame on short displays. The
@@ -82,7 +88,17 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     aboutCard
-                    accountCard
+                    // Account + Calendar share a row at 50/50.
+                    // `alignment: .top` keeps both cards anchored at
+                    // the top edge so the shorter of the two doesn't
+                    // stretch — they grow vertically independently
+                    // based on their own sign-in state.
+                    HStack(alignment: .top, spacing: 12) {
+                        accountCard
+                            .frame(maxWidth: .infinity)
+                        googleCalendarCard
+                            .frame(maxWidth: .infinity)
+                    }
                     preferencesCard
                     favoritesCard
                 }
@@ -202,6 +218,116 @@ struct SettingsView: View {
                     .disabled(oAuthService.isAuthenticating)
 
                     if let error = oAuthService.authError {
+                        Text(error)
+                            .font(YieldFonts.dmSans(10))
+                            .foregroundStyle(.red)
+                    }
+                }
+                .padding(12)
+            }
+        }
+        .yieldCard()
+    }
+
+    // MARK: - Google Calendar Card
+
+    /// Connect/disconnect Google Calendar so the Add Time form's
+    /// calendar picker can pull today's events. Independent of the
+    /// Harvest sign-in above; you can be signed into one without the
+    /// other.
+    private var googleCalendarCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sectionHeader(
+                "Calendar",
+                info: "Yield reads only your primary calendar's events for today, and only when you open the picker. Nothing is written back to Google. The OAuth token lives in the macOS Keychain."
+            )
+
+            if googleAuth.isAuthenticated {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(YieldColors.greenAccent.opacity(0.15))
+                        Image(systemName: "calendar")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(YieldColors.greenAccent)
+                    }
+                    .frame(width: 32, height: 32)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Google Calendar")
+                            .font(YieldFonts.dmSans(12, weight: .semibold))
+                            .foregroundStyle(YieldColors.textPrimary)
+                        if let email = googleAuth.userEmail {
+                            Text(email)
+                                .font(YieldFonts.dmSans(11))
+                                .foregroundStyle(YieldColors.textSecondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding(12)
+
+                Rectangle()
+                    .fill(YieldColors.border)
+                    .frame(height: 1)
+
+                Button {
+                    showGoogleDisconnectConfirm = true
+                } label: {
+                    HStack {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                            .font(.system(size: 10))
+                        Text("Disconnect")
+                            .font(YieldFonts.dmSans(11, weight: .medium))
+                        Spacer()
+                    }
+                    .foregroundStyle(.red.opacity(0.8))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .confirmationDialog(
+                    "Disconnect Google Calendar?",
+                    isPresented: $showGoogleDisconnectConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Disconnect", role: .destructive) {
+                        googleAuth.signOut()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Yield will stop pulling events from Google Calendar. The calendar icon in the Add Time form will be disabled until you reconnect.")
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Pull events from your Google Calendar into time entries — pick an event from today and the duration and title fill the form for you.")
+                        .font(YieldFonts.dmSans(11))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .lineSpacing(2)
+
+                    Button {
+                        googleAuth.startOAuthFlow()
+                    } label: {
+                        HStack(spacing: 6) {
+                            if googleAuth.isAuthenticating {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "calendar.badge.plus")
+                                    .font(.system(size: 11))
+                            }
+                            Text("Connect Google Calendar")
+                                .font(YieldFonts.dmSans(11, weight: .semibold))
+                        }
+                    }
+                    .buttonStyle(.greenOutlined)
+                    .disabled(googleAuth.isAuthenticating)
+
+                    if let error = googleAuth.authError {
                         Text(error)
                             .font(YieldFonts.dmSans(10))
                             .foregroundStyle(.red)

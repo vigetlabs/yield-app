@@ -41,6 +41,8 @@ targets:
         SUScheduledCheckInterval: 86400
         HarvestClientId: "$(HARVEST_CLIENT_ID)"
         HarvestClientSecret: "$(HARVEST_CLIENT_SECRET)"
+        GoogleClientId: "$(GOOGLE_CLIENT_ID)"
+        GoogleClientSecret: "$(GOOGLE_CLIENT_SECRET)"
     configFiles:
       Debug: Secrets.xcconfig
       Release: Secrets.xcconfig

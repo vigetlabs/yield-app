@@ -24,6 +24,19 @@ struct NewTimerFormView: View {
     @State private var spentDate: Date = Date()
     @State private var duplicateConfirmEntries: [TimeEntryInfo]?
     @State private var showDeleteConfirm = false
+    /// Toggled by the calendar icon next to the time field. When
+    /// true the form's body is replaced inline by
+    /// `CalendarEventPickerView` (no sheet/popover — MenuBarExtra
+    /// can't host either). Selecting an event flips this back to
+    /// false and pre-fills the time + notes.
+    @State private var showCalendarPicker = false
+    /// Set by `applyCalendarEvent` so the save path knows the form's
+    /// notes came from a real calendar pick (not a hand-typed entry
+    /// that happens to look like a meeting title). Only calendar-
+    /// sourced saves get added to `MeetingHistoryStore` — recording
+    /// every save would learn from one-off freeform notes too,
+    /// which is noisy and not what the user asked for.
+    @State private var sourcedFromCalendarPicker = false
 
     init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -143,6 +156,22 @@ struct NewTimerFormView: View {
     }
 
     var body: some View {
+        // The calendar event picker takes over the form's body
+        // entirely while open — MenuBarExtra panels can't host
+        // sheets or popovers, so an inline swap is the only way
+        // to surface secondary UI without breaking the panel's
+        // resize/positioning behavior.
+        if showCalendarPicker {
+            CalendarEventPickerView(
+                onSelect: applyCalendarEvent,
+                onCancel: { showCalendarPicker = false }
+            )
+        } else {
+            formBody
+        }
+    }
+
+    private var formBody: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(spacing: 6) {
@@ -270,6 +299,14 @@ struct NewTimerFormView: View {
                 Spacer()
 
                 if !isEditing && !isIdleMove {
+                    // Calendar event picker — only meaningful in
+                    // create mode (edit keeps the entry's duration;
+                    // idle-move pre-fills from idle minutes). Sits
+                    // immediately left of Log Time so the "fill
+                    // hours from a meeting, then log" flow reads
+                    // left-to-right.
+                    calendarPickerButton
+
                     Button {
                         Task { await logTime() }
                     } label: {
@@ -371,6 +408,64 @@ struct NewTimerFormView: View {
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.4)
         .help(filled ? "Remove from favorites" : "Add to favorites")
+    }
+
+    // MARK: - Calendar Picker Button
+
+    /// 32×32 icon next to `TimeInputView` that opens the Google
+    /// Calendar event picker. Mirrors the favorite-star button's
+    /// shape exactly (size, weight, hit target, plain style) so the
+    /// two icon affordances feel like a set. Disabled when Google
+    /// Calendar isn't connected; tooltip points the user at Settings.
+    private var calendarPickerButton: some View {
+        let connected = AppState.shared.googleAuthService.isAuthenticated
+        return Button {
+            showCalendarPicker = true
+        } label: {
+            Image(systemName: "calendar")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(connected ? YieldColors.textPrimary : YieldColors.textSecondary)
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!connected)
+        .opacity(connected ? 1 : 0.4)
+        .help(connected
+            ? "Pick from today's calendar events"
+            : "Connect Google Calendar in Settings")
+    }
+
+    /// Apply a selected calendar event to the form's fields. Empty
+    /// summary won't clobber existing notes — happens when the user
+    /// created a calendar block without a title.
+    ///
+    /// If the user has previously logged time against a meeting with
+    /// the same title (matched case-insensitively, whitespace-trimmed),
+    /// auto-select the project + task they used last time. Same shape
+    /// as the favorite-auto-select behavior in `selectProject` — the
+    /// user can change either field before saving if the suggestion
+    /// is wrong.
+    private func applyCalendarEvent(_ event: CalendarEvent) {
+        let (h, m) = event.durationHours.roundedHM
+        timeHours = h
+        timeMinutes = m
+        if !event.summary.isEmpty {
+            notes = event.summary
+        }
+
+        if let memory = MeetingHistoryStore.shared.lookup(title: event.summary),
+           let project = allProjects.first(where: { $0.harvestProjectId == memory.projectId }),
+           project.taskAssignments.contains(where: { $0.task.id == memory.taskId }) {
+            // selectProject sets up `availableTasks` and may auto-
+            // select the project's favorite task; override with the
+            // memory's task afterward so the recall wins.
+            selectProject(project)
+            selectTask(memory.taskId)
+        }
+
+        sourcedFromCalendarPicker = true
+        showCalendarPicker = false
     }
 
     // MARK: - Favorites Pill Row
@@ -631,6 +726,9 @@ struct NewTimerFormView: View {
         let hours = enteredHours > 0 ? enteredHours : nil
         let notesToSend = notes.isEmpty ? nil : notes
         FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
+        if sourcedFromCalendarPicker {
+            MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
+        }
         onDismiss()
         await viewModel.startNewTimer(projectId: projectId, taskId: taskId, hours: hours, notes: notesToSend)
     }
@@ -644,6 +742,9 @@ struct NewTimerFormView: View {
         let notesToSend = notes.isEmpty ? nil : notes
         let date = spentDateString
         FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
+        if sourcedFromCalendarPicker {
+            MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
+        }
         onDismiss()
         await viewModel.logTimeEntry(
             projectId: projectId,
@@ -663,6 +764,9 @@ struct NewTimerFormView: View {
         let notesToSend = notes != (entry.notes ?? "") ? notes : entry.notes ?? ""
 
         FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
+        if sourcedFromCalendarPicker {
+            MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
+        }
         onDismiss()
         await viewModel.updateExistingEntry(
             entryId: entry.id,
