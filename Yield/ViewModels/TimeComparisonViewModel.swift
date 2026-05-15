@@ -678,8 +678,26 @@ final class TimeComparisonViewModel {
         }
     }
 
-    /// Minimum weekly budget floor used when user has little or no forecast data
-    private static let minimumWeeklyBudget: Double = 40
+    /// Minimum weekly budget floor used when user has little or no
+    /// Forecast data — read from the user's Settings preference each
+    /// access so the menu bar label reflects changes without
+    /// restarting the app. Defaults to 40 (registered in `YieldApp`).
+    /// Floored at 1 to keep `formatPair` from rendering a denominator
+    /// of zero if a malformed value somehow lands in defaults.
+    private var weeklyHoursTarget: Double {
+        let stored = UserDefaults.standard.integer(forKey: DefaultsKey.weeklyHoursTarget)
+        return Double(max(stored, 1))
+    }
+
+    /// Hours-per-day target derived from the weekly target divided
+    /// by `DateHelpers.workdaysPerWeek` (5). Drives the menu bar's
+    /// "day total" label fallback and the conversion of Forecast's
+    /// "full day off" assignments (allocation=0) into hours. Users
+    /// on a non-standard schedule adjust the weekly target; the
+    /// daily value follows.
+    private var dailyHoursTarget: Double {
+        weeklyHoursTarget / DateHelpers.workdaysPerWeek
+    }
 
     /// What the menu bar label shows. User-configurable in Settings;
     /// reads through to the persisted UserDefault each access so the
@@ -702,7 +720,7 @@ final class TimeComparisonViewModel {
     }
 
     /// `tracked / booked` for the running project's weekly slot. Falls
-    /// back to `weekTotal / weeklyBudget` (40h floor) when no timer is
+    /// back to `weekTotal / weeklyBudget` (user's weekly target as floor) when no timer is
     /// running, mirroring the original menu-bar behavior.
     private func projectTimeLabel() -> String {
         if let tracking = projectStatuses.first(where: { $0.isTracking }) {
@@ -722,7 +740,7 @@ final class TimeComparisonViewModel {
             return formatPair(project.loggedHours, project.bookedHours)
         }
         let allTracked = totalLogged + totalUnbookedLogged
-        let budget = max(totalBooked, Self.minimumWeeklyBudget)
+        let budget = max(totalBooked, weeklyHoursTarget)
         return formatPair(allTracked, budget)
     }
 
@@ -738,12 +756,12 @@ final class TimeComparisonViewModel {
         if let paused = pausedState {
             return formatPair(paused.frozenHours, totalTodayLogged)
         }
-        return formatPair(totalTodayLogged, YieldConstants.workdayHours)
+        return formatPair(totalTodayLogged, dailyHoursTarget)
     }
 
     /// `currentEntry / projectRemaining` for the running project. Falls
     /// back to `entryHours / todayTotal` on unbooked projects and to
-    /// `weekTotal / weeklyBudget` (40h floor) when nothing is running —
+    /// `weekTotal / weeklyBudget` (user's weekly target as floor) when nothing is running —
     /// mirroring `projectTimeLabel` so the two modes feel consistent.
     /// Remaining goes negative (with a leading minus) when the project
     /// is over budget; the gauge icon already signals over-state, so
@@ -768,7 +786,7 @@ final class TimeComparisonViewModel {
             return formatPair(entryHours, remaining)
         }
         let allTracked = totalLogged + totalUnbookedLogged
-        let budget = max(totalBooked, Self.minimumWeeklyBudget)
+        let budget = max(totalBooked, weeklyHoursTarget)
         return formatPair(allTracked, budget)
     }
 
@@ -1369,13 +1387,18 @@ final class TimeComparisonViewModel {
         assignments: [ForecastAssignment],
         timeOffProjectId: Int?,
         weekStart: Date,
-        weekEnd: Date
+        weekEnd: Date,
+        /// Hours assigned to a "full day off" Forecast assignment
+        /// (allocation=0 convention). Caller passes the user's
+        /// daily-hours setting so PTO totals match their actual
+        /// schedule.
+        fullDayHours: Double
     ) -> TimeOffBlock? {
         guard let timeOffProjectId else { return nil }
 
         let calendar = Calendar.current
         let dayLabels = Array(DateHelpers.weekdayLabels.prefix(5))  // Mon–Fri
-        let defaultFullDayHours = YieldConstants.workdayHours
+        let defaultFullDayHours = fullDayHours
 
         var totalHours = 0.0
         var affectedDays: Set<Int> = []  // weekday indices 0–4 relative to Mon
@@ -1853,7 +1876,8 @@ final class TimeComparisonViewModel {
                 assignments: allAssignments,
                 timeOffProjectId: timeOffProjectId,
                 weekStart: weekBounds.start,
-                weekEnd: weekBounds.end
+                weekEnd: weekBounds.end,
+                fullDayHours: dailyHoursTarget
             )
             let notesByForecastProject = Self.aggregateNotesByProject(
                 assignments: allAssignments,
@@ -2336,7 +2360,8 @@ final class TimeComparisonViewModel {
                 assignments: resolvedAssignments,
                 projects: resolvedProjects,
                 clients: resolvedClients,
-                fallbackTimeOffProjectId: cachedTimeOffProjectId
+                fallbackTimeOffProjectId: cachedTimeOffProjectId,
+                fullDayHours: dailyHoursTarget
             )
             weekSnapshots[offset] = snapshot
             noteFetchSucceeded()
@@ -2356,7 +2381,11 @@ final class TimeComparisonViewModel {
         assignments: [ForecastAssignment],
         projects: [ForecastProject],
         clients: [ForecastClient],
-        fallbackTimeOffProjectId: Int?
+        fallbackTimeOffProjectId: Int?,
+        /// User's daily-hours target — passed in (rather than read
+        /// from UserDefaults inside this static helper) so the
+        /// function stays pure and testable.
+        fullDayHours: Double
     ) -> WeekSnapshot {
         let projectMap = projects.indexed { $0.id }
         let clientMap = clients.indexed { $0.id }
@@ -2385,7 +2414,8 @@ final class TimeComparisonViewModel {
             assignments: assignments,
             timeOffProjectId: timeOffProjectId,
             weekStart: weekBounds.start,
-            weekEnd: weekBounds.end
+            weekEnd: weekBounds.end,
+            fullDayHours: fullDayHours
         )
         let notesByForecastProject = aggregateNotesByProject(
             assignments: assignments,
@@ -2477,14 +2507,15 @@ final class TimeComparisonViewModel {
         //   allocations per day, INCLUDING time off (holidays, PTO) so
         //   the daily and week totals reflect the full booked picture.
         //   Time-off assignments with allocation=0 (Forecast's "full
-        //   day off" convention) are treated as a standard 8h day.
+        //   day off" convention) are treated as the user's daily-
+        //   hours target (default 8).
         let calendar = Calendar.current
         let dayLabels = DateHelpers.weekdayLabels
         let weekDays = DateHelpers.weekDays(starting: weekBounds.start)
 
         var hoursByDate: [String: Double] = [:]
         if offset > 0 {
-            let fullDayHours = YieldConstants.workdayHours
+            // `fullDayHours` is already in scope as a function param.
             for assignment in assignments {
                 guard assignment.projectId != nil,
                       let aStart = DateHelpers.dateFormatter.date(from: assignment.startDate),

@@ -12,6 +12,19 @@ struct ProjectChartView: View {
     /// row again to reset back to "all."
     @State private var isolatedProjectId: Int?
 
+    /// Weekly hours target — the only persisted setting. The
+    /// chart's horizontal "target" rule uses the derived daily
+    /// value (`weekly / 5`) so a 32h/wk schedule sees the line at
+    /// 6.4, not 8.
+    @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
+
+    /// Derived daily target. Kept as a computed property rather
+    /// than a separate AppStorage so there's a single source of
+    /// truth.
+    private var dailyHoursTarget: Double {
+        Double(weeklyHoursTarget) / DateHelpers.workdaysPerWeek
+    }
+
     /// Assign colors by dividing the color wheel into N equal slices (where N is
     /// the number of projects in the chart). Every pair of projects ends up the
     /// same 360°/N apart — maximum possible separation. Sat/bright alternates so
@@ -120,14 +133,17 @@ struct ProjectChartView: View {
         }
     }
 
-    /// Y-axis upper bound: 8h minimum, grown in 2h increments so long days still
-    /// land on a labeled tick instead of cutting off mid-interval.
+    /// Y-axis upper bound: at least the daily target (so the
+    /// reference rule never clips outside the plot), grown in 2h
+    /// increments past the data peak so long days still land on a
+    /// labeled tick instead of cutting off mid-interval.
     private func yMax(for points: [TimeComparisonViewModel.ChartPoint]) -> Double {
         var totals: [String: Double] = [:]
         for p in points { totals[p.date, default: 0] += p.hours }
         let peak = totals.values.max() ?? 0
         let rounded = ceil(peak / 2) * 2
-        return max(8, rounded)
+        let targetCeiling = ceil(dailyHoursTarget / 2) * 2
+        return max(targetCeiling, rounded)
     }
 
     private func yTicks(upTo upper: Double) -> [Double] {
@@ -183,7 +199,7 @@ struct ProjectChartView: View {
             // Workday reference line. The label is rendered as a trailing
             // Y-axis tick so it sits outside the plot area to the right,
             // mirroring how the leading tick labels sit outside on the left.
-            RuleMark(y: .value("Target", YieldConstants.workdayHours))
+            RuleMark(y: .value("Target", dailyHoursTarget))
                 .foregroundStyle(YieldColors.textSecondary.opacity(0.6))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
         }
@@ -224,12 +240,14 @@ struct ProjectChartView: View {
                 AxisGridLine()
                     .foregroundStyle(YieldColors.border)
             }
-            // Trailing-axis "8h" label for the workday reference rule — sits in
-            // the right-side axis gutter, outside the plot, mirroring the leading
-            // tick labels on the left.
-            AxisMarks(position: .trailing, values: [8]) { _ in
+            // Trailing-axis label for the workday reference rule —
+            // sits in the right-side gutter, anchored at the same Y
+            // as the rule itself (`dailyHoursTarget`) so the label
+            // and line stay aligned regardless of the user's weekly
+            // target setting.
+            AxisMarks(position: .trailing, values: [dailyHoursTarget]) { _ in
                 AxisValueLabel {
-                    Text("8h")
+                    Text(formatHours(dailyHoursTarget))
                         .font(YieldFonts.dmSans(9, weight: .medium))
                         .foregroundStyle(YieldColors.textSecondary)
                 }
@@ -327,7 +345,7 @@ struct ProjectChartView: View {
                     .interpolationMethod(.monotone)
                 }
 
-                RuleMark(y: .value("Target", YieldConstants.workdayHours))
+                RuleMark(y: .value("Target", dailyHoursTarget))
                     .foregroundStyle(YieldColors.onBackground.opacity(0.4))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
@@ -365,9 +383,9 @@ struct ProjectChartView: View {
                     AxisGridLine()
                         .foregroundStyle(YieldColors.onBackground.opacity(0.1))
                 }
-                AxisMarks(position: .trailing, values: [8]) { _ in
+                AxisMarks(position: .trailing, values: [dailyHoursTarget]) { _ in
                     AxisValueLabel {
-                        Text("8h")
+                        Text(formatHours(dailyHoursTarget))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(YieldColors.onBackground.opacity(0.7))
                     }

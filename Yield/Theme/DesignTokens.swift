@@ -246,10 +246,4 @@ enum YieldConstants {
     /// (vacation, sick, holiday, PTO). This is a single undeletable project
     /// maintained by Forecast itself — we match on name to identify it.
     static let timeOffProjectName = "Time Off"
-
-    /// Standard workday length in hours. Used to:
-    /// - render the 8h dashed reference line on the weekly chart
-    /// - convert a full-day PTO block (allocation == 0) into an hours total
-    /// - compute the "days" portion of time-off summaries (8h = 1d)
-    static let workdayHours: Double = 8
 }

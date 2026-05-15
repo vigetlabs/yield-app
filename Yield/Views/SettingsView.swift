@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage(DefaultsKey.idleDetectionEnabled) private var idleDetectionEnabled = true
     @AppStorage(DefaultsKey.timerChangeHUDEnabled) private var timerChangeHUDEnabled = true
     @AppStorage(DefaultsKey.idleMinutes) private var idleMinutes = 10
+    @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
     @AppStorage(DefaultsKey.menuBarLabelMode) private var menuBarLabelMode: String = MenuBarLabelMode.projectTime.rawValue
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
@@ -389,6 +390,23 @@ struct SettingsView: View {
 
             // Menu bar display
             menuBarDisplayRow
+
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+
+            // Weekly hours target — drives the menu bar label's
+            // weekly budget floor (when the user has little or no
+            // Forecast booking), the chart's daily target line,
+            // time-off "full day" conversion, and the time-off
+            // row's "Xh = 1d" formatting. The daily equivalent is
+            // derived as `weekly / 5`. Defaults to 40.
+            hoursTargetRow(
+                icon: "calendar.badge.clock",
+                label: "Weekly hours target",
+                value: $weeklyHoursTarget,
+                upperBound: 168  // 24×7 ceiling
+            )
 
             Rectangle()
                 .fill(YieldColors.border)
@@ -796,6 +814,50 @@ struct SettingsView: View {
                 onSelect(cases[id].rawValue)
             }
             .frame(width: YieldDimensions.settingsRowControlWidth)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    /// Reusable row for an integer "hours target" setting — small
+    /// icon + label + numeric text field + "hr" suffix. Clamps to
+    /// `1...upperBound` on edit so the persisted value stays sane.
+    private func hoursTargetRow(
+        icon: String,
+        label: String,
+        value: Binding<Int>,
+        upperBound: Int
+    ) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundStyle(YieldColors.textSecondary)
+                .frame(width: 16)
+
+            Text(label)
+                .font(YieldFonts.dmSans(11))
+                .foregroundStyle(YieldColors.textPrimary)
+
+            Spacer()
+
+            TextField("", value: value, format: .number)
+                .font(YieldFonts.monoXS)
+                .foregroundStyle(YieldColors.textPrimary)
+                .textFieldStyle(.plain)
+                .frame(width: 32)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 3)
+                .background(YieldColors.background)
+                .yieldBorder(radius: YieldRadius.button)
+                .onChange(of: value.wrappedValue) { _, newValue in
+                    if newValue < 1 { value.wrappedValue = 1 }
+                    if newValue > upperBound { value.wrappedValue = upperBound }
+                }
+
+            Text("hr")
+                .font(YieldFonts.dmSans(10))
+                .foregroundStyle(YieldColors.textSecondary)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
