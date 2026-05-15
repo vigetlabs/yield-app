@@ -3,6 +3,27 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.0.1</title>
+      <sparkle:version>52</sparkle:version>
+      <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Project codes show everywhere a project name appears.</strong> Forecast project codes are prefixed in brackets — "[02] Project Name" — across project rows, the timer banner, the external-change HUD, the new-timer form's project picker, the chart legend, favorites, idle alerts, and budget notifications. Sorting still uses the bare project name so the brackets don't reorder anything.</li>
+          <li><strong>Fix:</strong> the lock icon was appearing on weeks the user hadn't submitted. Lock state was being read from Harvest's <code>is_locked</code> field, which fires for invoiced entries on closed projects too — so a single stale entry would light up the whole current week. Now driven by <code>approval_status</code> ("submitted" / "approved"), which only fires when the user has actually turned the timesheet in.</li>
+          <li><strong>Fix:</strong> the Harvest sign-out, time-entry delete, and Google Calendar disconnect confirmations weren't doing anything — clicking either button in the system dialog dismissed the panel without firing the action. The dialog presentation made the menu bar panel resign key, which cancelled the dialog before its handler could run. Replaced with inline confirmations that stay within the panel.</li>
+          <li><strong>Fix:</strong> sign-out now drops you back on the main panel (with the onboarding prompt) instead of leaving you stranded on a Settings view with nothing to show.</li>
+          <li><strong>Fix:</strong> the segmented day-by-day progress bar in each project's drawer overflowed its container by a few pixels when full — the per-day gaps weren't being subtracted from the total available width before sizing the segments.</li>
+          <li>Sign-out confirmation is now a one-line "Are you sure?" prompt instead of a paragraph of explanatory text.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.0.1/Yield-1.0.1.zip"
+        sparkle:edSignature="wEL9W6mrVwvzsv5GGBmkWbxhqGeY5WB2skLSKujK0vYXEO7shqfz+Je5fRo9R3GiE5JMRCXyPyhNbHtmfxlLCg=="
+        length="2722038"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.0.0</title>
       <sparkle:version>51</sparkle:version>
       <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
