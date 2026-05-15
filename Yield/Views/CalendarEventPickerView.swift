@@ -202,10 +202,16 @@ private struct EventRow: View {
 
     @State private var isHovered = false
 
+    /// Compact time formatter — "11:00am" instead of the system
+    /// `.short` style's "11:00 AM". Forced 12-hour format via the
+    /// explicit `h` token; users in 24-hour locales get the 12-hour
+    /// rendering here too, which is intentional for the picker's
+    /// tight horizontal layout.
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
-        f.timeStyle = .short
-        f.dateStyle = .none
+        f.dateFormat = "h:mma"
+        f.amSymbol = "am"
+        f.pmSymbol = "pm"
         return f
     }()
 
@@ -226,31 +232,37 @@ private struct EventRow: View {
         return "\(h)h \(m)m"
     }
 
+    /// Combined time-range + duration line, e.g. "9:00am – 9:30am (30m)".
+    /// Reads as a sub-line under the title, mirroring the project-row
+    /// pattern in the main panel where the project name sits on top
+    /// and supporting metadata sits below.
+    private var timeAndDurationLine: String {
+        "\(timeRange) (\(durationLabel))"
+    }
+
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: 12) {
-                // Time range column — fixed width so titles align.
-                Text(timeRange)
-                    .font(YieldFonts.monoXS)
+            // Stacked layout matches the main panel's project rows:
+            // headline on top (event title here / project name there),
+            // monospace meta line beneath. Fonts pulled from the same
+            // tokens (`titleMedium` + `monoSmall`) so the picker reads
+            // as a sibling to the rest of the panel rather than a
+            // separate visual system.
+            VStack(alignment: .leading, spacing: 6) {
+                Text(displayTitle)
+                    .font(YieldFonts.titleMedium)
+                    .foregroundStyle(YieldColors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Text(timeAndDurationLine)
+                    .font(YieldFonts.monoSmall)
                     .foregroundStyle(YieldColors.textSecondary)
-                    .frame(width: 110, alignment: .leading)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(displayTitle)
-                        .font(YieldFonts.titleSmall)
-                        .foregroundStyle(YieldColors.textPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-
-                    Text(durationLabel)
-                        .font(YieldFonts.labelTimeRemaining)
-                        .foregroundStyle(YieldColors.textSecondary)
-                }
-
-                Spacer(minLength: 8)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
             .contentShape(Rectangle())
