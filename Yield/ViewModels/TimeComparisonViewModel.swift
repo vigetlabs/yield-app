@@ -175,6 +175,9 @@ final class TimeComparisonViewModel {
     struct ChartPoint: Identifiable {
         let id: String  // "\(projectId)-\(date)"
         let projectId: Int
+        /// Display string already including any `[code]` prefix —
+        /// flowed straight to the chart's legend / foregroundStyle
+        /// `by:` value where projects are identified by name.
         let projectName: String
         let date: String       // YYYY-MM-DD
         let dayLabel: String   // "Mon", "Tue"…
@@ -209,7 +212,7 @@ final class TimeComparisonViewModel {
                 points.append(ChartPoint(
                     id: "\(pid)-\(day.date)",
                     projectId: pid,
-                    projectName: project.projectName,
+                    projectName: project.displayName,
                     date: day.date,
                     dayLabel: day.label,
                     hours: hoursByDate[day.date] ?? 0
@@ -257,9 +260,18 @@ final class TimeComparisonViewModel {
     struct PausedTimerState {
         let clientName: String?
         let projectName: String
+        /// Optional Forecast project code captured at pause time so
+        /// the banner can render "[02] Project Name" while paused
+        /// without re-fetching ProjectStatus.
+        let projectCode: String?
         let taskName: String
         let entryId: Int
         let frozenHours: Double
+
+        /// Display-friendly project name with the code prefix when set.
+        var projectDisplayName: String {
+            ProjectStatus.displayName(code: projectCode, project: projectName)
+        }
     }
 
     struct IdleAlertState {
@@ -306,6 +318,7 @@ final class TimeComparisonViewModel {
     private var lastTrackingEntryId: Int?
     private var lastTrackingClientName: String?
     private var lastTrackingProjectName: String?
+    private var lastTrackingProjectCode: String?
     private var lastTrackingTaskName: String?
 
     /// Call from any user-initiated method that may change the running
@@ -378,6 +391,7 @@ final class TimeComparisonViewModel {
             lastTrackingEntryId = currentId
             lastTrackingClientName = currentProject?.clientName
             lastTrackingProjectName = currentProject?.projectName
+            lastTrackingProjectCode = currentProject?.projectCode
             lastTrackingTaskName = currentEntry?.taskName
             hasSeenInitialTrackingState = true
             suppressNextTimerChangeHUD = false
@@ -394,6 +408,7 @@ final class TimeComparisonViewModel {
                 kind: .started,
                 clientName: project.clientName,
                 projectName: project.projectName,
+                projectCode: project.projectCode,
                 taskName: entry.taskName
             ))
         } else if let projectName = lastTrackingProjectName {
@@ -401,6 +416,7 @@ final class TimeComparisonViewModel {
                 kind: .stopped,
                 clientName: lastTrackingClientName,
                 projectName: projectName,
+                projectCode: lastTrackingProjectCode,
                 taskName: lastTrackingTaskName
             ))
         }
@@ -1413,6 +1429,7 @@ final class TimeComparisonViewModel {
                 TimerProjectOption(
                     harvestProjectId: assignment.project.id,
                     projectName: assignment.project.name,
+                    projectCode: assignment.project.code,
                     clientName: assignment.client?.name,
                     taskAssignments: assignment.taskAssignments.filter { $0.isActive }
                 )
@@ -1429,8 +1446,18 @@ final class TimeComparisonViewModel {
         var id: Int { harvestProjectId }
         let harvestProjectId: Int
         let projectName: String
+        /// Project code (Harvest's `code` field). Mirrors the same
+        /// `displayName` pattern as `ProjectStatus`.
+        let projectCode: String?
         let clientName: String?
         let taskAssignments: [HarvestProjectTaskAssignment]
+
+        /// "[code] Project Name" when a code is set; bare project
+        /// name otherwise. Use everywhere the picker surfaces a
+        /// project to the user.
+        var displayName: String {
+            ProjectStatus.displayName(code: projectCode, project: projectName)
+        }
     }
 
     /// Start a new timer for a specific project and task, stopping any running timer first
@@ -1553,6 +1580,7 @@ final class TimeComparisonViewModel {
         pausedState = PausedTimerState(
             clientName: project.clientName,
             projectName: project.projectName,
+            projectCode: project.projectCode,
             taskName: entry.taskName,
             entryId: entry.id,
             frozenHours: frozenEntryHours
@@ -1999,6 +2027,7 @@ final class TimeComparisonViewModel {
                     id: "forecast-\(forecastProjectId)",
                     clientName: clientName,
                     projectName: projectName,
+                    projectCode: project?.code,
                     bookedHours: bookedHours,
                     loggedHours: logged,
                     todayHours: today,
@@ -2011,7 +2040,9 @@ final class TimeComparisonViewModel {
                 ))
             }
 
-            // Add Harvest-only projects (logged but not booked)
+            // Add Harvest-only projects (logged but not booked).
+            // No `projectCode` — codes live in Forecast and Harvest-
+            // only projects by definition aren't in Forecast.
             for (harvestProjectId, loggedHours) in loggedByHarvestProject {
                 if processedHarvestIds.contains(harvestProjectId) { continue }
                 let projectName = harvestProjectNames[harvestProjectId] ?? "Unknown Project"
@@ -2022,6 +2053,7 @@ final class TimeComparisonViewModel {
                     id: "harvest-\(harvestProjectId)",
                     clientName: clientName,
                     projectName: projectName,
+                    projectCode: nil,
                     bookedHours: 0,
                     loggedHours: loggedHours,
                     todayHours: todayByHarvestProject[harvestProjectId] ?? 0,
@@ -2402,6 +2434,7 @@ final class TimeComparisonViewModel {
                 id: "forecast-\(forecastProjectId)",
                 clientName: clientName,
                 projectName: projectName,
+                projectCode: project?.code,
                 bookedHours: bookedHours,
                 loggedHours: logged,
                 todayHours: 0,
@@ -2414,7 +2447,8 @@ final class TimeComparisonViewModel {
             ))
         }
 
-        // Harvest-only projects — logged without a Forecast booking
+        // Harvest-only projects — logged without a Forecast booking.
+        // No `projectCode` (codes live in Forecast).
         for (harvestProjectId, loggedHours) in loggedByHarvestProject {
             if processedHarvestIds.contains(harvestProjectId) { continue }
             let projectName = harvestProjectNames[harvestProjectId] ?? "Unknown Project"
@@ -2423,6 +2457,7 @@ final class TimeComparisonViewModel {
                 id: "harvest-\(harvestProjectId)",
                 clientName: clientName,
                 projectName: projectName,
+                projectCode: nil,
                 bookedHours: 0,
                 loggedHours: loggedHours,
                 todayHours: 0,

@@ -39,6 +39,7 @@ final class OptimisticTimerTests: XCTestCase {
             id: id,
             clientName: nil,
             projectName: name,
+            projectCode: nil,
             bookedHours: 8.0,
             loggedHours: 4.0,
             todayHours: 4.0,

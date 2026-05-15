@@ -33,7 +33,7 @@ struct LookAheadRowView: View {
                             .foregroundStyle(YieldColors.textSecondary)
                             .lineLimit(1)
                     }
-                    Text(project.projectName)
+                    Text(project.displayName)
                         .font(YieldFonts.titleMedium)
                         .foregroundStyle(YieldColors.textPrimary)
                         .lineLimit(1)

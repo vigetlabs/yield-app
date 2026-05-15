@@ -32,6 +32,7 @@ final class BudgetNotificationTests: XCTestCase {
             id: id,
             clientName: nil,
             projectName: "Project",
+            projectCode: nil,
             bookedHours: booked,
             loggedHours: logged,
             todayHours: 0,
@@ -337,7 +338,7 @@ final class BudgetNotificationTests: XCTestCase {
             notes: nil,
             isLocked: nil,
             timerStartedAt: nil,
-            project: HarvestProjectRef(id: projectId, name: "Project"),
+            project: HarvestProjectRef(id: projectId, name: "Project", code: nil),
             client: nil,
             task: nil,
             taskAssignment: HarvestTaskAssignmentRef(
@@ -357,7 +358,7 @@ final class BudgetNotificationTests: XCTestCase {
             notes: nil,
             isLocked: nil,
             timerStartedAt: nil,
-            project: HarvestProjectRef(id: projectId, name: "Project"),
+            project: HarvestProjectRef(id: projectId, name: "Project", code: nil),
             client: nil,
             task: nil,
             taskAssignment: HarvestTaskAssignmentRef(

@@ -518,9 +518,15 @@ struct SettingsView: View {
         let taskId: Int
         let clientName: String?
         let projectName: String
+        let projectCode: String?
         let taskName: String
 
         var id: String { "\(projectId)-\(taskId)" }
+
+        /// Project name with the `[code]` prefix when set.
+        var displayName: String {
+            ProjectStatus.displayName(code: projectCode, project: projectName)
+        }
     }
 
     /// Resolved favorites sorted alphabetically by client → project → task,
@@ -536,6 +542,7 @@ struct SettingsView: View {
                 taskId: fav.taskId,
                 clientName: project?.clientName,
                 projectName: project?.projectName ?? "Unknown project",
+                projectCode: project?.projectCode,
                 taskName: task?.name ?? "Unknown task"
             )
         }
@@ -612,7 +619,7 @@ struct SettingsView: View {
                 .frame(width: 16)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(ProjectStatus.qualifiedName(client: fav.clientName, project: fav.projectName))
+                Text(ProjectStatus.qualifiedName(client: fav.clientName, project: fav.displayName))
                     .font(YieldFonts.dmSans(11, weight: .medium))
                     .foregroundStyle(YieldColors.textPrimary)
                     .lineLimit(1)

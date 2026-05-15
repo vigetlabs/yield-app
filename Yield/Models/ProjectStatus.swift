@@ -23,6 +23,11 @@ struct ProjectStatus: Identifiable {
     let id: String
     let clientName: String?
     let projectName: String
+    /// Bare project code from Forecast (e.g. "02", "ACME-042"). When
+    /// present, `displayName` prefixes it as "[02] Project Name" for
+    /// every user-facing surface. Sorting + lookups continue to use
+    /// `projectName` so the bracketed code doesn't reorder anything.
+    let projectCode: String?
     let bookedHours: Double
     let loggedHours: Double
     let todayHours: Double
@@ -70,18 +75,36 @@ struct ProjectStatus: Identifiable {
         bookedHours > 0
     }
 
-    /// "Client — Project" when a client is known, just the project name
-    /// otherwise. Used wherever we surface a project to the user as a
-    /// single string — idle alerts, budget notifications, the timer
-    /// banner's top label.
+    /// "[code] Project Name" when the project has a Forecast code,
+    /// just the project name otherwise. Use everywhere a project is
+    /// surfaced in user-facing UI; reserve `projectName` for sorting
+    /// and lookups where the bare name is intended.
+    var displayName: String {
+        Self.displayName(code: projectCode, project: projectName)
+    }
+
+    /// Free-standing displayName for callers that have a code +
+    /// project string but no `ProjectStatus` (e.g. paused-timer
+    /// snapshots, timer-change HUD, project picker rows).
+    static func displayName(code: String?, project: String) -> String {
+        guard let code = code, !code.isEmpty else { return project }
+        return "[\(code)] \(project)"
+    }
+
+    /// "Client — [code] Project" when a client is known, "[code]
+    /// Project" otherwise. Used wherever we surface a project to the
+    /// user as a single string — idle alerts, budget notifications,
+    /// the timer banner's top label.
     var qualifiedName: String {
-        Self.qualifiedName(client: clientName, project: projectName)
+        Self.qualifiedName(client: clientName, project: displayName)
     }
 
     /// Free-standing version for callers that have client/project
-    /// strings without a `ProjectStatus` in hand (e.g. the timer
-    /// banner, which composes from either the live tracking project or
-    /// the snapshot in `PausedTimerState`).
+    /// strings without a `ProjectStatus` in hand. The `project`
+    /// argument should already be a display name (i.e. include any
+    /// code prefix); callers that have a bare name + code should
+    /// build the display string via `displayName(code:project:)`
+    /// first.
     static func qualifiedName(client: String?, project: String) -> String {
         [client, project].compactMap { $0 }.joined(separator: " — ")
     }

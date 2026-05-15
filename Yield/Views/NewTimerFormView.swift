@@ -474,10 +474,17 @@ struct NewTimerFormView: View {
         let taskId: Int
         let clientName: String?
         let projectName: String
+        /// Forecast/Harvest project code, prefixed in `displayName`.
+        let projectCode: String?
         let taskName: String
         let lastUsedAt: Date
 
         var id: String { "\(projectId)-\(taskId)" }
+
+        /// Project name with the `[code]` prefix when set.
+        var displayName: String {
+            ProjectStatus.displayName(code: projectCode, project: projectName)
+        }
     }
 
     /// Favorites resolved against the loaded `allProjects`. Sorted
@@ -497,6 +504,7 @@ struct NewTimerFormView: View {
                     taskId: fav.taskId,
                     clientName: project.clientName,
                     projectName: project.projectName,
+                    projectCode: project.projectCode,
                     taskName: task.name,
                     lastUsedAt: fav.lastUsedAt
                 )
@@ -565,8 +573,8 @@ struct NewTimerFormView: View {
             result.append(NSAttributedString(string: "  ", attributes: [.font: titleFont]))
         }
 
-        // Project line (Client — Project)
-        let projectText = ProjectStatus.qualifiedName(client: fav.clientName, project: fav.projectName)
+        // Project line (Client — [code] Project)
+        let projectText = ProjectStatus.qualifiedName(client: fav.clientName, project: fav.displayName)
         result.append(NSAttributedString(
             string: "\(projectText)\n",
             attributes: [
@@ -628,7 +636,7 @@ struct NewTimerFormView: View {
             let sorted = projects.sorted { $0.projectName.localizedCaseInsensitiveCompare($1.projectName) == .orderedAscending }
             return DropdownGroup(
                 label: key.isEmpty ? nil : key,
-                items: sorted.map { ($0.harvestProjectId, $0.projectName) }
+                items: sorted.map { ($0.harvestProjectId, $0.displayName) }
             )
         }
     }
@@ -836,7 +844,7 @@ struct NewTimerFormView: View {
 
     private func duplicateConfirmBanner(entries: [TimeEntryInfo]) -> some View {
         let totalHours = entries.reduce(0.0) { $0 + $1.hours }
-        let projectName = selectedProject?.projectName ?? "This project"
+        let projectName = selectedProject?.displayName ?? "This project"
         let taskName = entries.first?.taskName ?? "this task"
         let hasRunning = entries.contains(where: { $0.isRunning })
         let (h, m) = totalHours.roundedHM

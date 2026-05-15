@@ -10,7 +10,16 @@ struct TimerChangeInfo {
     let kind: TimerChangeKind
     let clientName: String?
     let projectName: String
+    /// Optional Forecast project code captured at HUD-fire time so
+    /// the announcement renders "[02] Project Name" without
+    /// re-fetching ProjectStatus.
+    let projectCode: String?
     let taskName: String?
+
+    /// Display-friendly project name with the code prefix when set.
+    var projectDisplayName: String {
+        ProjectStatus.displayName(code: projectCode, project: projectName)
+    }
 }
 
 /// Shows a small HUD-style panel near the top of the active screen
@@ -151,7 +160,8 @@ private struct TimerChangeHUDView: View {
     }
 
     private var subtitleText: String {
-        let project = ProjectStatus.qualifiedName(client: info.clientName, project: info.projectName)
+        // `projectDisplayName` includes the `[code]` prefix when set.
+        let project = ProjectStatus.qualifiedName(client: info.clientName, project: info.projectDisplayName)
         guard let task = info.taskName, !task.isEmpty else { return project }
         return "\(project) / \(task)"
     }

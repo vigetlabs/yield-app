@@ -170,9 +170,11 @@ struct ProjectRowView: View {
                             .lineLimit(1)
                     }
 
-                    // Project name + chevron
+                    // Project name + chevron. `displayName` adds the
+                    // "[code]" prefix when the Forecast project has
+                    // a code set.
                     HStack(spacing: 10) {
-                        Text(project.projectName)
+                        Text(project.displayName)
                             .font(YieldFonts.titleMedium)
                             .foregroundStyle(YieldColors.textPrimary)
                             .lineLimit(1)

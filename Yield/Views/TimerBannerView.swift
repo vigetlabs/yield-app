@@ -49,8 +49,12 @@ struct TimerBannerView: View {
         viewModel.trackingProject?.clientName ?? viewModel.pausedState?.clientName
     }
 
+    /// Display-friendly project name including the `[code]` prefix
+    /// when the project has a Forecast code. Reads from either the
+    /// live tracking project or the paused snapshot — both expose a
+    /// `displayName`/`projectDisplayName` accessor.
     private var projectName: String {
-        viewModel.trackingProject?.projectName ?? viewModel.pausedState?.projectName ?? ""
+        viewModel.trackingProject?.displayName ?? viewModel.pausedState?.projectDisplayName ?? ""
     }
 
     private var contextLabel: String {

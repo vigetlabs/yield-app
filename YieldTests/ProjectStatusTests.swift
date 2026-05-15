@@ -23,6 +23,7 @@ final class ProjectStatusTests: XCTestCase {
             id: "test-1",
             clientName: client,
             projectName: project,
+            projectCode: nil,
             bookedHours: booked,
             loggedHours: logged,
             todayHours: 0,

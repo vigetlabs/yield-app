@@ -45,6 +45,12 @@ struct HarvestTimeEntry: Codable, Identifiable {
 struct HarvestProjectRef: Codable {
     let id: Int
     let name: String
+    /// Project code (e.g. "02", "ACME-042"). Harvest's
+    /// `project_assignments` endpoint returns this; the embedded
+    /// project ref on time entries does not — so callers see nil
+    /// when reading from time-entry data and a populated value
+    /// when reading from project assignments.
+    let code: String?
 }
 
 struct HarvestClientRef: Codable {
