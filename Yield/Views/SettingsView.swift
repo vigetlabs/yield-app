@@ -88,17 +88,14 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     aboutCard
-                    // Account + Calendar share a row at 50/50.
-                    // `alignment: .top` keeps both cards anchored at
-                    // the top edge so the shorter of the two doesn't
-                    // stretch — they grow vertically independently
-                    // based on their own sign-in state.
-                    HStack(alignment: .top, spacing: 12) {
-                        accountCard
-                            .frame(maxWidth: .infinity)
-                        googleCalendarCard
-                            .frame(maxWidth: .infinity)
-                    }
+                    accountCard
+                    // Google Calendar card hidden until the OAuth
+                    // verification + PKCE refactor land. The card
+                    // definition itself (`googleCalendarCard` below)
+                    // stays in the codebase so re-enabling is a
+                    // one-line change. To restore: wrap accountCard
+                    // and googleCalendarCard in the 50/50 HStack
+                    // that was here.
                     preferencesCard
                     favoritesCard
                 }
@@ -162,35 +159,62 @@ struct SettingsView: View {
                     .fill(YieldColors.border)
                     .frame(height: 1)
 
-                // Sign out row
-                Button {
-                    showSignOutConfirm = true
-                } label: {
-                    HStack {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 10))
-                        Text("Sign Out")
-                            .font(YieldFonts.dmSans(11, weight: .medium))
-                        Spacer()
+                // Sign out row. We render confirmation INLINE rather
+                // than via `.confirmationDialog` because system
+                // dialogs presented from a MenuBarExtra panel make
+                // the panel resign key → panel auto-dismisses →
+                // dialog gets cancelled before the button action
+                // fires. Inline confirmation keeps everything within
+                // the panel so the action lands.
+                if showSignOutConfirm {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Yield will disconnect from your Harvest account and clear cached projects, timers, and favorites from view. Any timer running in Harvest itself will keep running there.")
+                            .font(YieldFonts.dmSans(11))
+                            .foregroundStyle(YieldColors.textSecondary)
+                            .lineSpacing(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        HStack(spacing: 8) {
+                            Spacer()
+                            Button("Cancel") {
+                                showSignOutConfirm = false
+                            }
+                            .buttonStyle(.yieldBordered)
+
+                            Button("Sign Out") {
+                                showSignOutConfirm = false
+                                oAuthService.signOut()
+                                AppState.shared.viewModel.resetForSignOut()
+                                // Return to the main panel — once
+                                // signed out, the Settings page has
+                                // little meaningful content to show
+                                // (no account, no projects), and the
+                                // main panel surfaces the onboarding
+                                // prompt the user needs to act on
+                                // next.
+                                onDismiss()
+                            }
+                            .buttonStyle(.redOutlined)
+                        }
                     }
-                    .foregroundStyle(.red.opacity(0.8))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .confirmationDialog(
-                    "Sign out of Harvest?",
-                    isPresented: $showSignOutConfirm,
-                    titleVisibility: .visible
-                ) {
-                    Button("Sign Out", role: .destructive) {
-                        oAuthService.signOut()
-                        AppState.shared.viewModel.resetForSignOut()
+                    .padding(12)
+                } else {
+                    Button {
+                        showSignOutConfirm = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 10))
+                            Text("Sign Out")
+                                .font(YieldFonts.dmSans(11, weight: .medium))
+                            Spacer()
+                        }
+                        .foregroundStyle(.red.opacity(0.8))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
                     }
-                    Button("Cancel", role: .cancel) {}
-                } message: {
-                    Text("Yield will disconnect from your Harvest account and clear cached projects, timers, and favorites from view. Any timer running in Harvest itself will keep running there.")
+                    .buttonStyle(.plain)
                 }
             } else {
                 VStack(alignment: .leading, spacing: 10) {
@@ -274,33 +298,49 @@ struct SettingsView: View {
                     .fill(YieldColors.border)
                     .frame(height: 1)
 
-                Button {
-                    showGoogleDisconnectConfirm = true
-                } label: {
-                    HStack {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 10))
-                        Text("Disconnect")
-                            .font(YieldFonts.dmSans(11, weight: .medium))
-                        Spacer()
+                // Inline confirmation — see comment on the Harvest
+                // sign-out path for why we don't use
+                // `.confirmationDialog` inside MenuBarExtra.
+                if showGoogleDisconnectConfirm {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Yield will stop pulling events from Google Calendar. The calendar icon in the Add Time form will be disabled until you reconnect.")
+                            .font(YieldFonts.dmSans(11))
+                            .foregroundStyle(YieldColors.textSecondary)
+                            .lineSpacing(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        HStack(spacing: 8) {
+                            Spacer()
+                            Button("Cancel") {
+                                showGoogleDisconnectConfirm = false
+                            }
+                            .buttonStyle(.yieldBordered)
+
+                            Button("Disconnect") {
+                                showGoogleDisconnectConfirm = false
+                                googleAuth.signOut()
+                            }
+                            .buttonStyle(.redOutlined)
+                        }
                     }
-                    .foregroundStyle(.red.opacity(0.8))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .confirmationDialog(
-                    "Disconnect Google Calendar?",
-                    isPresented: $showGoogleDisconnectConfirm,
-                    titleVisibility: .visible
-                ) {
-                    Button("Disconnect", role: .destructive) {
-                        googleAuth.signOut()
+                    .padding(12)
+                } else {
+                    Button {
+                        showGoogleDisconnectConfirm = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 10))
+                            Text("Disconnect")
+                                .font(YieldFonts.dmSans(11, weight: .medium))
+                            Spacer()
+                        }
+                        .foregroundStyle(.red.opacity(0.8))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
                     }
-                    Button("Cancel", role: .cancel) {}
-                } message: {
-                    Text("Yield will stop pulling events from Google Calendar. The calendar icon in the Add Time form will be disabled until you reconnect.")
+                    .buttonStyle(.plain)
                 }
             } else {
                 VStack(alignment: .leading, spacing: 10) {

@@ -2048,24 +2048,35 @@ final class TimeComparisonViewModel {
             totalUnbookedLogged = unbooked.reduce(0) { $0 + $1.loggedHours }
             totalTodayLogged = statuses.reduce(0) { $0 + $1.todayHours }
 
-            // Build daily hours breakdown (Mon–Sun)
+            // Build daily hours breakdown (Mon–Sun) plus per-day lock
+            // tracking. Harvest's `is_locked` is per-entry and can fire
+            // for reasons unrelated to week submission — closed
+            // projects, invoiced entries, project-level time-tracking
+            // restrictions. A day is treated as locked only when it
+            // has entries AND all of them are locked, which matches
+            // the functional meaning ("you can't add more entries
+            // here"). Empty days are never locked.
             var hoursByDate: [String: Double] = [:]
+            var lockSummaryByDate: [String: (locked: Int, total: Int)] = [:]
             for entry in entries {
                 hoursByDate[entry.spentDate, default: 0] += entry.hours
+                let prior = lockSummaryByDate[entry.spentDate] ?? (0, 0)
+                lockSummaryByDate[entry.spentDate] = (
+                    locked: prior.locked + ((entry.isLocked == true) ? 1 : 0),
+                    total: prior.total + 1
+                )
             }
-            // Lock state is week-granular: if any entry in the displayed
-            // week is locked, mark every day of the week as locked
-            // (including empty days the user didn't track).
-            let weekIsLocked = entries.contains { $0.isLocked == true }
             let calendar = Calendar.current
             let dayLabels = DateHelpers.weekdayLabels
             dailyHours = DateHelpers.weekDays(starting: weekBounds.start).enumerated().map { i, day in
-                DayHours(
+                let summary = lockSummaryByDate[day.str]
+                let dayIsLocked = (summary?.total ?? 0) > 0 && summary?.locked == summary?.total
+                return DayHours(
                     id: day.str,
                     dayLabel: dayLabels[i],
                     hours: hoursByDate[day.str] ?? 0,
                     isToday: calendar.isDateInToday(day.date),
-                    isLocked: weekIsLocked
+                    isLocked: dayIsLocked
                 )
             }
 
@@ -2461,16 +2472,27 @@ final class TimeComparisonViewModel {
                 hoursByDate[entry.spentDate, default: 0] += entry.hours
             }
         }
-        // See applyRefreshedData: lock state is week-granular.
-        let weekIsLocked = entries.contains { $0.isLocked == true }
+        // See applyRefreshedData: per-day lock state, computed from
+        // whether all of a day's entries are locked. Empty days are
+        // never locked.
+        var lockSummaryByDate: [String: (locked: Int, total: Int)] = [:]
+        for entry in entries {
+            let prior = lockSummaryByDate[entry.spentDate] ?? (0, 0)
+            lockSummaryByDate[entry.spentDate] = (
+                locked: prior.locked + ((entry.isLocked == true) ? 1 : 0),
+                total: prior.total + 1
+            )
+        }
         var dailyHours: [DayHours] = []
         for (i, day) in weekDays.enumerated() {
+            let summary = lockSummaryByDate[day.str]
+            let dayIsLocked = (summary?.total ?? 0) > 0 && summary?.locked == summary?.total
             dailyHours.append(DayHours(
                 id: day.str,
                 dayLabel: dayLabels[i],
                 hours: hoursByDate[day.str] ?? 0,
                 isToday: calendar.isDateInToday(day.date),
-                isLocked: weekIsLocked
+                isLocked: dayIsLocked
             ))
         }
 

@@ -256,88 +256,87 @@ struct NewTimerFormView: View {
                 duplicateConfirmBanner(entries: entries)
             }
 
-            // Actions
-            HStack(spacing: 8) {
-                if isEditing {
-                    Button {
-                        Task { await saveEntry() }
-                    } label: {
-                        Text("Save")
+            // Actions. Swapped for an inline delete-confirmation row
+            // when `showDeleteConfirm` is true — system
+            // `.confirmationDialog` doesn't work inside MenuBarExtra
+            // (the dialog presentation makes the panel resign key,
+            // the panel auto-dismisses, and the dialog's button
+            // action never fires).
+            if showDeleteConfirm {
+                deleteConfirmRow
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+            } else {
+                HStack(spacing: 8) {
+                    if isEditing {
+                        Button {
+                            Task { await saveEntry() }
+                        } label: {
+                            Text("Save")
+                        }
+                        .buttonStyle(.greenOutlined)
+                        .disabled(!canStart)
+                        .opacity(canStart ? 1 : 0.5)
+                    } else if isIdleMove {
+                        // Idle-move mode: a single primary commit. When a
+                        // matching entry already exists, the duplicate banner
+                        // disables this so the user makes the explicit
+                        // add-or-create choice from the banner.
+                        Button {
+                            Task { await commitIdleMove() }
+                        } label: {
+                            Text("Move Time")
+                        }
+                        .buttonStyle(.greenOutlined)
+                        .disabled(!canLog || duplicateConfirmEntries != nil)
+                        .opacity(canLog && duplicateConfirmEntries == nil ? 1 : 0.5)
+                    } else if isSpentDateToday {
+                        Button {
+                            Task { await startTimer() }
+                        } label: {
+                            Text("Start Timer")
+                        }
+                        .buttonStyle(.greenOutlined)
+                        .disabled(!canStart || duplicateConfirmEntries != nil)
+                        .opacity(canStart && duplicateConfirmEntries == nil ? 1 : 0.5)
                     }
-                    .buttonStyle(.greenOutlined)
-                    .disabled(!canStart)
-                    .opacity(canStart ? 1 : 0.5)
-                } else if isIdleMove {
-                    // Idle-move mode: a single primary commit. When a
-                    // matching entry already exists, the duplicate banner
-                    // disables this so the user makes the explicit
-                    // add-or-create choice from the banner.
-                    Button {
-                        Task { await commitIdleMove() }
-                    } label: {
-                        Text("Move Time")
-                    }
-                    .buttonStyle(.greenOutlined)
-                    .disabled(!canLog || duplicateConfirmEntries != nil)
-                    .opacity(canLog && duplicateConfirmEntries == nil ? 1 : 0.5)
-                } else if isSpentDateToday {
-                    Button {
-                        Task { await startTimer() }
-                    } label: {
-                        Text("Start Timer")
-                    }
-                    .buttonStyle(.greenOutlined)
-                    .disabled(!canStart || duplicateConfirmEntries != nil)
-                    .opacity(canStart && duplicateConfirmEntries == nil ? 1 : 0.5)
-                }
 
-                Button("Cancel") {
-                    onDismiss()
-                }
-                .buttonStyle(.yieldBordered)
-
-                Spacer()
-
-                if !isEditing && !isIdleMove {
-                    // Calendar event picker — only meaningful in
-                    // create mode (edit keeps the entry's duration;
-                    // idle-move pre-fills from idle minutes). Sits
-                    // immediately left of Log Time so the "fill
-                    // hours from a meeting, then log" flow reads
-                    // left-to-right.
-                    calendarPickerButton
-
-                    Button {
-                        Task { await logTime() }
-                    } label: {
-                        Text("Log Time")
+                    Button("Cancel") {
+                        onDismiss()
                     }
                     .buttonStyle(.yieldBordered)
-                    .disabled(!canLog)
-                    .opacity(canLog ? 1 : 0.5)
-                } else if isEditing {
-                    Button {
-                        showDeleteConfirm = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+
+                    Spacer()
+
+                    if !isEditing && !isIdleMove {
+                        // Calendar picker button hidden until the OAuth
+                        // verification + PKCE refactor land. The button
+                        // definition (`calendarPickerButton` below) stays
+                        // in the codebase so re-enabling is a one-line
+                        // change — restore by uncommenting the line below.
+                        // calendarPickerButton
+
+                        Button {
+                            Task { await logTime() }
+                        } label: {
+                            Text("Log Time")
+                        }
+                        .buttonStyle(.yieldBordered)
+                        .disabled(!canLog)
+                        .opacity(canLog ? 1 : 0.5)
+                    } else if isEditing {
+                        Button {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .buttonStyle(.redOutlined)
                     }
-                    .buttonStyle(.redOutlined)
                 }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 16)
-            .confirmationDialog(
-                "Delete this time entry?",
-                isPresented: $showDeleteConfirm,
-                titleVisibility: .visible
-            ) {
-                Button("Delete", role: .destructive) {
-                    Task { await deleteEntry() }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("The entry will be removed from Harvest. This can't be undone.")
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
             }
         }
         .task {
@@ -798,6 +797,39 @@ struct NewTimerFormView: View {
             taskId: taskId,
             notes: notesToSend
         )
+    }
+
+    // MARK: - Delete Confirmation
+
+    /// Inline replacement for the system `.confirmationDialog` —
+    /// MenuBarExtra panels can't host system dialogs without losing
+    /// key state, which causes the dialog to dismiss without firing
+    /// its action. Renders the explanation alongside Cancel + Delete
+    /// buttons in place of the normal actions row.
+    private var deleteConfirmRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("The entry will be removed from Harvest. This can't be undone.")
+                .font(YieldFonts.dmSans(11))
+                .foregroundStyle(YieldColors.textSecondary)
+                .lineSpacing(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 8) {
+                Spacer()
+                Button("Cancel") {
+                    showDeleteConfirm = false
+                }
+                .buttonStyle(.yieldBordered)
+
+                Button {
+                    showDeleteConfirm = false
+                    Task { await deleteEntry() }
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .buttonStyle(.redOutlined)
+            }
+        }
     }
 
     // MARK: - Duplicate Confirmation
