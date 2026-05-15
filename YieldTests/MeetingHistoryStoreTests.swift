@@ -102,15 +102,15 @@ final class MeetingHistoryStoreTests: XCTestCase {
         // boundary.
         let cap = MeetingHistoryStore.maxEntries
         for i in 0..<(cap + 5) {
-            // Each record's lastUsedAt == Date(); separate them by
-            // direct manipulation since the production code doesn't
-            // accept a clock injection.
-            store.memories.insert(MeetingHistoryStore.Memory(
-                normalizedTitle: "title-\(i)",
+            // Inject memories directly (bypassing `record(...)`) so
+            // we can pin lastUsedAt to a known ascending sequence —
+            // production code uses Date() and the test needs
+            // deterministic ordering for the eviction assertions.
+            store.memories["title-\(i)"] = MeetingHistoryStore.Memory(
                 projectId: i,
                 taskId: i,
                 lastUsedAt: Date(timeIntervalSince1970: TimeInterval(i))
-            ))
+            )
         }
         // Now trigger an actual record to engage the eviction path.
         store.record(notes: "trigger eviction", projectId: 999, taskId: 999)

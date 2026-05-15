@@ -133,6 +133,12 @@ struct ProjectRowView: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
         }
+        // Clip the row's content to its own bounds so that during
+        // list-level height transitions (e.g. switching tabs / weeks
+        // when this row is being inserted or removed), text and other
+        // content can't render outside the row's collapsing slot and
+        // briefly overlap whatever's reflowing into the same Y.
+        .clipped()
         // Auto-collapse the drawer when its last visible entry disappears
         // (typically: user deletes the only entry from the drawer). The
         // drawer has nothing to show in that state, and the

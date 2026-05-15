@@ -209,7 +209,16 @@ struct MenuBarContentView: View {
             // so the panel sizes naturally when the list fits and caps
             // (with scrolling) when it doesn't.
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
+                // Eager `VStack` rather than `LazyVStack` so the
+                // stack's intrinsic height animates *with* the row
+                // transitions instead of jumping straight to the
+                // post-diff total. With LazyVStack the panel popped
+                // to the new height immediately while the rows were
+                // still mid-fade — looked like two separate animations
+                // running at different speeds. The project list is
+                // bounded (typically <30 rows) so eager construction
+                // costs nothing meaningful here.
+                VStack(alignment: .leading, spacing: 0) {
                     listSection
                 }
             }
@@ -219,7 +228,13 @@ struct MenuBarContentView: View {
         }
         // Cross-fade the Time Off row, timer banner, and project list
         // whenever we swap data via week navigation or a refresh lands.
-        // Rows with stable IDs re-render in place; new/removed rows fade.
+        // Rows with stable IDs re-render in place; new/removed rows
+        // fade as their slot collapses/expands — each row clips its
+        // content to its own frame so the collapsing slot doesn't
+        // let text bleed onto neighboring rows during the transition.
+        // Tab changes are handled by `withAnimation` on the tab
+        // button (which also covers the panel's NSPanel resize),
+        // not via a value-keyed `.animation(value: selectedTab)`.
         .animation(.easeInOut(duration: 0.22), value: viewModel.weekOffset)
         .animation(.easeInOut(duration: 0.22), value: viewModel.displayedFilteredStatuses.map(\.id))
     }
@@ -551,7 +566,17 @@ struct MenuBarContentView: View {
             ForEach(TimeComparisonViewModel.ProjectTab.allCases, id: \.self) { tab in
                 let isSelected = viewModel.selectedTab == tab
                 Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
+                    // `withAnimation` (rather than relying on a
+                    // parent `.animation(value:)` modifier) creates
+                    // a broad animation transaction that catches the
+                    // MenuBarExtra panel's height reflow too — the
+                    // value-keyed modifier alone doesn't propagate
+                    // through to AppKit's NSPanel resize, so the
+                    // panel snaps to the new height while the rows
+                    // animate. Duration matches the
+                    // `.animation(value: displayedFilteredStatuses)`
+                    // modifier below so panel + rows stay locked.
+                    withAnimation(.easeInOut(duration: 0.22)) {
                         viewModel.selectedTab = tab
                     }
                 } label: {

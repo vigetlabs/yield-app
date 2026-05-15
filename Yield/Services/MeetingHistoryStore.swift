@@ -1,5 +1,4 @@
 import Foundation
-import Observation
 
 /// Remembers which (project, task) pair the user last picked when
 /// logging a time entry against a given notes string. Powers the
@@ -17,33 +16,23 @@ import Observation
 ///
 /// Capped at `maxEntries` with LRU eviction so a year of distinct
 /// meeting titles can't grow UserDefaults unbounded.
-@Observable
+///
+/// Not `@Observable` — no view binds to the store directly. The
+/// pre-fill consumer (`NewTimerFormView.applyCalendarEvent`) reads
+/// imperatively at the moment of selection.
 @MainActor
 final class MeetingHistoryStore {
     static let shared = MeetingHistoryStore()
 
     /// One memory: which (project, task) the user last paired with a
-    /// given normalized title, plus when. `lastUsedAt` is bumped on
-    /// every save and drives LRU eviction when the cap is hit.
-    struct Memory: Codable, Hashable {
-        /// Lowercased + whitespace-trimmed event title / notes text.
-        /// Stored normalized so lookup is case- and whitespace-
-        /// insensitive without re-normalizing on every read.
-        let normalizedTitle: String
+    /// given title, plus when. Stored in `memories` keyed by the
+    /// normalized title — so the title isn't carried on the value.
+    /// `lastUsedAt` is bumped on every save and drives LRU eviction
+    /// when the cap is hit.
+    struct Memory: Codable {
         let projectId: Int
         let taskId: Int
         var lastUsedAt: Date
-
-        // Identity is the title only — `record(notes:)` should
-        // overwrite an existing memory for the same title rather
-        // than accumulating duplicates.
-        static func == (lhs: Memory, rhs: Memory) -> Bool {
-            lhs.normalizedTitle == rhs.normalizedTitle
-        }
-
-        func hash(into hasher: inout Hasher) {
-            hasher.combine(normalizedTitle)
-        }
     }
 
     /// Hard cap on stored memories. ~200 covers years of distinct
@@ -53,7 +42,9 @@ final class MeetingHistoryStore {
 
     /// Internal-settable so tests can seed and reset state.
     /// Production callers should mutate through `record(...)`.
-    var memories: Set<Memory> = []
+    /// Keyed by the normalized title — O(1) lookup, no fragile
+    /// custom-equality dance on the value.
+    var memories: [String: Memory] = [:]
 
     private let storageKey = DefaultsKey.meetingHistory
 
@@ -77,9 +68,7 @@ final class MeetingHistoryStore {
     /// given title. Returns nil for empty titles or unseen ones.
     func lookup(title: String) -> (projectId: Int, taskId: Int)? {
         let key = Self.normalize(title)
-        guard !key.isEmpty else { return nil }
-        let probe = Memory(normalizedTitle: key, projectId: 0, taskId: 0, lastUsedAt: .distantPast)
-        guard let memory = memories.first(where: { $0 == probe }) else { return nil }
+        guard !key.isEmpty, let memory = memories[key] else { return nil }
         return (memory.projectId, memory.taskId)
     }
 
@@ -91,35 +80,92 @@ final class MeetingHistoryStore {
         let key = Self.normalize(notes)
         guard !key.isEmpty else { return }
 
-        let probe = Memory(normalizedTitle: key, projectId: 0, taskId: 0, lastUsedAt: .distantPast)
-        memories.remove(probe)  // no-op if absent
-        memories.insert(Memory(
-            normalizedTitle: key,
+        memories[key] = Memory(
             projectId: projectId,
             taskId: taskId,
             lastUsedAt: Date()
-        ))
+        )
 
-        // LRU eviction. Sorted by lastUsedAt ascending → drop the
-        // oldest until we're under the cap.
+        // LRU eviction. Sort the (key, value) pairs by lastUsedAt
+        // ascending and drop the oldest until we're under the cap.
+        // Only runs when over cap so the sort cost is rare.
         if memories.count > Self.maxEntries {
-            let sorted = memories.sorted { $0.lastUsedAt < $1.lastUsedAt }
-            let toDrop = sorted.prefix(memories.count - Self.maxEntries)
-            for old in toDrop { memories.remove(old) }
+            let sortedKeys = memories
+                .sorted { $0.value.lastUsedAt < $1.value.lastUsedAt }
+                .map(\.key)
+            let dropCount = memories.count - Self.maxEntries
+            for key in sortedKeys.prefix(dropCount) {
+                memories.removeValue(forKey: key)
+            }
         }
 
         save()
     }
 
+    // MARK: - Persistence
+
+    /// Persisted shape — paired with a title so we can encode/decode
+    /// the dictionary as a flat array. Kept separate from the in-
+    /// memory `Memory` so the runtime type stays minimal.
+    private struct PersistedMemory: Codable {
+        let normalizedTitle: String
+        let projectId: Int
+        let taskId: Int
+        var lastUsedAt: Date
+    }
+
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
-              let decoded = try? JSONDecoder().decode([Memory].self, from: data)
-        else { return }
-        memories = Set(decoded)
+        guard let data = UserDefaults.standard.data(forKey: storageKey) else { return }
+        let decoder = JSONDecoder()
+
+        // Try the current persisted shape first.
+        if let decoded = try? decoder.decode([PersistedMemory].self, from: data) {
+            memories = Dictionary(
+                uniqueKeysWithValues: decoded.map { entry in
+                    (entry.normalizedTitle, Memory(
+                        projectId: entry.projectId,
+                        taskId: entry.taskId,
+                        lastUsedAt: entry.lastUsedAt
+                    ))
+                }
+            )
+            return
+        }
+
+        // Old shape (pre-dictionary refactor) had `Memory` carry the
+        // title field directly. Decode it tolerantly so existing
+        // installs don't lose their history on upgrade.
+        struct LegacyMemory: Codable {
+            let normalizedTitle: String
+            let projectId: Int
+            let taskId: Int
+            var lastUsedAt: Date
+        }
+        if let legacy = try? decoder.decode([LegacyMemory].self, from: data) {
+            memories = Dictionary(
+                uniqueKeysWithValues: legacy.map { entry in
+                    (entry.normalizedTitle, Memory(
+                        projectId: entry.projectId,
+                        taskId: entry.taskId,
+                        lastUsedAt: entry.lastUsedAt
+                    ))
+                }
+            )
+            // Re-save in the new shape so subsequent loads take the fast path.
+            save()
+        }
     }
 
     private func save() {
-        guard let data = try? JSONEncoder().encode(Array(memories)) else { return }
+        let persisted = memories.map { key, value in
+            PersistedMemory(
+                normalizedTitle: key,
+                projectId: value.projectId,
+                taskId: value.taskId,
+                lastUsedAt: value.lastUsedAt
+            )
+        }
+        guard let data = try? JSONEncoder().encode(persisted) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
     }
 }

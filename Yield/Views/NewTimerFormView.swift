@@ -812,32 +812,18 @@ struct NewTimerFormView: View {
     /// Inline replacement for the system `.confirmationDialog` —
     /// MenuBarExtra panels can't host system dialogs without losing
     /// key state, which causes the dialog to dismiss without firing
-    /// its action. Renders the explanation alongside Cancel + Delete
-    /// buttons in place of the normal actions row.
+    /// its action. See `InlineConfirmationRow` for the shared shape.
     private var deleteConfirmRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("The entry will be removed from Harvest. This can't be undone.")
-                .font(YieldFonts.dmSans(11))
-                .foregroundStyle(YieldColors.textSecondary)
-                .lineSpacing(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: 8) {
-                Spacer()
-                Button("Cancel") {
-                    showDeleteConfirm = false
-                }
-                .buttonStyle(.yieldBordered)
-
-                Button {
-                    showDeleteConfirm = false
-                    Task { await deleteEntry() }
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-                .buttonStyle(.redOutlined)
+        InlineConfirmationRow(
+            message: "Delete this entry from Harvest?",
+            confirmLabel: "Delete",
+            confirmSystemImage: "trash",
+            onCancel: { showDeleteConfirm = false },
+            onConfirm: {
+                showDeleteConfirm = false
+                Task { await deleteEntry() }
             }
-        }
+        )
     }
 
     // MARK: - Duplicate Confirmation

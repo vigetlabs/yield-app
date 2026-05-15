@@ -167,19 +167,11 @@ struct SettingsView: View {
                 // fires. Inline confirmation keeps everything within
                 // the panel so the action lands.
                 if showSignOutConfirm {
-                    HStack(spacing: 8) {
-                        Text("Are you sure?")
-                            .font(YieldFonts.dmSans(11))
-                            .foregroundStyle(YieldColors.textSecondary)
-
-                        Spacer()
-
-                        Button("Cancel") {
-                            showSignOutConfirm = false
-                        }
-                        .buttonStyle(.yieldBordered)
-
-                        Button("Sign Out") {
+                    InlineConfirmationRow(
+                        message: "Are you sure?",
+                        confirmLabel: "Sign Out",
+                        onCancel: { showSignOutConfirm = false },
+                        onConfirm: {
                             showSignOutConfirm = false
                             oAuthService.signOut()
                             AppState.shared.viewModel.resetForSignOut()
@@ -192,8 +184,7 @@ struct SettingsView: View {
                             // next.
                             onDismiss()
                         }
-                        .buttonStyle(.redOutlined)
-                    }
+                    )
                     .padding(12)
                 } else {
                     Button {
@@ -295,31 +286,16 @@ struct SettingsView: View {
                     .fill(YieldColors.border)
                     .frame(height: 1)
 
-                // Inline confirmation — see comment on the Harvest
-                // sign-out path for why we don't use
-                // `.confirmationDialog` inside MenuBarExtra.
                 if showGoogleDisconnectConfirm {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Yield will stop pulling events from Google Calendar. The calendar icon in the Add Time form will be disabled until you reconnect.")
-                            .font(YieldFonts.dmSans(11))
-                            .foregroundStyle(YieldColors.textSecondary)
-                            .lineSpacing(2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        HStack(spacing: 8) {
-                            Spacer()
-                            Button("Cancel") {
-                                showGoogleDisconnectConfirm = false
-                            }
-                            .buttonStyle(.yieldBordered)
-
-                            Button("Disconnect") {
-                                showGoogleDisconnectConfirm = false
-                                googleAuth.signOut()
-                            }
-                            .buttonStyle(.redOutlined)
+                    InlineConfirmationRow(
+                        message: "Are you sure?",
+                        confirmLabel: "Disconnect",
+                        onCancel: { showGoogleDisconnectConfirm = false },
+                        onConfirm: {
+                            showGoogleDisconnectConfirm = false
+                            googleAuth.signOut()
                         }
-                    }
+                    )
                     .padding(12)
                 } else {
                     Button {
