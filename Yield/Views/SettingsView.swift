@@ -395,12 +395,6 @@ struct SettingsView: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
 
-            // Weekly hours target — drives the menu bar label's
-            // weekly budget floor (when the user has little or no
-            // Forecast booking), the chart's daily target line,
-            // time-off "full day" conversion, and the time-off
-            // row's "Xh = 1d" formatting. The daily equivalent is
-            // derived as `weekly / 5`. Defaults to 40.
             hoursTargetRow(
                 icon: "calendar.badge.clock",
                 label: "Weekly hours target",

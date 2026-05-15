@@ -33,10 +33,19 @@ enum DateHelpers {
     /// day-of-week cells (chart axis, weekday mini-bar, time-off breakdown).
     static let weekdayLabels: [String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-    /// Standard work week length in days. Used to derive a
-    /// daily-hours target from the user's weekly-hours setting
-    /// (daily = weekly / workdaysPerWeek).
-    static let workdaysPerWeek: Double = 5
+    /// Standard work week length in days — Mon–Fri. Used to derive
+    /// daily values from weekly settings (`dailyHours(fromWeekly:)`)
+    /// and to bound any "first N weekday" iteration.
+    static let workdaysPerWeek: Int = 5
+
+    /// Daily-hours target derived from the user's weekly setting.
+    /// Single home for the conversion so the math doesn't drift
+    /// across the menu bar fallback, the chart's reference rule,
+    /// and the time-off row's "Xh = 1d" formatter. Floored at 1
+    /// to keep callers from dividing by zero on a malformed value.
+    static func dailyHours(fromWeekly weekly: Double) -> Double {
+        max(weekly, 1) / Double(workdaysPerWeek)
+    }
 
     /// Day of month, no leading zero — e.g. "3", "27".
     private static let dayOnlyFormatter: DateFormatter = {

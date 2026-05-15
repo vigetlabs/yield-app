@@ -7,8 +7,7 @@ import SwiftUI
 struct TimeOffRowView: View {
     let block: TimeComparisonViewModel.TimeOffBlock
 
-    /// Weekly hours target — derived daily value (`weekly / 5`)
-    /// drives the "Xh = 1d" conversion in `formatHours` so the
+    /// Drives the "Xh = 1d" conversion in `formatHours` so the
     /// "3d 2h" rendering stays accurate for non-40h schedules.
     @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
 
@@ -59,10 +58,9 @@ struct TimeOffRowView: View {
     /// "1d 4h" instead of "1d 4h 0m", etc.
     private func formatHours(_ hours: Double) -> String {
         let totalMinutes = Int(round(hours * 60))
-        // Daily = weekly / 5, floored to 1m so a malformed setting
-        // can't produce a divide-by-zero.
-        let dailyMinutes = max(Int((Double(weeklyHoursTarget) / DateHelpers.workdaysPerWeek) * 60), 1)
-        let minutesPerDay = dailyMinutes
+        // `dailyHours(fromWeekly:)` already floors weekly at 1, so
+        // minutesPerDay can't be zero.
+        let minutesPerDay = Int(DateHelpers.dailyHours(fromWeekly: Double(weeklyHoursTarget)) * 60)
         let d = totalMinutes / minutesPerDay
         let remainder = totalMinutes % minutesPerDay
         let h = remainder / 60

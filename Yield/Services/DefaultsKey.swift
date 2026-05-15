@@ -18,12 +18,8 @@ enum DefaultsKey {
     /// starts/stops (e.g. from the Harvest browser extension) is shown.
     /// On = surface the HUD; off = silent.
     static let timerChangeHUDEnabled = "timerChangeHUDEnabled"
-    /// Hours-per-week target used as the weekly budget floor in the
-    /// menu bar label when the user has little or no Forecast booking.
-    /// Defaults to 40; anyone on a non-standard schedule (32h week,
-    /// part-time, etc.) sets their own value in Settings. The daily-
-    /// hours-target equivalent is derived from this divided by
-    /// `DateHelpers.workdaysPerWeek` (5) — see callers.
+    /// Weekly hours target. Default 40. Daily target is derived as
+    /// `DateHelpers.dailyHours(fromWeekly:)`.
     static let weeklyHoursTarget = "weeklyHoursTarget"
 
     // MARK: - User data

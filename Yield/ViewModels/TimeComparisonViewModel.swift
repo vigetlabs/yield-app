@@ -247,7 +247,7 @@ final class TimeComparisonViewModel {
         let satHours = hoursByDate[allDays[5].date] ?? 0
         let sunHours = hoursByDate[allDays[6].date] ?? 0
 
-        var days = Array(allDays.prefix(5))  // Mon–Fri
+        var days = Array(allDays.prefix(DateHelpers.workdaysPerWeek))
         if satHours > 0 || sunHours > 0 {
             days.append(allDays[5])  // Sat — include if weekend was worked at all
         }
@@ -678,25 +678,14 @@ final class TimeComparisonViewModel {
         }
     }
 
-    /// Minimum weekly budget floor used when user has little or no
-    /// Forecast data — read from the user's Settings preference each
-    /// access so the menu bar label reflects changes without
-    /// restarting the app. Defaults to 40 (registered in `YieldApp`).
-    /// Floored at 1 to keep `formatPair` from rendering a denominator
-    /// of zero if a malformed value somehow lands in defaults.
+    /// User's weekly-hours target (default 40, floored at 1).
     private var weeklyHoursTarget: Double {
-        let stored = UserDefaults.standard.integer(forKey: DefaultsKey.weeklyHoursTarget)
-        return Double(max(stored, 1))
+        Double(max(UserDefaults.standard.integer(forKey: DefaultsKey.weeklyHoursTarget), 1))
     }
 
-    /// Hours-per-day target derived from the weekly target divided
-    /// by `DateHelpers.workdaysPerWeek` (5). Drives the menu bar's
-    /// "day total" label fallback and the conversion of Forecast's
-    /// "full day off" assignments (allocation=0) into hours. Users
-    /// on a non-standard schedule adjust the weekly target; the
-    /// daily value follows.
+    /// Derived daily-hours target.
     private var dailyHoursTarget: Double {
-        weeklyHoursTarget / DateHelpers.workdaysPerWeek
+        DateHelpers.dailyHours(fromWeekly: weeklyHoursTarget)
     }
 
     /// What the menu bar label shows. User-configurable in Settings;
@@ -1388,17 +1377,15 @@ final class TimeComparisonViewModel {
         timeOffProjectId: Int?,
         weekStart: Date,
         weekEnd: Date,
-        /// Hours assigned to a "full day off" Forecast assignment
-        /// (allocation=0 convention). Caller passes the user's
-        /// daily-hours setting so PTO totals match their actual
-        /// schedule.
+        /// Hours per "full day off" — Forecast's allocation=0
+        /// convention has no inherent length, so the caller supplies
+        /// the user's daily target.
         fullDayHours: Double
     ) -> TimeOffBlock? {
         guard let timeOffProjectId else { return nil }
 
         let calendar = Calendar.current
-        let dayLabels = Array(DateHelpers.weekdayLabels.prefix(5))  // Mon–Fri
-        let defaultFullDayHours = fullDayHours
+        let dayLabels = Array(DateHelpers.weekdayLabels.prefix(DateHelpers.workdaysPerWeek))
 
         var totalHours = 0.0
         var affectedDays: Set<Int> = []  // weekday indices 0–4 relative to Mon
@@ -1411,10 +1398,10 @@ final class TimeComparisonViewModel {
             let allocationSeconds = assignment.allocation ?? 0
             let isFullDay = allocationSeconds == 0
             let hoursPerDay = isFullDay
-                ? defaultFullDayHours
+                ? fullDayHours
                 : Double(allocationSeconds) / 3600.0
 
-            for dayOffset in 0..<5 {  // Mon–Fri
+            for dayOffset in 0..<DateHelpers.workdaysPerWeek {
                 guard let day = calendar.date(byAdding: .day, value: dayOffset, to: weekStart),
                       day >= aStart, day <= aEnd, day <= weekEnd else { continue }
                 affectedDays.insert(dayOffset)
@@ -2382,9 +2369,8 @@ final class TimeComparisonViewModel {
         projects: [ForecastProject],
         clients: [ForecastClient],
         fallbackTimeOffProjectId: Int?,
-        /// User's daily-hours target — passed in (rather than read
-        /// from UserDefaults inside this static helper) so the
-        /// function stays pure and testable.
+        /// Daily-hours target — passed in to keep this static helper
+        /// pure (no UserDefaults access).
         fullDayHours: Double
     ) -> WeekSnapshot {
         let projectMap = projects.indexed { $0.id }
@@ -2515,7 +2501,6 @@ final class TimeComparisonViewModel {
 
         var hoursByDate: [String: Double] = [:]
         if offset > 0 {
-            // `fullDayHours` is already in scope as a function param.
             for assignment in assignments {
                 guard assignment.projectId != nil,
                       let aStart = DateHelpers.dateFormatter.date(from: assignment.startDate),

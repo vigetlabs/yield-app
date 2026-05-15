@@ -142,11 +142,9 @@ struct YieldApp: App {
     /// Drives `NSApp.appearance` and the panel's preferred color scheme
     /// so the user's appearance choice is honored at runtime.
     @AppStorage(DefaultsKey.appearanceMode) private var appearanceModeRaw: String = AppearanceMode.default.rawValue
-    /// Read here so the MenuBarExtra label closure re-runs when the
-    /// user changes their weekly target — the view model reads this
-    /// key inside `menuBarLabel` but doesn't itself trigger SwiftUI
-    /// updates on UserDefaults changes. The daily-hours fallback is
-    /// derived from this (`weekly / 5`), so observing one is enough.
+    /// Observed here (and read in the label closure body) so the
+    /// menu bar refreshes immediately on change — `viewModel.menuBarLabel`
+    /// reads this via UserDefaults and Observable doesn't track that path.
     @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
     private var viewModel: TimeComparisonViewModel { AppState.shared.viewModel }
 
@@ -171,12 +169,7 @@ struct YieldApp: App {
             // text changes — which is when we update the button.
             let tooltip = viewModel.menuBarTooltip ?? ""
             Self.applyStatusItemTooltip(tooltip)
-            // Read this so SwiftUI tracks it as a closure dependency
-            // — `viewModel.menuBarLabel` consumes it via UserDefaults
-            // but Observable doesn't track that path, so without an
-            // explicit read here the label wouldn't update when the
-            // user changes the setting.
-            _ = weeklyHoursTarget
+            _ = weeklyHoursTarget  // SwiftUI dependency for VM's UserDefaults read
             return Image(nsImage: composedMenuBarImage(
                 label: viewModel.menuBarLabel,
                 icon: viewModel.menuBarIcon,

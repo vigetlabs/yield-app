@@ -12,17 +12,12 @@ struct ProjectChartView: View {
     /// row again to reset back to "all."
     @State private var isolatedProjectId: Int?
 
-    /// Weekly hours target — the only persisted setting. The
-    /// chart's horizontal "target" rule uses the derived daily
-    /// value (`weekly / 5`) so a 32h/wk schedule sees the line at
-    /// 6.4, not 8.
+    /// Drives the chart's horizontal "target" rule via the derived
+    /// daily value, so a 32h/wk schedule sees the line at 6.4 not 8.
     @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
 
-    /// Derived daily target. Kept as a computed property rather
-    /// than a separate AppStorage so there's a single source of
-    /// truth.
     private var dailyHoursTarget: Double {
-        Double(weeklyHoursTarget) / DateHelpers.workdaysPerWeek
+        DateHelpers.dailyHours(fromWeekly: Double(weeklyHoursTarget))
     }
 
     /// Assign colors by dividing the color wheel into N equal slices (where N is
@@ -241,10 +236,8 @@ struct ProjectChartView: View {
                     .foregroundStyle(YieldColors.border)
             }
             // Trailing-axis label for the workday reference rule —
-            // sits in the right-side gutter, anchored at the same Y
-            // as the rule itself (`dailyHoursTarget`) so the label
-            // and line stay aligned regardless of the user's weekly
-            // target setting.
+            // sits in the right-side gutter, mirroring the leading
+            // tick labels on the left.
             AxisMarks(position: .trailing, values: [dailyHoursTarget]) { _ in
                 AxisValueLabel {
                     Text(formatHours(dailyHoursTarget))
