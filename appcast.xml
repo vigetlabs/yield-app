@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.0.2</title>
+      <sparkle:version>53</sparkle:version>
+      <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Weekly hours target is now a Settings preference</strong> (default 40). The 40h/week (and derived 8h/day) was hardcoded everywhere — the menu bar label's weekly budget floor, the chart's daily target line, time-off "full day" PTO conversion, and the time-off row's "Xh = 1d" formatting. Anyone on a non-standard schedule (32h week, part-time, etc.) sets their own value and every surface follows.</li>
+          <li><strong>Smoother tab switching.</strong> Switching between All / Booked / Chart no longer pops the panel height instantly while the rows animate — panel and rows move in lock-step, and text from outgoing rows no longer briefly overlaps text from incoming rows. Lock and key fixes to the underlying animation transactions.</li>
+          <li>Sign-out, calendar disconnect, and time-entry delete confirmations now share a single inline component instead of three near-identical inline implementations — no behavior change, just less code to drift apart later.</li>
+          <li>Meeting-title memory (the calendar-picker pre-fill behavior) moved from a custom-equality Set to a dictionary keyed on the normalized title. Lookups are now O(1) and the persisted shape is more obviously correct.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.0.2/Yield-1.0.2.zip"
+        sparkle:edSignature="UQD34bdtT1FI8C0m+nFQmmMwjyViAWhrC6siaoXhmA23ZGkAXwe1WH9+Hqon4dMRu5dul/vHvbV6mPxONzMWCg=="
+        length="2740609"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.0.1</title>
       <sparkle:version>52</sparkle:version>
       <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
