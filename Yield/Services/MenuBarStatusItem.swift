@@ -32,4 +32,19 @@ enum MenuBarStatusItem {
             }
             .first?.button
     }
+
+    /// Hide the MenuBarExtra popup window — same as the user
+    /// clicking elsewhere on screen. Use when a view's action has a
+    /// terminal "user is done with the panel" semantic (idle alert
+    /// dismiss-and-keep-timing, "Check for Updates" trigger that
+    /// opens its own window above the menu bar level, etc.). The
+    /// panel's class name varies across macOS versions but always
+    /// contains "MenuBarExtra".
+    static func closePanel() {
+        guard let app = NSApp else { return }
+        let panel = app.windows.first { window in
+            String(describing: type(of: window)).contains("MenuBarExtra")
+        }
+        panel?.orderOut(nil)
+    }
 }

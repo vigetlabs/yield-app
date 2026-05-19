@@ -46,6 +46,7 @@ struct IdleAlertView: View {
                     icon: "play.fill"
                 ) {
                     Task { await viewModel.idleContinueAndRemoveTime() }
+                    MenuBarStatusItem.closePanel()
                 }
 
                 Divider()
@@ -58,6 +59,7 @@ struct IdleAlertView: View {
                     icon: "stop.fill"
                 ) {
                     Task { await viewModel.idleStopAndRemoveTime() }
+                    MenuBarStatusItem.closePanel()
                 }
 
                 Divider()
@@ -82,7 +84,15 @@ struct IdleAlertView: View {
                     icon: "clock.arrow.circlepath",
                     isSecondary: true
                 ) {
+                    // "Do nothing and keep timing" has no follow-up
+                    // view to show — close the panel so the user
+                    // isn't dropped back into the main list they
+                    // weren't trying to reach. The three other idle
+                    // actions each transition to a meaningful next
+                    // state (reduced timer, stopped timer, the
+                    // Move Time form) and stay in the panel.
                     viewModel.idleDismiss()
+                    MenuBarStatusItem.closePanel()
                 }
             }
             .padding(.vertical, 8)

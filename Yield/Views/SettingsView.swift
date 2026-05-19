@@ -660,11 +660,7 @@ struct SettingsView: View {
                     // Sparkle's normal-level update window. Without
                     // closing it, the Sparkle dialog opens *behind*
                     // the popup and can look like nothing happened.
-                    if let panel = NSApp.windows.first(where: {
-                        String(describing: type(of: $0)).contains("MenuBarExtra")
-                    }) {
-                        panel.orderOut(nil)
-                    }
+                    MenuBarStatusItem.closePanel()
                     NSApp.activate(ignoringOtherApps: true)
                     AppState.shared.updaterController?.checkForUpdates(nil)
                 } label: {
