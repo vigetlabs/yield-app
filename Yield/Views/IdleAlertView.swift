@@ -13,7 +13,7 @@ struct IdleAlertView: View {
 
     private func idleContent(alert: TimeComparisonViewModel.IdleAlertState) -> some View {
         let minutes = alert.currentIdleMinutes
-        let label = "\(minutes) minute\(minutes == 1 ? "" : "s")"
+        let label = Self.idleDurationLabel(minutes: minutes)
 
         return VStack(spacing: 0) {
             // Header
@@ -108,6 +108,19 @@ struct IdleAlertView: View {
                 endPoint: .bottom
             )
         )
+    }
+
+    /// Format an idle duration for the alert's header and button
+    /// subtitles. Under an hour stays as plain minutes; an hour or
+    /// more switches to "Xh Ym" (or "Xh" on the round boundary) so
+    /// an overnight idle reads as "12h" rather than "720 minutes".
+    static func idleDurationLabel(minutes: Int) -> String {
+        if minutes < 60 {
+            return "\(minutes) minute\(minutes == 1 ? "" : "s")"
+        }
+        let h = minutes / 60
+        let m = minutes % 60
+        return m == 0 ? "\(h)h" : "\(h)h \(m)m"
     }
 
     private func idleActionButton(
