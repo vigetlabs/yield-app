@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.0.3</title>
+      <sparkle:version>54</sparkle:version>
+      <sparkle:shortVersionString>1.0.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Fix:</strong> the idle-alert could get stuck on screen if the timer it referenced had been stopped externally (e.g. you stopped it via Harvest for iOS while idle). Clicking Continue Timing or Stop Timer would 422 from Harvest and leave the alert with no way out except Keep All Time. Now Yield refreshes first, detects the externally-stopped timer, and dismisses the alert cleanly — and on any other failure, the alert dismisses anyway so you're never stuck. Thanks @maxdmyers (<a href="https://github.com/vigetlabs/yield-app/issues/6">#6</a>).</li>
+          <li>Idle-alert resolution actions (Continue Timing, Stop Timer, Keep All Time) now close the menu bar panel after the decision lands — there's no follow-up view to show, so dropping you back into the project list wasn't useful. Move Time… still keeps the panel open because the Move Time form is its follow-up.</li>
+          <li>Long idle durations now read as "Idle for 2h 11m" instead of "Idle for 131 minutes" (and an overnight idle reads as "12h" rather than "720 minutes"). Same hours+minutes format the rest of the app uses.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.0.3/Yield-1.0.3.zip"
+        sparkle:edSignature="8QGX4crOBqteYBwcEWzeRCAxnL797TeReTrmYllOtNxVJSCldhe19G3IiJ/otD6Mkcqg8z4ftJRgEEam82HcBg=="
+        length="2740957"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.0.2</title>
       <sparkle:version>53</sparkle:version>
       <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
