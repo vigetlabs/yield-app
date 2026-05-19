@@ -1101,14 +1101,38 @@ final class TimeComparisonViewModel {
 
     // MARK: - Idle Alert Actions
 
-    /// Continue timing but subtract the idle time from the entry
+    /// Whether the entry the idle alert references is still actually
+    /// running on Harvest right now. Returns false if the entry was
+    /// stopped externally (Harvest web, Harvest for iOS, another
+    /// device) since the alert appeared.
+    @MainActor
+    private func isEntryStillRunning(_ entryId: Int) -> Bool {
+        projectStatuses.contains { project in
+            project.timeEntries.contains { $0.id == entryId && $0.isRunning }
+        }
+    }
+
+    /// Continue timing but subtract the idle time from the entry.
+    /// If the entry was stopped externally since the alert appeared,
+    /// just dismiss the alert — there's nothing to adjust. On any
+    /// other failure, surface the error and dismiss the alert anyway
+    /// so the user isn't stuck staring at a modal they can't
+    /// resolve.
     @MainActor
     func idleContinueAndRemoveTime() async {
         guard let alert = idleAlertState,
               let (harvestService, _) = makeServices() else { return }
 
-        markUserTimerMutation()
         do {
+            markUserTimerMutation()
+            await refresh()
+
+            guard isEntryStillRunning(alert.entryId) else {
+                idleDismiss()
+                return
+            }
+
+            markUserTimerMutation()
             _ = try await harvestService.stopTimer(entryId: alert.entryId)
             do {
                 _ = try await harvestService.updateTimeEntry(entryId: alert.entryId, hours: alert.adjustedHours, notes: nil)
@@ -1118,30 +1142,40 @@ final class TimeComparisonViewModel {
                 throw error
             }
             _ = try await harvestService.restartTimer(entryId: alert.entryId)
-            idleAlertState = nil
-            idleNotificationSent = false
+            idleDismiss()
             await refresh()
         } catch {
             errorMessage = "Failed to adjust idle time: \(error.localizedDescription)"
+            idleDismiss()
         }
     }
 
-    /// Stop the timer and subtract the idle time
+    /// Stop the timer and subtract the idle time. Same external-
+    /// change + always-dismiss behavior as
+    /// `idleContinueAndRemoveTime`.
     @MainActor
     func idleStopAndRemoveTime() async {
         guard let alert = idleAlertState,
               let (harvestService, _) = makeServices() else { return }
 
-        markUserTimerMutation()
         do {
+            markUserTimerMutation()
+            await refresh()
+
+            guard isEntryStillRunning(alert.entryId) else {
+                idleDismiss()
+                return
+            }
+
+            markUserTimerMutation()
             _ = try await harvestService.stopTimer(entryId: alert.entryId)
             _ = try await harvestService.updateTimeEntry(entryId: alert.entryId, hours: alert.adjustedHours, notes: nil)
-            idleAlertState = nil
+            idleDismiss()
             pausedState = nil
-            idleNotificationSent = false
             await refresh()
         } catch {
             errorMessage = "Failed to adjust idle time: \(error.localizedDescription)"
+            idleDismiss()
         }
     }
 
