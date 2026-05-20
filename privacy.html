@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy — Yield</title>
+  <meta name="description" content="What data Yield reads, where it's stored, and what leaves your Mac.">
+
+  <link rel="icon" type="image/png" href="app-icon.png">
+  <link rel="apple-touch-icon" href="app-icon.png">
+
+  <style>
+    :root {
+      --green: #0B7048;
+      --bg: #FAFAFA;
+      --surface: #FFFFFF;
+      --text: #1A1B1C;
+      --text-secondary: #6B7280;
+      --border: #E5E7EB;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --green: #15DA93;
+        --bg: #1A1B1C;
+        --surface: #232425;
+        --text: #F5F5F6;
+        --text-secondary: #9CA3AF;
+        --border: #2F3032;
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 24px;
+    }
+
+    .breadcrumb {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 32px;
+      border-bottom: 1px solid transparent;
+      transition: border-color 120ms ease, color 120ms ease;
+    }
+
+    .breadcrumb:hover {
+      color: var(--text);
+      border-bottom-color: var(--text-secondary);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    header img {
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .updated {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin: 0 0 32px;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 40px 0 12px;
+      letter-spacing: -0.005em;
+    }
+
+    p { margin: 0 0 14px; }
+
+    ul {
+      margin: 0 0 14px;
+      padding-left: 20px;
+    }
+
+    li { margin-bottom: 8px; }
+
+    code {
+      font-family: "SF Mono", Menlo, monospace;
+      font-size: 0.9em;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    strong { font-weight: 600; }
+
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 120ms ease, color 120ms ease;
+    }
+
+    footer a:hover {
+      color: var(--text);
+      border-bottom-color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="index.html" class="breadcrumb">← Yield</a>
+
+    <header>
+      <img src="app-icon.png" alt="Yield app icon">
+      <h1>Privacy</h1>
+    </header>
+    <p class="updated">Last updated: 20 May 2026</p>
+
+    <p>Yield is a macOS menu bar app that compares your Harvest time entries against your Forecast bookings. This page describes every piece of data Yield touches, where it lives, and what (if anything) leaves your machine.</p>
+
+    <h2>What Yield sends over the network</h2>
+    <p>Yield talks to two services, both operated by Getharvest, Inc., and stores nothing on a server we control:</p>
+    <ul>
+      <li><strong>Harvest API</strong> (<code>api.harvestapp.com</code>) for time entries, timers, projects, tasks, and your account profile.</li>
+      <li><strong>Forecast API</strong> (<code>api.forecastapp.com</code>), via the same Harvest OAuth token, for weekly assignments, projects, clients, and time-off blocks.</li>
+    </ul>
+    <p>All requests use HTTPS. Yield does not include analytics, telemetry, crash reporters, advertising SDKs, or any other "phone home" channel.</p>
+
+    <h2>What Yield stores locally on your Mac</h2>
+    <ul>
+      <li><strong>OAuth access and refresh tokens</strong> are stored in the macOS Keychain. They never leave your machine except to authenticate requests to Harvest and Forecast.</li>
+      <li><strong>Preferences and favorites</strong> (appearance, idle setting, menu-bar display mode, weekly hours target, favorited project/task pairs) live in macOS UserDefaults under the <code>com.yield</code> bundle identifier.</li>
+      <li><strong>Cached data</strong> (the current week's projects, time entries, and Forecast assignments) is held in memory during the app's session and not persisted to disk.</li>
+      <li><strong>Error logs</strong> are written to <code>~/Library/Logs/Yield/yield.log</code> and rotated when they reach 256 KB. Nothing in the log leaves your machine unless you attach it to a bug report yourself.</li>
+    </ul>
+
+    <h2>What Yield never collects</h2>
+    <ul>
+      <li>Personally identifiable information beyond what Harvest and Forecast already have about you.</li>
+      <li>Usage analytics, click tracking, or session recording.</li>
+      <li>Crash reports — when Yield crashes, the report stays in the standard macOS <code>~/Library/Logs/DiagnosticReports/</code> location and is not transmitted anywhere.</li>
+    </ul>
+
+    <h2>Third-party services</h2>
+    <p>Yield depends on:</p>
+    <ul>
+      <li><strong>Harvest and Forecast</strong> by Getharvest, Inc., for the time tracking and forecasting APIs. Their privacy practices are described at <a href="https://www.getharvest.com/privacy-policy">getharvest.com/privacy-policy</a>.</li>
+      <li><strong>Sparkle</strong>, an open source updater framework, which periodically fetches an appcast file from GitHub to check whether a newer version of Yield is available. The request goes directly from your Mac to GitHub; we do not receive or log it.</li>
+    </ul>
+
+    <h2>Disconnecting and deleting your data</h2>
+    <p>To disconnect Yield from your Harvest/Forecast account, open Settings inside the app and click <strong>Sign Out</strong>. This clears the OAuth tokens from your Keychain and the cached account identifiers from UserDefaults.</p>
+    <p>To remove every trace of Yield from your Mac (preferences, favorites, logs, etc.), see the uninstall instructions in the <a href="https://github.com/vigetlabs/yield-app">repository README</a>.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>If the way Yield handles data ever changes, this page will be updated and the "Last updated" date at the top will move accordingly. Material changes will also be mentioned in the release notes.</p>
+
+    <h2>Contact</h2>
+    <p>Open an issue at <a href="https://github.com/vigetlabs/yield-app/issues">github.com/vigetlabs/yield-app/issues</a> with any questions.</p>
+
+    <footer>
+      <span>© Viget Labs</span>
+      <span>
+        <a href="index.html">Home</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/vigetlabs/yield-app">GitHub</a>
+      </span>
+    </footer>
+  </div>
+</body>
+</html>

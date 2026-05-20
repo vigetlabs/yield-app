@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yield — your Forecast plan and your Harvest hours in the menu bar</title>
+  <meta name="description" content="Yield is a macOS menu bar app that brings your Forecast bookings and your Harvest time entries together so it's easier to see where your time should go next.">
+
+  <link rel="icon" type="image/png" href="app-icon.png">
+  <link rel="apple-touch-icon" href="app-icon.png">
+
+  <meta property="og:title" content="Yield">
+  <meta property="og:description" content="Your Forecast plan and your Harvest hours in the macOS menu bar.">
+  <meta property="og:image" content="https://useyield.app/app-icon.png">
+  <meta property="og:url" content="https://useyield.app/">
+  <meta property="og:type" content="website">
+
+  <style>
+    :root {
+      --green: #0B7048;
+      --green-hover: #095B3A;
+      --bg: #FAFAFA;
+      --surface: #FFFFFF;
+      --text: #1A1B1C;
+      --text-secondary: #6B7280;
+      --border: #E5E7EB;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --green: #15DA93;
+        --green-hover: #20E89F;
+        --bg: #1A1B1C;
+        --surface: #232425;
+        --text: #F5F5F6;
+        --text-secondary: #9CA3AF;
+        --border: #2F3032;
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 48px;
+    }
+
+    header img {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .tagline {
+      font-size: 22px;
+      line-height: 1.4;
+      font-weight: 500;
+      margin: 0 0 24px;
+      letter-spacing: -0.01em;
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: var(--text);
+    }
+
+    p.secondary {
+      color: var(--text-secondary);
+    }
+
+    .pitch {
+      font-size: 17px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      transition: background 120ms ease;
+    }
+
+    .cta:hover { background: var(--green-hover); }
+
+    .cta-meta {
+      display: block;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .features {
+      margin-top: 56px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+
+    .features h2 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin: 0 0 20px;
+    }
+
+    .features ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .features li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+    }
+
+    .features li:last-child { border-bottom: none; }
+
+    .features li::before {
+      content: "→";
+      color: var(--green);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 120ms ease, color 120ms ease;
+    }
+
+    footer a:hover {
+      color: var(--text);
+      border-bottom-color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="app-icon.png" alt="Yield app icon">
+      <h1>Yield</h1>
+    </header>
+
+    <p class="tagline">Your Forecast plan and your Harvest hours, together in the menu bar.</p>
+
+    <p class="pitch">If you use both tools, you know the friction: Forecast tells you what you planned, Harvest tells you what you tracked, and figuring out where you actually stand means flipping between the two all week. Yield does that reconciliation for you and keeps the answer in your menu bar — which projects have hours left, which are over, how today fits into the week — so it's easier to decide what to work on next. When you're ready, you can start or stop a Harvest timer right from the dropdown.</p>
+
+    <a class="cta" href="https://github.com/vigetlabs/yield-app/releases/latest">
+      Download Yield
+    </a>
+    <span class="cta-meta">Requires macOS 14 (Sonoma) or later · Free, open source</span>
+
+    <section class="features">
+      <h2>What it does</h2>
+      <ul>
+        <li>Full-featured Harvest time tracker — start, stop, pause, resume, edit, delete without leaving the menu bar.</li>
+        <li>Color-coded progress per project — under, on-track, or over your booked hours, at a glance.</li>
+        <li>Expand any project for a day-by-day breakdown of the week's hours.</li>
+        <li>Past and future weeks — look ahead at what's booked or step back for a read-only review.</li>
+        <li>Weekly time chart, configurable menu bar display, idle detection, and more.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <span>© Viget Labs</span>
+      <span>
+        <a href="privacy.html">Privacy</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/vigetlabs/yield-app">GitHub</a>
+      </span>
+    </footer>
+  </div>
+</body>
+</html>
