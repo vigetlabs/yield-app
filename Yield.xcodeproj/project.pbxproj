@@ -37,6 +37,7 @@
 		8324AA3F5CF8FBC4782301B1 /* HarvestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE70177FE259AB1C37908F0 /* HarvestModels.swift */; };
 		8F63E1C0A91D89249020D891 /* TimeComparisonViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013EF1D97DC6E9FC35048CC1 /* TimeComparisonViewModel.swift */; };
 		8F8396A0AC2F4F6920926C37 /* ForecastService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */; };
+		93A77B44E265FEA54BC8F424 /* AppLocationCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5CE6E83B352C722A6F67C56 /* AppLocationCheck.swift */; };
 		95B603C14869A370CBA0C1B4 /* ForecastNotesIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */; };
 		95E28CA5455CF73C33B3F1F4 /* HarvestStatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B78953DDC0FEB63661C043A /* HarvestStatusService.swift */; };
 		977BD90BD8F50FCFC47E7B4A /* OptimisticTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D171E67D1EF700B24DDAB9 /* OptimisticTimerTests.swift */; };
@@ -130,6 +131,7 @@
 		DB799247D52776862953EA20 /* Yield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yield.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		DE23809963F31EA6370A8FD9 /* CalendarEventPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventPickerView.swift; sourceTree = "<group>"; };
+		E5CE6E83B352C722A6F67C56 /* AppLocationCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocationCheck.swift; sourceTree = "<group>"; };
 		E6AE4314E6BA70459850E000 /* Yield.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Yield.entitlements; sourceTree = "<group>"; };
 		EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastService.swift; sourceTree = "<group>"; };
 		ECA417D28206A2DBE49C1D74 /* ProjectStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStatus.swift; sourceTree = "<group>"; };
@@ -227,6 +229,7 @@
 			isa = PBXGroup;
 			children = (
 				22A0F29CD8D3681B5AF53341 /* APIClient.swift */,
+				E5CE6E83B352C722A6F67C56 /* AppLocationCheck.swift */,
 				9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */,
 				2C64919FC02138F05B504BF5 /* DateHelpers.swift */,
 				F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */,
@@ -426,6 +429,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DD5B690291EBA5B1C1FB36F3 /* APIClient.swift in Sources */,
+				93A77B44E265FEA54BC8F424 /* AppLocationCheck.swift in Sources */,
 				07833C8855FBF86DBEE1761D /* CalendarEventPickerView.swift in Sources */,
 				A0D5FB56C0B51BFF22538E58 /* CollectionHelpers.swift in Sources */,
 				CA12BB7BD1F76E62FC87A9F1 /* DateHelpers.swift in Sources */,

@@ -32,6 +32,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Translocation check runs first — before any defaults
+        // registration, OAuth setup, or menu bar appearance.
+        // If the user opts to move, the moved copy launches and
+        // this process terminates from inside `checkAndPrompt()`;
+        // no need to gate the rest of this function on the return.
+        AppLocationCheck.checkAndPrompt()
+
         // Register defaults so @AppStorage and UserDefaults agree on initial values
         UserDefaults.standard.register(defaults: [
             DefaultsKey.idleDetectionEnabled: true,
