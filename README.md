@@ -69,3 +69,7 @@ Yield doesn't include any analytics, telemetry, or crash reporters that phone ho
 Click the 🐞 icon in the bottom-left of the popup to open a pre-filled GitHub issue with your version, macOS version, last error, and last refresh time. Drag the log file (Settings → Reveal Logs in Finder) into the issue if you can.
 
 If something is on fire and you need a fast turnaround, drop it in the `#yield-app` Slack channel — patch releases ship within a day.
+
+## 📜 License
+
+MIT — see [LICENSE](LICENSE).
