@@ -237,25 +237,25 @@ struct NewTimerFormView: View {
 
                 // Notes + Time row
                 HStack(spacing: 12) {
-                    // Notes field
-                    ZStack(alignment: .topLeading) {
-                        if notes.isEmpty {
-                            Text("Notes (optional)")
-                                .font(YieldFonts.titleSmall)
-                                .foregroundStyle(YieldColors.textSecondary)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                        }
-                        TextEditor(text: $notes)
-                            .font(YieldFonts.titleSmall)
-                            .foregroundStyle(YieldColors.textPrimary)
-                            .scrollContentBackground(.hidden)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 8)
-                    }
-                    .frame(height: YieldDimensions.inputFieldHeight)
-                    .background(YieldColors.surfaceDefault)
-                    .yieldBorder()
+                    // Notes field — macOS 14's TextField with
+                    // axis: .vertical natively handles multi-line
+                    // entry with a placeholder, so the previous
+                    // ZStack-overlaying-Text trick around TextEditor
+                    // (which doesn't support placeholders) collapses
+                    // to a single line. `reservesSpace: true` keeps
+                    // the row at its 2-line height even when empty
+                    // so the surrounding layout doesn't jitter as
+                    // the user types.
+                    TextField("Notes (optional)", text: $notes, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .lineLimit(2, reservesSpace: true)
+                        .font(YieldFonts.titleSmall)
+                        .foregroundStyle(YieldColors.textPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .frame(height: YieldDimensions.inputFieldHeight)
+                        .background(YieldColors.surfaceDefault)
+                        .yieldBorder()
 
                     // Manual time entry (HH:MM)
                     TimeInputView(hours: $timeHours, minutes: $timeMinutes)
