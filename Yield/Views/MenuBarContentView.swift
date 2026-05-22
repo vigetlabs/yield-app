@@ -434,8 +434,12 @@ struct MenuBarContentView: View {
     private var weekDayBar: some View {
         // Live-ticking elapsed offset only applies to the current week.
         let isCurrent = !viewModel.isViewingOtherWeek
-        let liveOffset = (isCurrent && viewModel.projectStatuses.contains(where: { $0.isTracking }))
-            ? viewModel.elapsedOffset : 0
+        // Hoisted: previously evaluated twice — once for `liveOffset`,
+        // then again per-day inside the ForEach (so 8 contains-walks
+        // across `projectStatuses` per render). The result is invariant
+        // across the loop; capture once.
+        let isAnyTracking = viewModel.projectStatuses.contains(where: { $0.isTracking })
+        let liveOffset = (isCurrent && isAnyTracking) ? viewModel.elapsedOffset : 0
         let days = viewModel.displayedDailyHours
         let weekTotal = days.reduce(0) { $0 + $1.hours } + liveOffset
 
@@ -462,7 +466,7 @@ struct MenuBarContentView: View {
                             .font(YieldFonts.jetBrainsMono(10, weight: (day.isToday || isFiltered) ? .medium : .regular))
                             .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
 
-                        if day.isToday && isCurrent && viewModel.projectStatuses.contains(where: { $0.isTracking }) {
+                        if day.isToday && isCurrent && isAnyTracking {
                             Image(systemName: "clock")
                                 .font(.system(size: 7))
                                 .foregroundStyle(YieldColors.greenAccent)
