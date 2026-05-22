@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import Foundation
 import Network
 
@@ -31,6 +32,16 @@ final class GoogleAuthService {
     var isAuthenticating = false
     var authError: String?
 
+    /// Per-flow PKCE verifier (RFC 7636). Generated at the start of
+    /// each OAuth flow, sent (as its SHA256-derived challenge) to the
+    /// authorization endpoint, then sent in plaintext to the token
+    /// endpoint to prove the same client that requested the code is
+    /// exchanging it. Adds defense-in-depth: even if the embedded
+    /// `client_secret` is extracted from the app bundle, an attacker
+    /// who intercepts an authorization code still can't exchange it
+    /// without the verifier.
+    private var pkceVerifier: String?
+
     var isAuthenticated: Bool {
         KeychainHelper.load(key: "googleAccessToken") != nil
     }
@@ -44,6 +55,12 @@ final class GoogleAuthService {
     func startOAuthFlow() {
         isAuthenticating = true
         authError = nil
+        // Fresh verifier per flow — never reuse, never persist. Held
+        // in instance state because the round-trip through the
+        // browser separates challenge-send from verifier-send.
+        let verifier = Self.generateCodeVerifier()
+        pkceVerifier = verifier
+        let challenge = Self.codeChallenge(for: verifier)
         startLocalServer { [weak self] in
             guard let self else { return }
             guard var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth") else { return }
@@ -59,6 +76,8 @@ final class GoogleAuthService {
                 // breaks once the access token expires.
                 URLQueryItem(name: "access_type", value: "offline"),
                 URLQueryItem(name: "prompt", value: "consent"),
+                URLQueryItem(name: "code_challenge", value: challenge),
+                URLQueryItem(name: "code_challenge_method", value: "S256"),
             ]
             if let url = components.url {
                 NSWorkspace.shared.open(url)
@@ -270,12 +289,25 @@ final class GoogleAuthService {
     }
 
     private func exchangeCodeForToken(code: String) async throws {
+        // The PKCE verifier proves this is the same client that
+        // started the flow. If `startOAuthFlow` wasn't called (or
+        // the verifier was already consumed/cleared) Google returns
+        // `invalid_grant` — clearer to fail early with our own
+        // error than to pass that through opaquely.
+        guard let verifier = pkceVerifier else {
+            throw APIError.notConfigured
+        }
+        // One-shot: clear regardless of outcome so a retry must
+        // start a new flow (and generate a new verifier).
+        pkceVerifier = nil
+
         let body: [String: String] = [
             "client_id": clientId,
             "client_secret": clientSecret,
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": redirectURI,
+            "code_verifier": verifier,
         ]
 
         let tokenResponse = try await postTokenRequest(body: body)
@@ -326,6 +358,40 @@ final class GoogleAuthService {
     /// because the latter leaves `/` unescaped — which is fine in a URL
     /// query string but breaks strict form-urlencoded parsers and is
     /// exactly the kind of thing that's hard to debug when it goes wrong.
+    /// Generate a PKCE `code_verifier` per RFC 7636: 32 random bytes,
+    /// base64url-encoded without padding → 43 ASCII characters drawn
+    /// from the unreserved set `[A-Za-z0-9-._~]`. `nonisolated` so the
+    /// test target can call it without a MainActor hop.
+    nonisolated static func generateCodeVerifier() -> String {
+        var bytes = [UInt8](repeating: 0, count: 32)
+        // `SecRandomCopyBytes` is the platform CSPRNG. `errSecSuccess`
+        // failures are theoretical (would mean the system RNG is
+        // unavailable, which would brick most of the OS); fall back to
+        // `Data.random` shape via `UUID` just so we never return an
+        // empty verifier in an unreachable error path.
+        let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        if status != errSecSuccess {
+            return UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        }
+        return Self.base64URLEncode(Data(bytes))
+    }
+
+    /// PKCE `code_challenge` for S256 method: BASE64URL(SHA256(verifier)).
+    nonisolated static func codeChallenge(for verifier: String) -> String {
+        let hashed = SHA256.hash(data: Data(verifier.utf8))
+        return Self.base64URLEncode(Data(hashed))
+    }
+
+    /// Base64URL encoding (RFC 4648 §5) without padding. Standard
+    /// `Data.base64EncodedString()` uses `+` `/` `=` which are not
+    /// safe in URL contexts and which RFC 7636 explicitly forbids.
+    nonisolated static func base64URLEncode(_ data: Data) -> String {
+        data.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
     nonisolated static func formURLEncoded(_ params: [String: String]) -> String {
         let allowed = CharacterSet.alphanumerics
             .union(CharacterSet(charactersIn: "*-._"))
