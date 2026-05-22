@@ -172,7 +172,6 @@ struct SettingsView: View {
                 // the panel so the action lands.
                 if showSignOutConfirm {
                     InlineConfirmationRow(
-                        message: "Are you sure?",
                         confirmLabel: "Sign Out",
                         onCancel: { showSignOutConfirm = false },
                         onConfirm: {
@@ -292,7 +291,6 @@ struct SettingsView: View {
 
                 if showGoogleDisconnectConfirm {
                     InlineConfirmationRow(
-                        message: "Are you sure?",
                         confirmLabel: "Disconnect",
                         onCancel: { showGoogleDisconnectConfirm = false },
                         onConfirm: {

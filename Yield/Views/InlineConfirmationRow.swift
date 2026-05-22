@@ -9,9 +9,12 @@ import SwiftUI
 /// the dialog before the action fires. Inline keeps everything
 /// within the panel so the action lands.
 struct InlineConfirmationRow: View {
-    /// Short prompt shown to the left of the buttons (e.g.
-    /// "Are you sure?" or "Delete this entry?"). Single line.
-    let message: String
+    /// Optional prompt shown to the left of the buttons (e.g.
+    /// "Delete this entry?"). Single line. Omit when the confirm
+    /// button's own label already makes the action self-evident
+    /// (e.g. "Sign Out", "Disconnect") — the leading-edge Spacer
+    /// still pushes the buttons to the trailing edge.
+    var message: String? = nil
     /// Label for the destructive confirm button (e.g. "Sign Out",
     /// "Disconnect", "Delete").
     let confirmLabel: String
@@ -23,9 +26,11 @@ struct InlineConfirmationRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text(message)
-                .font(YieldFonts.dmSans(11))
-                .foregroundStyle(YieldColors.textSecondary)
+            if let message {
+                Text(message)
+                    .font(YieldFonts.dmSans(11))
+                    .foregroundStyle(YieldColors.textSecondary)
+            }
 
             Spacer()
 
