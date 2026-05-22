@@ -13,20 +13,32 @@ final class OAuthService {
     var isAuthenticating = false
     var authError: String?
 
-    var isAuthenticated: Bool {
-        KeychainHelper.load(key: "accessToken") != nil
+    // These four mirror the underlying Keychain/UserDefaults values
+    // into observable stored state so view bindings actually receive
+    // change notifications. Computed properties that read directly
+    // from those backing stores looked correct but bypassed the
+    // `@Observable` tracker — bound views (the Settings Account
+    // card, every `isAuthenticated`-conditional surface) only
+    // refreshed when some *other* observable property on this
+    // singleton happened to mutate alongside. Every mutation site
+    // below calls `reloadFromStorage()` to keep these in sync.
+    private(set) var isAuthenticated: Bool = false
+    private(set) var harvestAccountId: String?
+    private(set) var forecastAccountId: String?
+    private(set) var userName: String?
+
+    init() {
+        reloadFromStorage()
     }
 
-    var harvestAccountId: String? {
-        UserDefaults.standard.string(forKey: DefaultsKey.OAuth.harvestAccountId)
-    }
-
-    var forecastAccountId: String? {
-        UserDefaults.standard.string(forKey: DefaultsKey.OAuth.forecastAccountId)
-    }
-
-    var userName: String? {
-        UserDefaults.standard.string(forKey: DefaultsKey.OAuth.userName)
+    /// Re-read the mirrored values from Keychain + UserDefaults.
+    /// Call after any path that writes to those stores so observers
+    /// see the change.
+    private func reloadFromStorage() {
+        isAuthenticated = KeychainHelper.load(key: "accessToken") != nil
+        harvestAccountId = UserDefaults.standard.string(forKey: DefaultsKey.OAuth.harvestAccountId)
+        forecastAccountId = UserDefaults.standard.string(forKey: DefaultsKey.OAuth.forecastAccountId)
+        userName = UserDefaults.standard.string(forKey: DefaultsKey.OAuth.userName)
     }
 
     // MARK: - OAuth Flow
@@ -210,6 +222,7 @@ final class OAuthService {
         // the "Everyone" query against a stale ID from the prior account.
         UserDefaults.standard.removeObject(forKey: "forecastTimeOffProjectId")
         authError = nil
+        reloadFromStorage()
     }
 
     // MARK: - Private
@@ -291,6 +304,7 @@ final class OAuthService {
         try KeychainHelper.save(key: "refreshToken", value: response.refreshToken)
         let expiresAt = Date().timeIntervalSince1970 + Double(response.expiresIn)
         UserDefaults.standard.set(expiresAt, forKey: DefaultsKey.OAuth.tokenExpiresAt)
+        reloadFromStorage()
     }
 
     private func parseAndStoreAccountIds(from scope: String) {
@@ -308,6 +322,7 @@ final class OAuthService {
                 break
             }
         }
+        reloadFromStorage()
     }
 
     private func fetchAccountIds() async throws {
@@ -346,6 +361,7 @@ final class OAuthService {
             // Fallback if no separate Forecast account
             UserDefaults.standard.set(String(harvest.id), forKey: DefaultsKey.OAuth.forecastAccountId)
         }
+        reloadFromStorage()
     }
 
     private func fetchUserName() async {
@@ -359,6 +375,7 @@ final class OAuthService {
             let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
             if !name.isEmpty {
                 UserDefaults.standard.set(name, forKey: DefaultsKey.OAuth.userName)
+                reloadFromStorage()
             }
         }
     }

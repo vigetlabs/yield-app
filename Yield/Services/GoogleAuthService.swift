@@ -42,12 +42,26 @@ final class GoogleAuthService {
     /// without the verifier.
     private var pkceVerifier: String?
 
-    var isAuthenticated: Bool {
-        KeychainHelper.load(key: "googleAccessToken") != nil
+    // Mirror the Keychain/UserDefaults values into observable stored
+    // state. Computed properties reading the backing stores directly
+    // bypass `@Observable`'s tracker — bound views (the Settings
+    // Calendar card, the Add Time form's picker button) would only
+    // refresh when some other observable property on this singleton
+    // happened to mutate alongside. Every mutation site calls
+    // `reloadFromStorage()` to keep these in sync.
+    private(set) var isAuthenticated: Bool = false
+    private(set) var userEmail: String?
+
+    init() {
+        reloadFromStorage()
     }
 
-    var userEmail: String? {
-        UserDefaults.standard.string(forKey: DefaultsKey.GoogleCalendar.userEmail)
+    /// Re-read the mirrored values from Keychain + UserDefaults.
+    /// Call after any path that writes to those stores so observers
+    /// see the change.
+    private func reloadFromStorage() {
+        isAuthenticated = KeychainHelper.load(key: "googleAccessToken") != nil
+        userEmail = UserDefaults.standard.string(forKey: DefaultsKey.GoogleCalendar.userEmail)
     }
 
     // MARK: - OAuth Flow
@@ -249,6 +263,7 @@ final class GoogleAuthService {
         UserDefaults.standard.removeObject(forKey: DefaultsKey.GoogleCalendar.tokenExpiresAt)
         UserDefaults.standard.removeObject(forKey: DefaultsKey.GoogleCalendar.userEmail)
         authError = nil
+        reloadFromStorage()
     }
 
     // MARK: - Private
@@ -419,6 +434,7 @@ final class GoogleAuthService {
 
         let expiresAt = Date().timeIntervalSince1970 + Double(response.expiresIn)
         UserDefaults.standard.set(expiresAt, forKey: DefaultsKey.GoogleCalendar.tokenExpiresAt)
+        reloadFromStorage()
     }
 
     private func fetchUserEmail() async {
@@ -439,6 +455,7 @@ final class GoogleAuthService {
         if let info = try? decoder.decode(GoogleUserInfo.self, from: data),
            let email = info.email, !email.isEmpty {
             UserDefaults.standard.set(email, forKey: DefaultsKey.GoogleCalendar.userEmail)
+            reloadFromStorage()
         }
     }
 }
