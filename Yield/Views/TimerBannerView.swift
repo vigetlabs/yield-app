@@ -267,15 +267,24 @@ struct TimerBannerView: View {
         .font(YieldFonts.monoMedium)
         .foregroundStyle(accentColor)
         .monospacedDigit()
-        .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
-            // Skip when no timer is set — the banner is rendered (so we
-            // can measure its height) but invisible; toggling state
-            // would invalidate the view 60×/min for nothing.
-            guard hasTimer else { return }
-            if isActive {
+        // Only spin a per-second blink loop when we actually need one
+        // (timer set + running). The banner is rendered even when no
+        // timer is set so its height can be measured for the
+        // strip-to-banner animation — that previously meant a
+        // Timer.publish subscription firing 60×/min for no visible
+        // change. `.task(id:)` cancels and respawns when the gating
+        // expression flips, so the loop is alive exactly when needed.
+        .task(id: hasTimer && isActive) {
+            guard hasTimer && isActive else {
+                // Make the colon steady-on when the blink loop isn't
+                // running (paused, or no timer at all).
+                if !colonOn { colonOn = true }
+                return
+            }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                if Task.isCancelled { break }
                 colonOn.toggle()
-            } else if !colonOn {
-                colonOn = true
             }
         }
     }
