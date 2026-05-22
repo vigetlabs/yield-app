@@ -149,10 +149,6 @@ struct YieldApp: App {
     /// Drives `NSApp.appearance` and the panel's preferred color scheme
     /// so the user's appearance choice is honored at runtime.
     @AppStorage(DefaultsKey.appearanceMode) private var appearanceModeRaw: String = AppearanceMode.default.rawValue
-    /// Observed here (and read in the label closure body) so the
-    /// menu bar refreshes immediately on change — `viewModel.menuBarLabel`
-    /// reads this via UserDefaults and Observable doesn't track that path.
-    @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
     private var viewModel: TimeComparisonViewModel { AppState.shared.viewModel }
 
     private var appearanceMode: AppearanceMode {
@@ -175,7 +171,6 @@ struct YieldApp: App {
             // text changes — which is when we update the button.
             let tooltip = viewModel.menuBarTooltip ?? ""
             Self.applyStatusItemTooltip(tooltip)
-            _ = weeklyHoursTarget  // SwiftUI dependency for VM's UserDefaults read
             return Image(nsImage: composedMenuBarImage(
                 label: viewModel.menuBarLabel,
                 icon: viewModel.menuBarIcon,

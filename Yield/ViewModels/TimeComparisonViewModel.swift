@@ -636,7 +636,7 @@ final class TimeComparisonViewModel {
             return .oauth
         }
         // Fall back to PAT
-        let token = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestToken) ?? ""
+        let token = Self.legacyHarvestToken() ?? ""
         let harvestId = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestAccountId) ?? ""
         let forecastId = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.forecastAccountId) ?? ""
         if !token.isEmpty && !harvestId.isEmpty && !forecastId.isEmpty {
@@ -679,23 +679,86 @@ final class TimeComparisonViewModel {
         }
     }
 
-    /// User's weekly-hours target (default 40, floored at 1).
-    private var weeklyHoursTarget: Double {
-        Double(max(UserDefaults.standard.integer(forKey: DefaultsKey.weeklyHoursTarget), 1))
-    }
+    /// User's weekly-hours target (default 40, floored at 1). Mirrored
+    /// from UserDefaults into observable stored state — a computed
+    /// reader would have bypassed `@Observable`'s dependency tracker,
+    /// silently breaking reactivity on any surface that depends on
+    /// this (`menuBarLabel`, daily target conversions, etc.).
+    /// `defaultsObserver` refreshes this when the user changes the
+    /// setting.
+    private(set) var weeklyHoursTarget: Double = 40
 
     /// Derived daily-hours target.
     private var dailyHoursTarget: Double {
         DateHelpers.dailyHours(fromWeekly: weeklyHoursTarget)
     }
 
-    /// What the menu bar label shows. User-configurable in Settings;
-    /// reads through to the persisted UserDefault each access so the
-    /// label updates immediately when the setting changes.
-    var menuBarLabelMode: MenuBarLabelMode {
-        let raw = UserDefaults.standard.string(forKey: DefaultsKey.menuBarLabelMode)
+    /// What the menu bar label shows. User-configurable in Settings.
+    /// Mirrored from UserDefaults into observable stored state for the
+    /// same reactivity reason as `weeklyHoursTarget`.
+    private(set) var menuBarLabelMode: MenuBarLabelMode = .projectTime
+
+    /// Token from `NotificationCenter.addObserver(forName:…)`. Held so
+    /// the observer's lifetime is tied to the VM (which lives for the
+    /// app's lifetime as a singleton — see the no-deinit note above).
+    @ObservationIgnored
+    private var defaultsObserver: NSObjectProtocol?
+
+    init() {
+        Self.migrateLegacyHarvestTokenIfNeeded()
+        reloadDefaults()
+        // Re-mirror on every UserDefaults write. The handler guards
+        // each property against no-op writes so identical values
+        // don't fire spurious `@Observable` notifications, even
+        // though `didChangeNotification` itself posts on every set.
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.reloadDefaults()
+            }
+        }
+    }
+
+    /// Move a pre-OAuth Harvest PAT out of plist-readable UserDefaults
+    /// into the Keychain on first launch after the upgrade. Idempotent:
+    /// once the Keychain entry exists the UserDefaults value is gone
+    /// and this is a no-op. If the Keychain save fails (unexpected)
+    /// the UserDefaults copy is preserved so the user's sign-in isn't
+    /// lost — `legacyHarvestToken()` falls back to UserDefaults.
+    private static func migrateLegacyHarvestTokenIfNeeded() {
+        guard let token = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestToken),
+              !token.isEmpty,
+              KeychainHelper.load(key: "legacyHarvestToken") == nil else {
+            return
+        }
+        do {
+            try KeychainHelper.save(key: "legacyHarvestToken", value: token)
+            UserDefaults.standard.removeObject(forKey: DefaultsKey.Legacy.harvestToken)
+        } catch {
+            // Leave the UserDefaults value in place — partial migration
+            // would lose the user's sign-in.
+        }
+    }
+
+    /// Read the legacy Harvest PAT. Prefers the Keychain (post-migration)
+    /// and falls back to UserDefaults so a one-off Keychain failure or
+    /// a downgrade->upgrade roundtrip doesn't lock the user out.
+    private static func legacyHarvestToken() -> String? {
+        KeychainHelper.load(key: "legacyHarvestToken")
+            ?? UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestToken)
+    }
+
+    private func reloadDefaults() {
+        let newTarget = Double(max(UserDefaults.standard.integer(forKey: DefaultsKey.weeklyHoursTarget), 1))
+        if newTarget != weeklyHoursTarget { weeklyHoursTarget = newTarget }
+
+        let rawMode = UserDefaults.standard.string(forKey: DefaultsKey.menuBarLabelMode)
             ?? MenuBarLabelMode.projectTime.rawValue
-        return MenuBarLabelMode(rawValue: raw) ?? .projectTime
+        let newMode = MenuBarLabelMode(rawValue: rawMode) ?? .projectTime
+        if newMode != menuBarLabelMode { menuBarLabelMode = newMode }
     }
 
     var menuBarLabel: String {
@@ -891,7 +954,7 @@ final class TimeComparisonViewModel {
                 ForecastService(tokenProvider: tokenProvider, accountId: forecastId)
             )
         case .pat:
-            guard let token = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestToken),
+            guard let token = Self.legacyHarvestToken(),
                   let harvestId = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.harvestAccountId),
                   let forecastId = UserDefaults.standard.string(forKey: DefaultsKey.Legacy.forecastAccountId) else {
                 return nil

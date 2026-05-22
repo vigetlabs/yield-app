@@ -54,8 +54,16 @@ enum DefaultsKey {
 
     // MARK: - Legacy PAT-based credentials
     /// Personal-access-token credentials from before the OAuth flow.
-    /// Read at startup as a fallback when no OAuth tokens are present;
-    /// migration writes are not implemented (users re-sign in).
+    /// Read at startup as a fallback when no OAuth tokens are present.
+    ///
+    /// The `harvestToken` key was historically stored here in
+    /// plist-readable UserDefaults. `TimeComparisonViewModel.init()`
+    /// now migrates any value found to the Keychain under
+    /// `"legacyHarvestToken"` on first launch after that change, and
+    /// `TimeComparisonViewModel.legacyHarvestToken()` is the
+    /// authoritative read (Keychain first, this key as a fallback for
+    /// pre-migration state). The account-id keys here are not
+    /// sensitive and continue to live in UserDefaults.
     enum Legacy {
         static let harvestToken = "harvestToken"
         static let harvestAccountId = "harvestAccountId"
