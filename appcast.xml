@@ -3,6 +3,26 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.1.0</title>
+      <sparkle:version>55</sparkle:version>
+      <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Google Calendar integration.</strong> Connect Google Calendar in Settings, then the Add Time form gets a calendar icon next to Log Time — tap it to pick from today's events, and the time + notes fill in from the event's duration and title. If you've previously logged time against a meeting with the same title, the project + task auto-select too. Read-only scope (<code>calendar.events.readonly</code>), nothing is written back to Google, and the OAuth token lives in the macOS Keychain. PKCE on the OAuth flow as defense-in-depth.</li>
+          <li><strong>Auto-move to Applications.</strong> macOS App Translocation (running from Downloads or a similar quarantined location) was killing Yield with a SIGBUS overnight when the system unmounted its read-only mount. On launch, Yield now detects translocation and offers to move itself to /Applications — one click and it relaunches from the stable path. Thanks @maxdmyers for the crash report that pinned this down.</li>
+          <li><strong>Menu bar redesign.</strong> Tracking dot is gone — paused timers now show a dedicated pause icon instead of borrowing the gauge. Icon moved to the leading edge with time text to its right; both the icon slot and the text slot are sized to their typical-case widths so the menu bar is a few pixels narrower across every state, and slimmer SF Symbols for idle (<code>calendar</code>) and over-budget (<code>exclamationmark.circle.fill</code>) trim it another 3pt.</li>
+          <li>Bumped Sparkle from 2.9.0 to 2.9.2 — picks up two high-complexity security fixes (symlink guard in delta-update application; installer-connection validation before appcast item data) and a race-condition crash fix.</li>
+          <li>"Are you sure?" prompt dropped from the Harvest sign-out and Google Calendar disconnect confirmations — the button label already says what the action does.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.1.0/Yield-1.1.0.zip"
+        sparkle:edSignature="rDqb8UzhVVgCatIp68I2rm0qqt0Y/r5nkill78IGVVX0CHctR14Rwt47hqLeByQ4F6D0vum5GcfZ4+0bdDybCA=="
+        length="2800605"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.0.3</title>
       <sparkle:version>54</sparkle:version>
       <sparkle:shortVersionString>1.0.3</sparkle:shortVersionString>
