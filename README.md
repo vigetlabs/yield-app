@@ -24,6 +24,7 @@ Unzip, drag Yield to your Applications folder, and launch — it'll take root in
 
 - ⚡ **Quick actions on project rows** — hover a project to surface one-click icons on the right side: Resume your most-recently-used timer on that project, Quick Start a favorited task, or Add Time to open the full form. Skips the form/menu steps for the common cases.
 - ✏️ **Entry workflow** — project + task dropdowns grouped by client. Add to any day of the week, not just today. Double-click any entry to edit it, or start a timer with pre-filled hours for catch-up tracking.
+- 📅 **Log time from a Google Calendar event** — connect Google Calendar in Settings, then the Add Time form gets a calendar icon next to Log Time. Tap it to pick from today's events and the time + notes fields fill in from the event's duration and title. If you've previously logged time against a meeting with the same title, the project + task auto-select too. Read-only access to your primary calendar — nothing is written back to Google.
 - ⭐ **Favorites** — star a project + task combo to save it. Picking a project auto-selects its most-recently-used favorite, a "Favorites" popover next to the project picker gives one-tap selection of any saved combo, and Settings lists every favorite so you can prune.
 - 📣 **External-change HUD** — when a timer is started or stopped from outside Yield (e.g. the Harvest browser extension), a small panel pops below the menu bar icon to acknowledge the change. Toggle off in Settings → Preferences if you don't want it.
 
@@ -51,15 +52,16 @@ Yield checks for new versions daily and prompts you to install them. You can als
 
 ## 🔐 Data & privacy
 
-Yield talks to two services and stores nothing on a server we control:
+Yield talks to a few services and stores nothing on a server we control:
 
 - **Harvest API** for time entries, timers, projects, tasks, and your account profile.
 - **Forecast API** (via the same Harvest OAuth token) for weekly assignments, projects, clients, and time-off blocks.
+- **Google Calendar API** (only if you connect it) for today's events on your primary calendar — read-only (`calendar.events.readonly` scope), fetched on demand when you open the picker, never written back to Google.
 
 Locally on your machine:
 
-- **OAuth access + refresh tokens** are stored in the macOS **Keychain**.
-- **Preferences and favorites** (appearance, idle setting, menu-bar display mode, favorited project/task pairs) live in **UserDefaults**.
+- **OAuth access + refresh tokens** (Harvest + Google) are stored in the macOS **Keychain**.
+- **Preferences and favorites** (appearance, idle setting, menu-bar display mode, favorited project/task pairs, meeting-title → project/task memory for calendar pre-fill) live in **UserDefaults**.
 - **Error logs** are written to `~/Library/Logs/Yield/yield.log` (rotated at 256 KB) so you can attach them to bug reports. Nothing in the log leaves your machine unless you upload it yourself.
 
 Yield doesn't include any analytics, telemetry, or crash reporters that phone home.
