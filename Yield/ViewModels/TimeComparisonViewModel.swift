@@ -164,7 +164,10 @@ final class TimeComparisonViewModel {
         }
     }
     private(set) var elapsedOffset: Double = 0  // hours elapsed locally since last API refresh
-    var selectedTab: ProjectTab = .recent
+    /// Currently-selected project list tab. Read by every view in the
+    /// panel header; written only through `selectTab(_:)` to match the
+    /// rest of this VM's "all mutation goes through a method" pattern.
+    private(set) var selectedTab: ProjectTab = .recent
     private(set) var pausedState: PausedTimerState? = nil
 
     enum ProjectTab: String, CaseIterable {
@@ -437,6 +440,11 @@ final class TimeComparisonViewModel {
     @MainActor
     func clearDayFilter() {
         dayFilter = nil
+    }
+
+    @MainActor
+    func selectTab(_ tab: ProjectTab) {
+        selectedTab = tab
     }
 
     var filteredStatuses: [ProjectStatus] {
