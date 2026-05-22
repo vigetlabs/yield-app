@@ -242,13 +242,13 @@ struct YieldApp: App {
         let rotationProgress: Double?  // nil = no rotation
         switch icon {
         case .calendar:
-            symbolName = "calendar.day.timeline.left"
+            symbolName = "calendar"
             rotationProgress = nil
         case .gaugeUnder(let progress):
             symbolName = "gauge.with.needle"
             rotationProgress = progress
         case .gaugeOver:
-            symbolName = "gauge.open.with.lines.needle.84percent.exclamation"
+            symbolName = "exclamationmark.circle.fill"
             rotationProgress = nil
         case .timer:
             symbolName = "timer"
@@ -370,15 +370,15 @@ struct YieldApp: App {
     /// Widest of every menu-bar SF Symbol at the configured point
     /// size + weight, measured once and cached. Without this the
     /// total menu-bar width drifts a few points when the state
-    /// changes (`calendar.day.timeline.left` is meaningfully wider
-    /// than `pause.circle.fill`), nudging the system clock and
-    /// every neighboring menu-bar item to the right or left.
+    /// changes between symbols of different intrinsic widths,
+    /// nudging the system clock and every neighboring menu-bar
+    /// item to the right or left.
     private static let iconSlotWidth: CGFloat = {
         let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
         let symbolNames = [
-            "calendar.day.timeline.left",
+            "calendar",
             "gauge.with.needle",
-            "gauge.open.with.lines.needle.84percent.exclamation",
+            "exclamationmark.circle.fill",
             "timer",
             "pause.circle.fill",
             "moon.zzz.fill",
