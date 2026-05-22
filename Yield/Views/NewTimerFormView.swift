@@ -15,6 +15,11 @@ struct NewTimerFormView: View {
 
     @State private var allProjects: [TimeComparisonViewModel.TimerProjectOption] = []
     @State private var isLoadingProjects = true
+    /// Pre-grouped + sorted version of `allProjects` for the project
+    /// dropdown. Built once when `allProjects` loads — the grouping
+    /// and per-group sort would otherwise run on every body pass
+    /// (each keystroke in any TextField re-renders the form).
+    @State private var projectGroupsCache: [DropdownGroup] = []
     @State private var selectedProjectId: Int?
     @State private var selectedTaskId: Int?
     @State private var notes: String = ""
@@ -172,7 +177,14 @@ struct NewTimerFormView: View {
     }
 
     private var formBody: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        // Hoist resolvedFavorites once per body pass — it's read by
+        // the isEmpty guard, the popover's `richItems`, the indices
+        // check, and the index access. Previously each was a separate
+        // recomputation (Dictionary grouping + sort over all favorites)
+        // per body, multiplied by the high re-render rate while the
+        // user types in any TextField.
+        let favorites = resolvedFavorites
+        return VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(spacing: 6) {
                 Text(headerPrefix)
@@ -214,8 +226,8 @@ struct NewTimerFormView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 8) {
                             projectPicker
-                            if !resolvedFavorites.isEmpty {
-                                favoritesPickerButton
+                            if !favorites.isEmpty {
+                                favoritesPickerButton(favorites: favorites)
                             }
                         }
                         taskPicker
@@ -527,20 +539,22 @@ struct NewTimerFormView: View {
     /// the project picker we never store a selection: the placeholder
     /// "★ Favorites" stays in the closed state regardless of what the
     /// user picks, so the button reads as a trigger rather than a
-    /// selector.
-    private var favoritesPickerButton: some View {
+    /// selector. Takes the pre-resolved favorites list as a parameter
+    /// so the caller can compute it once per body pass instead of
+    /// this view recomputing it for each of its four read sites.
+    private func favoritesPickerButton(favorites: [ResolvedFavorite]) -> some View {
         DropdownPicker(
             label: "Favorites",
             placeholder: "★ Favorites",
             selectedId: nil,
             isPullDown: true,
-            richItems: resolvedFavorites.enumerated().map { index, fav in
+            richItems: favorites.enumerated().map { index, fav in
                 (id: index, attributedTitle: Self.favoriteMenuItemTitle(for: fav))
             },
             showsItemSeparators: true
         ) { index in
-            guard resolvedFavorites.indices.contains(index) else { return }
-            applyFavorite(resolvedFavorites[index])
+            guard favorites.indices.contains(index) else { return }
+            applyFavorite(favorites[index])
         }
         .fixedSize()
     }
@@ -610,7 +624,7 @@ struct NewTimerFormView: View {
             label: "PROJECT",
             placeholder: "Select a project",
             isLoading: isLoadingProjects,
-            groups: projectGroups,
+            groups: projectGroupsCache,
             selectedId: selectedProjectId
         ) { id in
             if let project = allProjects.first(where: { $0.harvestProjectId == id }) {
@@ -619,8 +633,13 @@ struct NewTimerFormView: View {
         }
     }
 
-    private var projectGroups: [DropdownGroup] {
-        let grouped = Dictionary(grouping: allProjects) { $0.clientName ?? "" }
+    /// Compute the project dropdown's grouped + sorted shape from
+    /// the raw project list. Called once at load time and cached in
+    /// `projectGroupsCache`; never read from the view body.
+    private static func buildProjectGroups(
+        from projects: [TimeComparisonViewModel.TimerProjectOption]
+    ) -> [DropdownGroup] {
+        let grouped = Dictionary(grouping: projects) { $0.clientName ?? "" }
         let sortedKeys = grouped.keys.sorted { a, b in
             if a.isEmpty { return false }
             if b.isEmpty { return true }
@@ -674,6 +693,7 @@ struct NewTimerFormView: View {
         } catch {
             allProjects = []
         }
+        projectGroupsCache = Self.buildProjectGroups(from: allProjects)
         isLoadingProjects = false
     }
 

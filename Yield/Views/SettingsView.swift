@@ -548,10 +548,15 @@ struct SettingsView: View {
     }
 
     private var favoritesCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        // Hoist once per body pass — read at the loading guard, the
+        // empty guard, the ForEach, and the separator-skip check.
+        // Previously each was a separate Dictionary-index + sort
+        // recomputation across the full favorites list.
+        let favorites = resolvedFavorites
+        return VStack(alignment: .leading, spacing: 0) {
             sectionHeader("Favorites")
 
-            if isLoadingProjects && resolvedFavorites.isEmpty {
+            if isLoadingProjects && favorites.isEmpty {
                 HStack {
                     ProgressView()
                         .controlSize(.small)
@@ -563,7 +568,7 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-            } else if resolvedFavorites.isEmpty {
+            } else if favorites.isEmpty {
                 Text("No favorites yet. Add one from the new/edit timer screen.")
                     .font(YieldFonts.dmSans(11))
                     .foregroundStyle(YieldColors.textSecondary)
@@ -579,9 +584,9 @@ struct SettingsView: View {
                 // list would overflow.
                 ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(Array(resolvedFavorites.enumerated()), id: \.element.id) { index, fav in
+                        ForEach(Array(favorites.enumerated()), id: \.element.id) { index, fav in
                             favoriteRow(fav)
-                            if index < resolvedFavorites.count - 1 {
+                            if index < favorites.count - 1 {
                                 Rectangle()
                                     .fill(YieldColors.border)
                                     .frame(height: 1)
