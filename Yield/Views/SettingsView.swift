@@ -89,14 +89,17 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     aboutCard
-                    accountCard
-                    // Google Calendar card hidden until the OAuth
-                    // verification + PKCE refactor land. The card
-                    // definition itself (`googleCalendarCard` below)
-                    // stays in the codebase so re-enabling is a
-                    // one-line change. To restore: wrap accountCard
-                    // and googleCalendarCard in the 50/50 HStack
-                    // that was here.
+                    // Account + Calendar share a row at 50/50.
+                    // `alignment: .top` keeps both cards anchored at
+                    // the top edge so the shorter of the two doesn't
+                    // stretch — they grow vertically independently
+                    // based on their own sign-in state.
+                    HStack(alignment: .top, spacing: 12) {
+                        accountCard
+                            .frame(maxWidth: .infinity)
+                        googleCalendarCard
+                            .frame(maxWidth: .infinity)
+                    }
                     preferencesCard
                     favoritesCard
                 }

@@ -310,12 +310,7 @@ struct NewTimerFormView: View {
                     Spacer()
 
                     if !isEditing && !isIdleMove {
-                        // Calendar picker button hidden until the OAuth
-                        // verification + PKCE refactor land. The button
-                        // definition (`calendarPickerButton` below) stays
-                        // in the codebase so re-enabling is a one-line
-                        // change — restore by uncommenting the line below.
-                        // calendarPickerButton
+                        calendarPickerButton
 
                         Button {
                             Task { await logTime() }
