@@ -557,14 +557,6 @@ struct SegmentedProgressBarView: View {
         return result
     }
 
-    /// Only weekdays with logged time (plus today, even if zero, so the
-    /// current day is always represented).
-    private var activeDays: [DayFill] {
-        days.filter { $0.hours > 0 || $0.isToday }
-    }
-
-    private var totalHours: Double { days.reduce(0) { $0 + $1.hours } }
-
     /// Each day's hours split into the portion that fits within the
     /// remaining budget (under color) and the portion that pushes past
     /// it (over color). Built in calendar order so cumulative tracking
@@ -579,7 +571,11 @@ struct SegmentedProgressBarView: View {
         let overHours: Double
     }
 
-    private var segmentedDays: [DaySegment] {
+    /// Convert pre-filtered active days into budget-aware segments.
+    /// Takes the days as a parameter (rather than reading the
+    /// computed `days` chain) so callers can hoist the expensive
+    /// `days` computation and reuse it for `totalHours` etc.
+    private func segments(from activeDays: [DayFill]) -> [DaySegment] {
         let cap = booked > 0 ? booked : .infinity
         var cumulative: Double = 0
         return activeDays.map { day in
@@ -623,6 +619,17 @@ struct SegmentedProgressBarView: View {
 
     @ViewBuilder
     private func segmentedBar(totalWidth: CGFloat) -> some View {
+        // Compute the day chain once per render. The old shape had
+        // separate computed properties (`activeDays`, `totalHours`,
+        // `segmentedDays`) that each independently re-evaluated the
+        // expensive `days` property (entries walk + 7 DateFormatter
+        // calls), so `days` ran 3× per body pass. Hoisting collapses
+        // that to a single computation.
+        let allDays = days
+        let activeDays = allDays.filter { $0.hours > 0 || $0.isToday }
+        let totalHours = allDays.reduce(0) { $0 + $1.hours }
+        let segmentedDays = segments(from: activeDays)
+
         // Reserve space for the 2pt gaps between days *before*
         // dividing the remaining width across segments. Without this,
         // a fully-filled bar (at-budget or over-budget projects)
@@ -689,13 +696,17 @@ struct TaskEntryRowView: View {
         return false
     }
 
-    private var isToday: Bool {
-        guard let date = DateHelpers.dateFormatter.date(from: entry.date) else { return false }
-        return Calendar.current.isDateInToday(date)
-    }
-
     var body: some View {
-        HStack {
+        // Parse the entry's date once per body pass and derive both
+        // `isToday` (gates the play/stop button) and `formatDay` from
+        // the result. Previously these were two independent computed
+        // properties that each parsed the string with DateFormatter
+        // — at ~30 visible rows per drawer that was 60+ parses per
+        // body pass for no good reason.
+        let parsedDate = DateHelpers.dateFormatter.date(from: entry.date)
+        let isToday = parsedDate.map { Calendar.current.isDateInToday($0) } ?? false
+
+        return HStack {
             // Task details + time info (double-click to edit)
             HStack {
                 VStack(alignment: .leading, spacing: hasNotes ? 6 : 0) {
@@ -739,7 +750,7 @@ struct TaskEntryRowView: View {
                             .background(YieldColors.greenDim)
                             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
                     } else {
-                        Text(formatDay(entry.date))
+                        Text(formatDayLabel(for: parsedDate))
                             .font(YieldFonts.monoXS)
                             .foregroundStyle(YieldColors.textSecondary)
                             .padding(.horizontal, 4)
@@ -807,8 +818,10 @@ struct TaskEntryRowView: View {
         return f
     }()
 
-    private func formatDay(_ dateString: String) -> String {
-        guard let date = DateHelpers.dateFormatter.date(from: dateString) else { return dateString }
+    /// Pre-parsed-date variant. Returns the raw `entry.date` string
+    /// when the parse failed (matches the old fallback shape).
+    private func formatDayLabel(for date: Date?) -> String {
+        guard let date else { return entry.date }
         if Calendar.current.isDateInToday(date) { return "Today" }
         return Self.dayFormatter.string(from: date)
     }
