@@ -167,7 +167,6 @@ struct YieldApp: App {
                     appDelegate.applyAppearance(newValue)
                 }
         } label: {
-            let isTracking = viewModel.projectStatuses.contains(where: { $0.isTracking })
             let mode = MenuBarLabelMode(rawValue: menuBarLabelModeRaw) ?? .projectTime
             // SwiftUI's `.help()` doesn't propagate to MenuBarExtra's
             // `NSStatusBarButton`, so we set the AppKit `toolTip`
@@ -180,7 +179,6 @@ struct YieldApp: App {
             return Image(nsImage: composedMenuBarImage(
                 label: viewModel.menuBarLabel,
                 icon: viewModel.menuBarIcon,
-                isTracking: isTracking,
                 mode: mode
             ))
         }
@@ -189,11 +187,12 @@ struct YieldApp: App {
     }
 
     /// Memoization key for `composedMenuBarImage`. MenuBarIcon is already
-    /// Equatable so this gets automatic synthesis.
+    /// Equatable so this gets automatic synthesis. The icon enum
+    /// captures every state distinction (active vs paused vs idle vs
+    /// PTO vs error), so no separate tracking flag is needed.
     private struct MenuBarImageKey: Equatable {
         let label: String
         let icon: TimeComparisonViewModel.MenuBarIcon
-        let isTracking: Bool
         let mode: MenuBarLabelMode
     }
 
@@ -222,18 +221,18 @@ struct YieldApp: App {
 
     /// Compose the full menu bar image: [tracking dot] [time text] [state icon]
     /// Draws into a single NSImage so MenuBarExtra renders it reliably.
-    private func composedMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, isTracking: Bool, mode: MenuBarLabelMode) -> NSImage {
-        let key = MenuBarImageKey(label: label, icon: icon, isTracking: isTracking, mode: mode)
+    private func composedMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, mode: MenuBarLabelMode) -> NSImage {
+        let key = MenuBarImageKey(label: label, icon: icon, mode: mode)
         if let cached = Self.cache, cached.key == key {
             return cached.image
         }
 
-        let image = renderMenuBarImage(label: label, icon: icon, isTracking: isTracking, mode: mode)
+        let image = renderMenuBarImage(label: label, icon: icon, mode: mode)
         Self.cache = (key, image)
         return image
     }
 
-    private func renderMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, isTracking: Bool, mode: MenuBarLabelMode) -> NSImage {
+    private func renderMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, mode: MenuBarLabelMode) -> NSImage {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         let textColor = NSColor.black
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
@@ -254,6 +253,9 @@ struct YieldApp: App {
         case .timer:
             symbolName = "timer"
             rotationProgress = nil
+        case .paused:
+            symbolName = "pause.circle.fill"
+            rotationProgress = nil
         case .timeOff:
             symbolName = "moon.zzz.fill"
             rotationProgress = nil
@@ -270,45 +272,58 @@ struct YieldApp: App {
         let iconSize = iconBase.size
         let barHeight: CGFloat = max(iconSize.height, 18)
         let spacing: CGFloat = 4
-        let dotSize: CGFloat = 6
+        let iconSlotWidth = Self.iconSlotWidth
 
-        // Fixed-width text area — measure widest possible string to prevent width jitter.
-        // Current-timer mode only ever shows a single H:MM value, so reserve only
-        // that much. The other modes can show paired "tracked / budget" strings.
-        let maxLabel = mode == .currentTimer ? "88:88" : "88:88 / 88:88"
-        let fixedTextWidth: CGFloat = (maxLabel as NSString).size(withAttributes: attrs).width
+        // Fixed-width text area — measure widest *realistic* string
+        // to prevent width jitter. The left side of paired modes is
+        // typically a single-digit hour (current entry / running
+        // timer / today's working hours so far), so reserving slot
+        // for only one digit there saves ~7pt in the common case.
+        // Trade-off: when the left side actually crosses 10h (e.g.
+        // a long week's tracked total) the menu bar shifts right by
+        // a single digit's width. Rare and small enough to be a fair
+        // exchange for the day-to-day tighter layout.
+        let maxLabel = mode == .currentTimer ? "88:88" : "8:88 / 88:88"
+        let reservedTextWidth: CGFloat = (maxLabel as NSString).size(withAttributes: attrs).width
         let textSize: CGSize = label.isEmpty ? .zero : (label as NSString).size(withAttributes: attrs)
+        // The reserved width covers the typical case; when the actual
+        // label is wider (e.g. left side crosses 10h: "10:17 / 12:00")
+        // grow the slot to fit so the trailing digits aren't clipped.
+        // The menu bar shifts by exactly the overflow on those rare
+        // wider strings — the documented trade-off.
+        let textSlotWidth: CGFloat = max(reservedTextWidth, textSize.width)
 
-        // Calculate total width (fixed regardless of label content)
-        var totalWidth: CGFloat = iconSize.width
+        // Calculate total width. Icon slot is fixed (different SF
+        // Symbols have different intrinsic widths, so reserving the
+        // widest prevents jitter when state flips). Text slot is
+        // sized to the realistic max but grows for the rare wider
+        // labels rather than clipping.
+        var totalWidth: CGFloat = iconSlotWidth
         if !label.isEmpty {
-            totalWidth += fixedTextWidth + spacing
+            totalWidth += textSlotWidth + spacing
         }
-        // Always reserve dot space so width doesn't shift when timer starts/stops
-        totalWidth += dotSize + spacing
 
         let image = NSImage(size: NSSize(width: totalWidth, height: barHeight), flipped: false) { rect in
             var x: CGFloat = 0
 
-            // Tracking dot (always reserve space, only draw when tracking)
-            if isTracking {
-                let dotY = (barHeight - dotSize) / 2
-                let dotRect = CGRect(x: x, y: dotY, width: dotSize, height: dotSize)
-                NSColor.black.setFill()
-                NSBezierPath(ovalIn: dotRect).fill()
-            }
-            x += dotSize + spacing
-
-            // Time text — right-aligned within fixed-width area
-            if !label.isEmpty {
-                let textY = (barHeight - textSize.height) / 2
-                let textX = x + (fixedTextWidth - textSize.width)
-                (label as NSString).draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
-                x += fixedTextWidth + spacing
-            }
-
-            // Icon — tint and optionally rotate
+            // Icon — drawn first (leading edge), centered within the
+            // fixed-width slot so narrower icons (pause.circle.fill,
+            // gauge) sit middle-aligned rather than pinned to the
+            // slot's leading edge.
             let iconY = (barHeight - iconSize.height) / 2
+            let iconX = x + (iconSlotWidth - iconSize.width) / 2
+            x += iconSlotWidth
+
+            // Time text — left-aligned within fixed-width area so it
+            // sits snug against the icon. The slot's width is still
+            // reserved against the widest possible string ("88:88 /
+            // 88:88") so the overall menu bar width stays stable
+            // regardless of the current label.
+            if !label.isEmpty {
+                x += spacing
+                let textY = (barHeight - textSize.height) / 2
+                (label as NSString).draw(at: NSPoint(x: x, y: textY), withAttributes: attrs)
+            }
 
             // Tint the icon to match text color
             let tintedIcon = NSImage(size: iconSize, flipped: false) { iconRect in
@@ -337,13 +352,13 @@ struct YieldApp: App {
                 //   rotation  = target - neutral = 90° - 270° * p
                 //             = (0.5 - 1.5 * p) * π radians
                 let rotation = (0.5 - 1.5 * progress) * .pi
-                let iconCenterX = x + iconSize.width / 2
+                let iconCenterX = iconX + iconSize.width / 2
                 let iconCenterY = iconY + iconSize.height / 2
                 ctx.translateBy(x: iconCenterX, y: iconCenterY)
                 ctx.rotate(by: rotation)
                 ctx.translateBy(x: -iconCenterX, y: -iconCenterY)
             }
-            tintedIcon.draw(in: CGRect(x: x, y: iconY, width: iconSize.width, height: iconSize.height))
+            tintedIcon.draw(in: CGRect(x: iconX, y: iconY, width: iconSize.width, height: iconSize.height))
             ctx.restoreGState()
 
             return true
@@ -351,4 +366,32 @@ struct YieldApp: App {
         image.isTemplate = true
         return image
     }
+
+    /// Widest of every menu-bar SF Symbol at the configured point
+    /// size + weight, measured once and cached. Without this the
+    /// total menu-bar width drifts a few points when the state
+    /// changes (`calendar.day.timeline.left` is meaningfully wider
+    /// than `pause.circle.fill`), nudging the system clock and
+    /// every neighboring menu-bar item to the right or left.
+    private static let iconSlotWidth: CGFloat = {
+        let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+        let symbolNames = [
+            "calendar.day.timeline.left",
+            "gauge.with.needle",
+            "gauge.open.with.lines.needle.84percent.exclamation",
+            "timer",
+            "pause.circle.fill",
+            "moon.zzz.fill",
+            "exclamationmark.triangle",
+        ]
+        let widths = symbolNames.compactMap { name -> CGFloat? in
+            NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+                .withSymbolConfiguration(config)?
+                .size.width
+        }
+        // Fallback matches the 14pt symbol's nominal square footprint
+        // — only hit if every symbol lookup somehow fails, which would
+        // mean the system is broken in deeper ways than this.
+        return widths.max() ?? 18
+    }()
 }

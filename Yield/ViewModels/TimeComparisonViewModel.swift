@@ -651,9 +651,10 @@ final class TimeComparisonViewModel {
 
     enum MenuBarIcon: Equatable {
         case calendar                      // no timer running
-        case gaugeUnder(progress: Double)  // booked timer, under budget (rotates)
-        case gaugeOver                     // booked timer, over budget
-        case timer                         // unbooked timer running
+        case gaugeUnder(progress: Double)  // active timer, under budget (rotates)
+        case gaugeOver                     // active timer, over budget
+        case timer                         // active timer, unbooked project
+        case paused                        // timer paused (any budget state)
         case timeOff                       // full day of PTO today, no timer
         case error                         // API error
     }
@@ -808,12 +809,14 @@ final class TimeComparisonViewModel {
             return .gaugeUnder(progress: progress)
         }
 
-        if let project = pausedProject {
-            if project.bookedHours == 0 { return .timer }
-            if project.loggedHours > project.bookedHours { return .gaugeOver }
-            let progress = min(project.loggedHours / project.bookedHours, 1.0)
-            return .gaugeUnder(progress: progress)
-        }
+        // When a timer is paused, surface a dedicated pause glyph so
+        // the menu bar visually distinguishes paused from active
+        // (both used to show the gauge/timer icon, distinguished
+        // only by the now-removed tracking dot). The trade-off:
+        // budget over/under isn't reflected in the icon while
+        // paused — that context lives in the time label text
+        // (e.g. "8:14 / 16:00") and the in-panel banner.
+        if pausedProject != nil { return .paused }
 
         if isFullDayOffToday { return .timeOff }
 
