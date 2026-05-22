@@ -153,23 +153,25 @@
       <img src="/app-icon.png" alt="Yield app icon">
       <h1>Privacy</h1>
     </header>
-    <p class="updated">Last updated: 20 May 2026</p>
+    <p class="updated">Last updated: 22 May 2026</p>
 
     <p>Yield is a macOS menu bar app that compares your Harvest time entries against your Forecast bookings. This page describes every piece of data Yield touches, where it lives, and what (if anything) leaves your machine.</p>
 
     <h2>What Yield sends over the network</h2>
-    <p>Yield talks to two services, both operated by Getharvest, Inc., and stores nothing on a server we control:</p>
+    <p>Yield talks to a small number of third-party services and stores nothing on a server we control:</p>
     <ul>
       <li><strong>Harvest API</strong> (<code>api.harvestapp.com</code>) for time entries, timers, projects, tasks, and your account profile.</li>
       <li><strong>Forecast API</strong> (<code>api.forecastapp.com</code>), via the same Harvest OAuth token, for weekly assignments, projects, clients, and time-off blocks.</li>
+      <li><strong>Google Calendar API</strong> (<code>www.googleapis.com</code>), only if you choose to connect Google Calendar in Settings. Yield requests the <code>calendar.events.readonly</code> scope, which is the narrowest read-only access Google offers. It fetches only today's events from your primary calendar, only when you open the event picker in the Add Time form. Yield never writes to your calendar, never reads other calendars, and never reads events outside today. The Google sign-in flow also fetches your account email once so the Settings card can show which account you connected.</li>
     </ul>
     <p>All requests use HTTPS. Yield does not include analytics, telemetry, crash reporters, advertising SDKs, or any other "phone home" channel.</p>
 
     <h2>What Yield stores locally on your Mac</h2>
     <ul>
-      <li><strong>OAuth access and refresh tokens</strong> are stored in the macOS Keychain. They never leave your machine except to authenticate requests to Harvest and Forecast.</li>
-      <li><strong>Preferences and favorites</strong> (appearance, idle setting, menu-bar display mode, weekly hours target, favorited project/task pairs) live in macOS UserDefaults under the <code>com.yield</code> bundle identifier.</li>
-      <li><strong>Cached data</strong> (the current week's projects, time entries, and Forecast assignments) is held in memory during the app's session and not persisted to disk.</li>
+      <li><strong>OAuth access and refresh tokens</strong> for Harvest and (if connected) Google are stored in the macOS Keychain. They never leave your machine except to authenticate requests to those services.</li>
+      <li><strong>Preferences and favorites</strong> (appearance, idle setting, menu-bar display mode, weekly hours target, favorited project/task pairs, connected Google account email) live in macOS UserDefaults under the <code>com.yield</code> bundle identifier.</li>
+      <li><strong>Meeting-title memory</strong> — when you log time after picking a Google Calendar event, Yield remembers the meeting title → project/task pairing locally so the next event with that title pre-fills the same project/task. Only the title and the Harvest IDs are stored; no other event details are persisted.</li>
+      <li><strong>Cached data</strong> (the current week's projects, time entries, and Forecast assignments) is held in memory during the app's session and not persisted to disk. Calendar events are not cached at all — they're fetched fresh each time you open the picker.</li>
       <li><strong>Error logs</strong> are written to <code>~/Library/Logs/Yield/yield.log</code> and rotated when they reach 256 KB. Nothing in the log leaves your machine unless you attach it to a bug report yourself.</li>
     </ul>
 
@@ -184,11 +186,13 @@
     <p>Yield depends on:</p>
     <ul>
       <li><strong>Harvest and Forecast</strong> by Getharvest, Inc., for the time tracking and forecasting APIs. Their privacy practices are described at <a href="https://www.getharvest.com/privacy-policy">getharvest.com/privacy-policy</a>.</li>
+      <li><strong>Google Calendar</strong> (optional) — only when you connect it in Settings. Google's handling of your calendar data is described at <a href="https://policies.google.com/privacy">policies.google.com/privacy</a>. You can revoke Yield's access at any time from your <a href="https://myaccount.google.com/permissions">Google account permissions page</a>.</li>
       <li><strong>Sparkle</strong>, an open source updater framework, which periodically fetches an appcast file from GitHub to check whether a newer version of Yield is available. The request goes directly from your Mac to GitHub; we do not receive or log it.</li>
     </ul>
 
     <h2>Disconnecting and deleting your data</h2>
     <p>To disconnect Yield from your Harvest/Forecast account, open Settings inside the app and click <strong>Sign Out</strong>. This clears the OAuth tokens from your Keychain and the cached account identifiers from UserDefaults.</p>
+    <p>To disconnect Yield from Google Calendar, open Settings and click <strong>Disconnect</strong> on the Calendar card. This clears the Google OAuth tokens from your Keychain. To also revoke Yield's permission on Google's side, visit your <a href="https://myaccount.google.com/permissions">Google account permissions page</a>.</p>
     <p>To remove every trace of Yield from your Mac (preferences, favorites, logs, etc.), see the uninstall instructions in the <a href="https://github.com/vigetlabs/yield-app">repository README</a>.</p>
 
     <h2>Changes to this policy</h2>
