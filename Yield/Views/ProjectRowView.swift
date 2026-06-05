@@ -16,6 +16,10 @@ struct ProjectRowView: View {
     var onToggleEntryTimer: ((Int, Bool) -> Void)? = nil
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
+    /// Quick-start a fresh, immediately-running today timer that copies
+    /// a past-day entry's project, task, and note. Wired to each
+    /// drawer entry's "Continue today" affordance.
+    var onCopyEntryToToday: ((TimeEntryInfo) -> Void)? = nil
     var isHarvestDown: Bool = false
     var onStartTimerForProject: (() -> Void)? = nil
     /// Quick-start a timer using this project's most-recently-used
@@ -116,6 +120,9 @@ struct ProjectRowView: View {
                         },
                         onDeleteEntry: {
                             onDeleteEntry?(entry)
+                        },
+                        onCopyToToday: {
+                            onCopyEntryToToday?(entry)
                         }
                     )
                 }
@@ -689,7 +696,18 @@ struct TaskEntryRowView: View {
     var onToggleTimer: (() -> Void)? = nil
     var onEditEntry: (() -> Void)? = nil
     var onDeleteEntry: (() -> Void)? = nil
+    /// Quick-start a fresh timer on today by copying this entry's
+    /// project, task, and note. Only meaningful for entries on an
+    /// earlier day of the current week (the drawer is read-only for
+    /// past weeks), so the affordance is gated on `!isToday &&
+    /// !isReadOnly` at the call sites below.
+    var onCopyToToday: (() -> Void)? = nil
     @State private var isHovered: Bool = false
+    /// Second stage of the past-entry quick-action reveal: true when
+    /// the cursor is specifically over the trailing action zone (not
+    /// just the row). Drives the ellipsis-peek → bolt cross-fade,
+    /// mirroring the project header's two-stage hover behavior.
+    @State private var isActionZoneHovered: Bool = false
 
     private var hasNotes: Bool {
         if let notes = entry.notes, !notes.isEmpty { return true }
@@ -776,6 +794,55 @@ struct TaskEntryRowView: View {
                     destructiveOnHover: entry.isRunning
                 ))
                 .disabledWhenHarvestDown(isHarvestDown)
+            } else if !isReadOnly {
+                // Past-day entry in the current week: quick-start that
+                // copies project + task + note onto a fresh, immediately-
+                // running today timer. Two-stage reveal mirrors the
+                // project header so the row doesn't carry a permanent
+                // reserved slot:
+                //   - idle        → zone width 0 (no bump; hours + day
+                //                    label sit flush right)
+                //   - row hover   → 24pt ellipsis "peek" hints actions
+                //   - zone hover  → ellipsis cross-fades to the bolt
+                // Peek and reveal share the same 24pt width so the swap
+                // happens in place with no second reflow.
+                ZStack(alignment: .trailing) {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .opacity(isHovered && !isActionZoneHovered ? 1 : 0)
+
+                    // Styled to match the project-header quick-action
+                    // buttons (`quickActionButton`): plain style, 14pt
+                    // semibold glyph in textSecondary, 22pt hit frame —
+                    // no border/box, so the two quick-start affordances
+                    // read as the same control at different levels.
+                    Button(action: { onCopyToToday?() }) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(YieldColors.textSecondary)
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isHarvestDown)
+                    .opacity(isActionZoneHovered ? (isHarvestDown ? 0.4 : 1) : 0)
+                    .allowsHitTesting(isActionZoneHovered)
+                    .help("Continue today")
+                }
+                .frame(width: (isHovered || isActionZoneHovered) ? 22 : 0, alignment: .trailing)
+                .clipped()
+                // Grow the hit area to full row height so the cursor
+                // doesn't fall out of the zone above/below the icon,
+                // matching the header's action-zone behavior.
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        isActionZoneHovered = hovering
+                    }
+                }
             }
         }
         .padding(.leading, 32)
@@ -787,6 +854,15 @@ struct TaskEntryRowView: View {
         }
         .contextMenu {
             if !isReadOnly {
+                if !isToday {
+                    Button {
+                        onCopyToToday?()
+                    } label: {
+                        Label("Continue today", systemImage: "bolt.fill")
+                    }
+                    .disabled(isHarvestDown)
+                    Divider()
+                }
                 Button {
                     onEditEntry?()
                 } label: {

@@ -281,6 +281,20 @@ struct MenuBarContentView: View {
                     onDeleteEntry: { entry in
                         Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
                     },
+                    onCopyEntryToToday: { entry in
+                        // Copy project + task + note onto a fresh today
+                        // timer. Omitting `hours` makes Harvest auto-start
+                        // it running — the "quick start" behavior. Mirrors
+                        // the favorite quick-start path; no dedup against an
+                        // existing today entry, matching that flow.
+                        Task {
+                            await viewModel.startNewTimer(
+                                projectId: entry.harvestProjectId,
+                                taskId: entry.taskId,
+                                notes: entry.notes
+                            )
+                        }
+                    },
                     isHarvestDown: viewModel.isHarvestDown,
                     onStartTimerForProject: {
                         withAnimation(.easeInOut(duration: 0.2)) {
