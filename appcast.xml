@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.2.0</title>
+      <sparkle:version>56</sparkle:version>
+      <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Continue a task from an earlier day.</strong> Open a project's drawer and hover any entry from a previous day this week — a quick-start button appears (or right-click for "Continue today"). One click copies that entry's project, task, and note onto a fresh timer for today and starts it running immediately. No retyping, no form — just pick up where you left off.</li>
+          <li><strong>Under-the-hood reliability fixes.</strong> The Settings account and calendar cards now refresh correctly the instant you sign in or out (previously they could show stale state until something else redrew). A legacy Harvest access token left over from the pre-OAuth days is now migrated from preferences into the macOS Keychain on launch.</li>
+          <li><strong>Snappier menu bar panel.</strong> A pass over the busiest views trimmed redundant work that ran on every redraw — the weekday bar, the day-by-day project breakdown, the timer banner, and the Add Time form all do less per frame now. The running-timer colon also stops its per-second tick entirely when no timer is active.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.2.0/Yield-1.2.0.zip"
+        sparkle:edSignature="Ggkuxk1Ytx0JyI1xmhX1iRmA+ie8e6OFE3+m7a2PA5M3q+XRUT3FZEXetMst2xxesg2h4ZPlyqS60iPnMhBkBQ=="
+        length="2809239"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.1.0</title>
       <sparkle:version>55</sparkle:version>
       <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
