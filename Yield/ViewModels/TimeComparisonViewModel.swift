@@ -993,12 +993,23 @@ final class TimeComparisonViewModel {
         // the now-resolved outage, so reset both the deadline and the
         // failure counter — otherwise the *next* failure would jump
         // straight to the 15-minute backoff tier.
-        networkMonitor.start { [weak self] in
-            guard let self else { return }
-            self.softRefreshBackoffUntil = nil
-            self.consecutiveSoftFailures = 0
-            self.triggerSoftRefresh()
-        }
+        //
+        // The disconnect side flips the offline signal the moment the OS
+        // reports a (debounced) loss of path, so the menu bar shows the
+        // stale/offline state right away rather than waiting for the next
+        // soft refresh to fail. A subsequent successful fetch (triggered by
+        // the reconnect handler) clears it via `noteFetchSucceeded`.
+        networkMonitor.start(
+            onReconnect: { [weak self] in
+                guard let self else { return }
+                self.softRefreshBackoffUntil = nil
+                self.consecutiveSoftFailures = 0
+                self.triggerSoftRefresh()
+            },
+            onDisconnect: { [weak self] in
+                self?.hasConnectivityError = true
+            }
+        )
 
         activeRefreshTask = Task { @MainActor in
             await refresh()
