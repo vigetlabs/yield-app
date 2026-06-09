@@ -18,6 +18,7 @@
 		2501F935F826E25CC679DB9B /* RefreshPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97071C361541C20FA140647C /* RefreshPipelineTests.swift */; };
 		2D388FC29B1A836CDD8816E4 /* NotificationPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7FA56DB72AFA51348B3FA62 /* NotificationPermission.swift */; };
 		2D6EEE3A1EFE15E3B42ABA95 /* AccountCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EDD6AA15325039A0B16E66C /* AccountCard.swift */; };
+		2E3EF213E9BF83C9C8108519 /* ProjectTaskHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F4302B3CE68236C2898978 /* ProjectTaskHistoryStore.swift */; };
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
 		427EA4BFD575944A859EF6CF /* DoubleFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD48D786838656DCBEEFF94 /* DoubleFormattersTests.swift */; };
 		428D5AEC2E6086C0999F9F7E /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */; };
@@ -27,6 +28,7 @@
 		544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F394448517841A11132011C /* IdleAlertView.swift */; };
 		5B4B7C7E70A2D03365410F96 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA30B681B3132D09F66457E /* Sparkle */; };
 		6638A03EC4FE886C43CE7DF0 /* InlineConfirmationRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B350BDB5A8D9DFA6FD5A25 /* InlineConfirmationRow.swift */; };
+		66D7F234238C6D5934DEE795 /* ProjectTaskHistoryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0026089ABF0FF282F424F51 /* ProjectTaskHistoryStoreTests.swift */; };
 		6896DD5E5422A90D15079702 /* FavoritesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E94426C9C0E4E25B82D38C9 /* FavoritesCard.swift */; };
 		6D3714E9FAACD01B8271FB55 /* MeetingHistoryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3F7C76872263B8A84769C2 /* MeetingHistoryStoreTests.swift */; };
 		6D46A5BB044C89897B4AB4D9 /* OAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C069FFB775F69282E721C8 /* OAuthService.swift */; };
@@ -115,6 +117,7 @@
 		493154965F6E3C54AE30AA43 /* ServiceWarningBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceWarningBanner.swift; sourceTree = "<group>"; };
 		68B350BDB5A8D9DFA6FD5A25 /* InlineConfirmationRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineConfirmationRow.swift; sourceTree = "<group>"; };
 		6CD7C88B49D2E0356F35FCF4 /* Newsreader-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Newsreader-Regular.ttf"; sourceTree = "<group>"; };
+		70F4302B3CE68236C2898978 /* ProjectTaskHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectTaskHistoryStore.swift; sourceTree = "<group>"; };
 		77C42827589B10C29C0772BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectRowView.swift; sourceTree = "<group>"; };
 		7AC15EED42FBAABA8E309340 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
@@ -157,6 +160,7 @@
 		E6AE4314E6BA70459850E000 /* Yield.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Yield.entitlements; sourceTree = "<group>"; };
 		EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastService.swift; sourceTree = "<group>"; };
 		ECA417D28206A2DBE49C1D74 /* ProjectStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStatus.swift; sourceTree = "<group>"; };
+		F0026089ABF0FF282F424F51 /* ProjectTaskHistoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectTaskHistoryStoreTests.swift; sourceTree = "<group>"; };
 		F160FBF429C939C04135CD72 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F2BD4C5582428B3456F726D2 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultsKey.swift; sourceTree = "<group>"; };
@@ -256,6 +260,7 @@
 				1B3F7C76872263B8A84769C2 /* MeetingHistoryStoreTests.swift */,
 				C8D171E67D1EF700B24DDAB9 /* OptimisticTimerTests.swift */,
 				CA00826B19142EA4BF7E31AE /* ProjectStatusTests.swift */,
+				F0026089ABF0FF282F424F51 /* ProjectTaskHistoryStoreTests.swift */,
 				97071C361541C20FA140647C /* RefreshPipelineTests.swift */,
 			);
 			path = YieldTests;
@@ -293,6 +298,7 @@
 				A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */,
 				C7FA56DB72AFA51348B3FA62 /* NotificationPermission.swift */,
 				38C069FFB775F69282E721C8 /* OAuthService.swift */,
+				70F4302B3CE68236C2898978 /* ProjectTaskHistoryStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -470,6 +476,7 @@
 				6D3714E9FAACD01B8271FB55 /* MeetingHistoryStoreTests.swift in Sources */,
 				977BD90BD8F50FCFC47E7B4A /* OptimisticTimerTests.swift in Sources */,
 				B1E1DB795329B77618CC033D /* ProjectStatusTests.swift in Sources */,
+				66D7F234238C6D5934DEE795 /* ProjectTaskHistoryStoreTests.swift in Sources */,
 				2501F935F826E25CC679DB9B /* RefreshPipelineTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -518,6 +525,7 @@
 				232E3E8034BF33986F220DD0 /* ProjectChartView.swift in Sources */,
 				0A4CD72A293DB291F4C6F20D /* ProjectRowView.swift in Sources */,
 				CB09C6FE3EFC23724CEBE6BA /* ProjectStatus.swift in Sources */,
+				2E3EF213E9BF83C9C8108519 /* ProjectTaskHistoryStore.swift in Sources */,
 				C26E6ADF39EAB91FF9DBCF7F /* ServiceWarningBanner.swift in Sources */,
 				7A5A5DCB1FD15587A437A0BD /* SettingsCardSectionHeader.swift in Sources */,
 				EE882AB59C60F5BAE74C3B8A /* SettingsView.swift in Sources */,

@@ -1627,6 +1627,11 @@ final class TimeComparisonViewModel {
             if hours != nil {
                 _ = try await harvestService.restartTimer(entryId: created.id)
             }
+            // Feed the implicit per-project "soft favorite" inference. Only
+            // on success, so a failed create doesn't teach a false
+            // preference. Covers every running-timer create path: the form,
+            // the per-project quick-start, and Continue-today.
+            ProjectTaskHistoryStore.shared.record(projectId: projectId, taskId: taskId)
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
@@ -1647,6 +1652,9 @@ final class TimeComparisonViewModel {
                 notes: notes,
                 spentDate: spentDate
             )
+            // Feed the soft-favorite inference on a successful logged entry,
+            // same as the running-timer path above.
+            ProjectTaskHistoryStore.shared.record(projectId: projectId, taskId: taskId)
             await refresh()
         } catch {
             errorMessage = error.localizedDescription

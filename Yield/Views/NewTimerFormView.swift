@@ -703,12 +703,20 @@ struct NewTimerFormView: View {
         duplicateConfirmEntries = nil
         availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
         // Auto-select preference order:
-        //   1. Most-recently-used favorite for this project (covers
-        //      both single-favorite and multi-favorite cases)
-        //   2. Project's only task, if there's just one
+        //   1. Most-recently-used hard favorite for this project (explicit
+        //      user intent; covers single- and multi-favorite cases).
+        //   2. Soft favorite — the task the user tends to log on this
+        //      project lately (recency-weighted frequency). Fills the gap
+        //      when nothing's been explicitly starred.
+        //   3. Project's only task, if there's just one.
+        // Each candidate is guarded against staleness (the stored task may
+        // have since been unassigned from the project).
         if let fav = FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: project.harvestProjectId),
            availableTasks.contains(where: { $0.id == fav.taskId }) {
             selectTask(fav.taskId)
+        } else if let softTaskId = ProjectTaskHistoryStore.shared.bestTask(forProjectId: project.harvestProjectId),
+                  availableTasks.contains(where: { $0.id == softTaskId }) {
+            selectTask(softTaskId)
         } else if let onlyTask = availableTasks.first, availableTasks.count == 1 {
             selectTask(onlyTask.id)
         }

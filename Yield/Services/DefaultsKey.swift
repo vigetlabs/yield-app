@@ -29,6 +29,10 @@ enum DefaultsKey {
     /// title matches a previous time entry's notes. See
     /// `MeetingHistoryStore`.
     static let meetingHistory = "meetingHistory"
+    /// Cap-bounded per-project task usage scores (recency-weighted
+    /// frequency) powering the implicit "soft favorite" task pre-fill in
+    /// the new-timer form. See `ProjectTaskHistoryStore`.
+    static let projectTaskHistory = "projectTaskHistory"
     /// Cached Forecast project id for the global "Time Off" project,
     /// so the first refresh after relaunch doesn't pay for a second
     /// lookup. See TimeComparisonViewModel.
