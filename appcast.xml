@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.2.1</title>
+      <sparkle:version>57</sparkle:version>
+      <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Going offline shows immediately.</strong> When your connection drops, the menu bar flips to its offline indicator within a couple of seconds instead of waiting up to a minute for the next background refresh to fail. Brief blips from switching between Wi-Fi and Ethernet (or a VPN reconnect) won't flicker it.</li>
+          <li><strong>The Add Time form now remembers your habits.</strong> Picking a project pre-selects the task you usually log on it lately — no star required. Your explicit favorites still take precedence; this just fills the gap on projects you never got around to starring. One stray entry won't change a settled habit, but the suggestion follows along when your work on a project genuinely shifts.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.2.1/Yield-1.2.1.zip"
+        sparkle:edSignature="CcxmvULoTavUa6iloVte1qjpnNSesW0XJ8NdFr9ZeCeQPEezYXA5elVlrxgW1b+9S2nKksncvysb+DVkxskXBw=="
+        length="2834671"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.2.0</title>
       <sparkle:version>56</sparkle:version>
       <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
