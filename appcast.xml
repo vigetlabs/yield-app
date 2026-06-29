@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.3.0</title>
+      <sparkle:version>58</sparkle:version>
+      <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Heads-up when you're booked but not on the project in Harvest.</strong> If you have time booked in Forecast for a project you haven't been added to in Harvest, the project row now shows a warning badge — hover it for the details. The booked hours still show so you know what you're meant to work on, and the row points you to ask a project admin to add you in Harvest so you can log time against it.</li>
+          <li>Logging time for one of those projects no longer dead-ends silently. Instead of a form where the project mysteriously can't be selected, you'll get a clear explanation of why and what to do about it.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.3.0/Yield-1.3.0.zip"
+        sparkle:edSignature="QYwZSlh1VGnxszXJPLdcI6vFpn8KGwsvNb6MsoLrdIGHcEQ4g/WS6WPQGBMRL7pLWu0dLiZIOrM1BUl+ALJXAA=="
+        length="2848888"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.2.1</title>
       <sparkle:version>57</sparkle:version>
       <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
