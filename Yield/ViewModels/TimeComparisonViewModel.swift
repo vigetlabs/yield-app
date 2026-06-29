@@ -631,6 +631,18 @@ final class TimeComparisonViewModel {
     }
     private var cachedHarvestUserId: Int?
     private var cachedForecastPersonId: Int?
+    /// Harvest project IDs the current user is an active member of —
+    /// the projects they can actually log time against. `nil` means
+    /// "not yet known" (don't flag anything); a populated set is
+    /// authoritative. Refreshed on every hard refresh and opportunis-
+    /// tically by `fetchAllProjects()` (the new-timer form), so the
+    /// `.unassigned` flag clears soon after an admin adds the user.
+    /// Cross-referenced against each booked project's `harvestId` to
+    /// derive `ProjectStatus.harvestLinkState`. Internal (not private)
+    /// only so tests can seed it; production mutates it through the
+    /// refresh path and `fetchAllProjects()`.
+    @ObservationIgnored
+    var assignedHarvestProjectIds: Set<Int>?
 
     enum AuthMode {
         case oauth, pat, none
@@ -894,6 +906,21 @@ final class TimeComparisonViewModel {
         return .calendar
     }
 
+    /// Classify a booked Forecast project's Harvest connection for the
+    /// current user. `nil` harvestId → prospective (no Harvest project
+    /// yet). Otherwise check membership against
+    /// `assignedHarvestProjectIds`: if the set is unknown (not yet
+    /// fetched), or the user has logged time to the project (proof of
+    /// membership even if the assignments call lagged), treat as linked
+    /// — never false-flag. Only a positively-known set that omits the
+    /// project yields `.unassigned`.
+    private func harvestLinkState(forHarvestId harvestId: Int?, logged: Double) -> ProjectStatus.HarvestLinkState {
+        guard let harvestId else { return .prospective }
+        guard let assigned = assignedHarvestProjectIds else { return .linked }
+        if assigned.contains(harvestId) || logged > 0 { return .linked }
+        return .unassigned
+    }
+
     func effectiveLoggedHours(for project: ProjectStatus) -> Double {
         // Always the week total (plus live-ticking offset when tracking).
         // A day filter changes what's shown inside the drawer via
@@ -1091,6 +1118,7 @@ final class TimeComparisonViewModel {
         cachedForecastNotes = [:]
         cachedHarvestUserId = nil
         cachedForecastPersonId = nil
+        assignedHarvestProjectIds = nil
     }
 
     @MainActor
@@ -1552,6 +1580,15 @@ final class TimeComparisonViewModel {
 
         let assignments = try await harvestService.getMyProjectAssignments()
 
+        // Opportunistically refresh the membership set the row flag
+        // depends on — the form already paid for this fetch, so the
+        // `.unassigned` badge updates the next time the panel renders
+        // (e.g. right after an admin adds the user and they open the
+        // form to try again).
+        assignedHarvestProjectIds = Set(
+            assignments.filter { $0.isActive }.map { $0.project.id }
+        )
+
         return assignments
             .filter { $0.isActive }
             .map { assignment in
@@ -1914,10 +1951,21 @@ final class TimeComparisonViewModel {
                     to: weekDates.end
                 )
                 async let runningEntries = harvestService.getRunningTimeEntries(userId: userId)
+                // The user's Harvest project memberships, fetched
+                // concurrently. Best-effort: on failure we keep the
+                // prior set (or nil) rather than wiping it, so a flaky
+                // response can't false-flag every project as
+                // unassigned. Drives `harvestLinkState`.
+                async let projectAssignments = harvestService.getMyProjectAssignments()
                 let dateRangeEntries = try await weekEntries
                 let extraRunning = ((try? await runningEntries) ?? [])
                     .filter { running in !dateRangeEntries.contains(where: { $0.id == running.id }) }
                 entries = dateRangeEntries + extraRunning
+                if let assignments = try? await projectAssignments {
+                    assignedHarvestProjectIds = Set(
+                        assignments.filter { $0.isActive }.map { $0.project.id }
+                    )
+                }
             } catch {
                 serviceErrors.append(ServiceError(service: .harvest, message: friendlyErrorMessage(error)))
                 throw error
@@ -2174,7 +2222,8 @@ final class TimeComparisonViewModel {
                     todayEntryId: todayEntry?.id,
                     lastTaskId: (latestEntry ?? todayEntry)?.taskAssignment?.task?.id,
                     timeEntries: Self.makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? []),
-                    forecastNotes: notesByForecastProject[forecastProjectId]
+                    forecastNotes: notesByForecastProject[forecastProjectId],
+                    harvestLinkState: harvestLinkState(forHarvestId: harvestId, logged: logged)
                 ))
             }
 

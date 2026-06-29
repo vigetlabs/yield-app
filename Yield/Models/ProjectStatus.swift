@@ -42,6 +42,31 @@ struct ProjectStatus: Identifiable {
     /// assignments for this project (nil if none). Multiple assignments
     /// with notes are joined with a blank line between them.
     let forecastNotes: String?
+    /// How this project's Forecast booking connects to Harvest for the
+    /// current user — which determines whether they can actually log
+    /// time against it. Defaults to `.linked` so the many existing
+    /// constructors (snapshots, tests) stay valid and never false-flag;
+    /// the current-week refresh sets the real value. Effectively
+    /// immutable post-construction (var only to get a defaulted
+    /// memberwise-init parameter).
+    var harvestLinkState: HarvestLinkState = .linked
+
+    /// The three ways a booked project can relate to Harvest:
+    /// - `.linked`: a Harvest project exists and the user can log to it
+    ///   (they're a member, or it's a Harvest-only project they already
+    ///   track). The normal, actionable case.
+    /// - `.prospective`: no Harvest project linked yet (proposal /
+    ///   proposal-stage Forecast booking). Booked hours show, but
+    ///   there's nothing to track against — by design.
+    /// - `.unassigned`: a Harvest project exists, but the user isn't a
+    ///   member of it. They're booked in Forecast and can see what
+    ///   they're meant to work on, but Harvest will reject any time
+    ///   entry until an admin adds them. Surfaced with a warning badge.
+    enum HarvestLinkState: Equatable {
+        case linked
+        case prospective
+        case unassigned
+    }
 
     var delta: Double { loggedHours - bookedHours }
 

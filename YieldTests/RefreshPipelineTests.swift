@@ -395,4 +395,101 @@ final class RefreshPipelineTests: XCTestCase {
         )
         XCTAssertEqual(vm.projectStatuses[0].status, .over)
     }
+
+    // MARK: - Harvest link state (booked-but-unassigned detection)
+
+    /// Look up a forecast-derived status by its Forecast project id.
+    private func forecastStatus(_ vm: TimeComparisonViewModel, _ forecastId: Int) -> ProjectStatus? {
+        vm.projectStatuses.first { $0.id == "forecast-\(forecastId)" }
+    }
+
+    func test_linkState_prospective_whenNoHarvestId() {
+        let vm = makeVM()
+        vm.assignedHarvestProjectIds = [500]
+        vm.applyRefreshedData(
+            entries: [],
+            bookedByForecastProject: [10: 8.0],
+            projectMap: [10: forecastProject(id: 10, name: "Proposal", harvestId: nil)],
+            clientMap: [:],
+            timeOffBlock: nil,
+            notesByForecastProject: [:]
+        )
+        XCTAssertEqual(forecastStatus(vm, 10)?.harvestLinkState, .prospective)
+    }
+
+    func test_linkState_linked_whenUserIsAssigned() {
+        let vm = makeVM()
+        vm.assignedHarvestProjectIds = [500]
+        vm.applyRefreshedData(
+            entries: [],
+            bookedByForecastProject: [10: 8.0],
+            projectMap: [10: forecastProject(id: 10, name: "Acme", harvestId: 500)],
+            clientMap: [:],
+            timeOffBlock: nil,
+            notesByForecastProject: [:]
+        )
+        XCTAssertEqual(forecastStatus(vm, 10)?.harvestLinkState, .linked)
+    }
+
+    func test_linkState_unassigned_whenLinkedButNotAMember() {
+        // Booked on harvest project 600, but the user is only on 500.
+        let vm = makeVM()
+        vm.assignedHarvestProjectIds = [500]
+        vm.applyRefreshedData(
+            entries: [],
+            bookedByForecastProject: [11: 4.0],
+            projectMap: [11: forecastProject(id: 11, name: "NotAMember", harvestId: 600)],
+            clientMap: [:],
+            timeOffBlock: nil,
+            notesByForecastProject: [:]
+        )
+        XCTAssertEqual(forecastStatus(vm, 11)?.harvestLinkState, .unassigned)
+    }
+
+    func test_linkState_failsSafeToLinked_whenMembershipUnknown() {
+        // No assignment set fetched yet → never false-flag.
+        let vm = makeVM()
+        vm.assignedHarvestProjectIds = nil
+        vm.applyRefreshedData(
+            entries: [],
+            bookedByForecastProject: [11: 4.0],
+            projectMap: [11: forecastProject(id: 11, name: "Unknown", harvestId: 600)],
+            clientMap: [:],
+            timeOffBlock: nil,
+            notesByForecastProject: [:]
+        )
+        XCTAssertEqual(forecastStatus(vm, 11)?.harvestLinkState, .linked)
+    }
+
+    func test_linkState_loggedTimeProvesMembership_evenIfNotInSet() {
+        // The assignment fetch can lag, but logged time is proof the
+        // user can track against the project — don't flag it.
+        let vm = makeVM()
+        vm.assignedHarvestProjectIds = [500]
+        vm.applyRefreshedData(
+            entries: [entry(id: 1, projectId: 600, hours: 2.0)],
+            bookedByForecastProject: [11: 4.0],
+            projectMap: [11: forecastProject(id: 11, name: "HasLoggedTime", harvestId: 600)],
+            clientMap: [:],
+            timeOffBlock: nil,
+            notesByForecastProject: [:]
+        )
+        XCTAssertEqual(forecastStatus(vm, 11)?.harvestLinkState, .linked)
+    }
+
+    func test_linkState_harvestOnlyProject_isLinked() {
+        // Logged-but-not-booked projects are always linked — you logged
+        // time, so you're a member.
+        let vm = makeVM()
+        vm.assignedHarvestProjectIds = []
+        vm.applyRefreshedData(
+            entries: [entry(id: 1, projectId: 700, hours: 3.0)],
+            bookedByForecastProject: [:],
+            projectMap: [:],
+            clientMap: [:],
+            timeOffBlock: nil,
+            notesByForecastProject: [:]
+        )
+        XCTAssertEqual(vm.projectStatuses.first { $0.id == "harvest-700" }?.harvestLinkState, .linked)
+    }
 }

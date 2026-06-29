@@ -73,6 +73,7 @@
 		DD5B690291EBA5B1C1FB36F3 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A0F29CD8D3681B5AF53341 /* APIClient.swift */; };
 		E06685FE380D69C1A83B581B /* LogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 381BBDC41541927F83D08FC9 /* LogStore.swift */; };
 		E334718332CF138B1EAC4ADF /* ForecastModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */; };
+		E5313E47A1EB9F49F7167096 /* HarvestUnassignedIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F63540F6619ABDAA4C196355 /* HarvestUnassignedIcon.swift */; };
 		E668F374FE5C32E40B8F3CCE /* MenuBarStatusItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457D60FE27EF219D36D1901E /* MenuBarStatusItem.swift */; };
 		EA70B3A5695C4282ACE6316F /* BudgetNotificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168140D146C953F805F0D8AE /* BudgetNotificationTests.swift */; };
 		EE882AB59C60F5BAE74C3B8A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF707BC7919EFF060031F5B9 /* SettingsView.swift */; };
@@ -163,6 +164,7 @@
 		F0026089ABF0FF282F424F51 /* ProjectTaskHistoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectTaskHistoryStoreTests.swift; sourceTree = "<group>"; };
 		F160FBF429C939C04135CD72 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F2BD4C5582428B3456F726D2 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		F63540F6619ABDAA4C196355 /* HarvestUnassignedIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestUnassignedIcon.swift; sourceTree = "<group>"; };
 		F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultsKey.swift; sourceTree = "<group>"; };
 		FBD48D786838656DCBEEFF94 /* DoubleFormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleFormattersTests.swift; sourceTree = "<group>"; };
 		FEA76C955D9D91DB7C944F6F /* DMSans-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -309,6 +311,7 @@
 				DE23809963F31EA6370A8FD9 /* CalendarEventPickerView.swift */,
 				82BA76EB59241974EF71AF53 /* DropdownPicker.swift */,
 				7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */,
+				F63540F6619ABDAA4C196355 /* HarvestUnassignedIcon.swift */,
 				9F394448517841A11132011C /* IdleAlertView.swift */,
 				68B350BDB5A8D9DFA6FD5A25 /* InlineConfirmationRow.swift */,
 				1DCB0B20EC3D0FF46A1DA250 /* LookAheadRowView.swift */,
@@ -507,6 +510,7 @@
 				8324AA3F5CF8FBC4782301B1 /* HarvestModels.swift in Sources */,
 				C4E96F0745CED0E60BA91284 /* HarvestService.swift in Sources */,
 				95E28CA5455CF73C33B3F1F4 /* HarvestStatusService.swift in Sources */,
+				E5313E47A1EB9F49F7167096 /* HarvestUnassignedIcon.swift in Sources */,
 				544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */,
 				6638A03EC4FE886C43CE7DF0 /* InlineConfirmationRow.swift in Sources */,
 				DAC3301F5AA18C5088CC521C /* KeychainHelper.swift in Sources */,

@@ -178,6 +178,14 @@ enum YieldStatusColors {
         light: NSColor(red: 0.722, green: 0.153, blue: 0.435, alpha: 1.0),  // #B8276F — 5.4:1 on light bg
         dark:  NSColor(red: 0.941, green: 0.365, blue: 0.627, alpha: 1.0)   // #F05DA0 — 5.0:1 on dark bg
     )
+    /// Warning amber — a real, actionable problem that isn't an error:
+    /// a project booked in Forecast the user isn't a member of in
+    /// Harvest. Status line + the row's unassigned badge. WCAG-checked
+    /// against both backgrounds.
+    static let warning = dynamicColor(
+        light: NSColor(red: 0.580, green: 0.380, blue: 0.0,   alpha: 1.0),  // #946100 — 4.6:1 on light bg
+        dark:  NSColor(red: 1.0,   green: 0.831, blue: 0.286, alpha: 1.0)   // #FFD449 — 11.9:1 on dark bg
+    )
 }
 
 enum YieldRadius {

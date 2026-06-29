@@ -28,6 +28,10 @@ struct NewTimerFormView: View {
     @State private var availableTasks: [TaskOption] = []
     @State private var spentDate: Date = Date()
     @State private var duplicateConfirmEntries: [TimeEntryInfo]?
+    /// Set when the form opened with a preselected project the user
+    /// isn't a Harvest member of, so the picker can't select it. Drives
+    /// an explanatory banner instead of a silent empty picker.
+    @State private var unselectableProjectName: String?
     @State private var showDeleteConfirm = false
     /// Toggled by the calendar icon next to the time field. When
     /// true the form's body is replaced inline by
@@ -222,6 +226,10 @@ struct NewTimerFormView: View {
                 // a "Favorites" button sits inline with the project
                 // picker — opens a popover for one-tap selection of a
                 // saved combo.
+                if let unselectableProjectName {
+                    unassignedBanner(projectName: unselectableProjectName)
+                }
+
                 HStack(alignment: .center, spacing: 8) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 8) {
@@ -380,10 +388,22 @@ struct NewTimerFormView: View {
                     availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
                 }
                 selectedTaskId = entry.taskId
-            } else if let projectId = preselectedProjectId,
-                      let project = allProjects.first(where: { $0.harvestProjectId == projectId }) {
-                // Pre-selected project: populate project and load its tasks
-                selectProject(project)
+            } else if let projectId = preselectedProjectId {
+                if let project = allProjects.first(where: { $0.harvestProjectId == projectId }) {
+                    // Pre-selected project: populate project and load its tasks
+                    selectProject(project)
+                } else {
+                    // The project was preselected but isn't in the user's
+                    // Harvest assignments — almost always "booked in
+                    // Forecast, not a member in Harvest." Surface a clear
+                    // explanation instead of silently leaving the picker
+                    // empty (the old dead-end). Row quick-actions are
+                    // already gated for this state; this guard covers any
+                    // remaining path here.
+                    unselectableProjectName = viewModel.projectStatuses
+                        .first { $0.harvestProjectId == projectId }?
+                        .displayName ?? "this project"
+                }
             }
         }
     }
@@ -850,6 +870,26 @@ struct NewTimerFormView: View {
     }
 
     // MARK: - Duplicate Confirmation
+
+    /// Shown when the form opened on a project the user is booked on in
+    /// Forecast but isn't a member of in Harvest — Harvest won't accept
+    /// a time entry until an admin adds them. Replaces the old silent
+    /// dead-end (empty picker, nothing selectable, no explanation).
+    private func unassignedBanner(projectName: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                .font(.system(size: 11))
+                .foregroundStyle(YieldStatusColors.warning)
+            Text("You're booked on \(projectName) in Forecast but aren't a member of it in Harvest, so it can't be selected here. Ask a project admin to add you in Harvest, then try again.")
+                .font(YieldFonts.dmSans(11))
+                .foregroundStyle(YieldColors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(YieldStatusColors.warning.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
+    }
 
     private func duplicateConfirmBanner(entries: [TimeEntryInfo]) -> some View {
         let totalHours = entries.reduce(0.0) { $0 + $1.hours }

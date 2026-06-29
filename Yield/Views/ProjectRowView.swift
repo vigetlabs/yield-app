@@ -192,6 +192,14 @@ struct ProjectRowView: View {
                             .foregroundStyle(YieldColors.textPrimary)
                             .lineLimit(1)
 
+                        // Booked in Forecast, but the user isn't a
+                        // member of the Harvest project — can't log time
+                        // until an admin adds them. Booked hours still
+                        // show in full; this just flags the gap.
+                        if project.harvestLinkState == .unassigned {
+                            HarvestUnassignedIcon(projectName: project.displayName)
+                        }
+
                         if hasEntries {
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 9, weight: .semibold))
@@ -286,7 +294,12 @@ struct ProjectRowView: View {
     // MARK: - Hover Quick-Action Buttons
 
     private var hasOverflowActions: Bool {
-        !isReadOnly && project.harvestProjectId != nil
+        // `.unassigned` is treated like `.prospective` for interaction:
+        // every quick action (Add Time, Quick Start, Resume) would
+        // dead-end because Harvest rejects time entries on projects the
+        // user isn't a member of. The warning badge explains why; we
+        // just don't offer actions that can't work. `.linked` only.
+        !isReadOnly && project.harvestProjectId != nil && project.harvestLinkState == .linked
     }
 
     /// Number of quick-action buttons that will render for this row.
@@ -379,11 +392,16 @@ struct ProjectRowView: View {
     /// Color of the leading status line.
     /// - Clear: project has no booking (Harvest-only tracked time)
     /// - Pink: prospective / proposal-stage (booked but no Harvest link)
+    /// - Amber: booked but the user isn't a member of the Harvest
+    ///   project (the warning badge by the name carries the detail)
     /// - White: normal booked project
     private var statusLineColor: Color {
         guard project.isForecasted else { return .clear }
-        if project.harvestProjectId == nil { return YieldStatusColors.prospective }
-        return YieldColors.onBackground.opacity(0.7)
+        switch project.harvestLinkState {
+        case .prospective: return YieldStatusColors.prospective
+        case .unassigned:  return YieldStatusColors.warning
+        case .linked:      return YieldColors.onBackground.opacity(0.7)
+        }
     }
 
     // MARK: - Time Label
