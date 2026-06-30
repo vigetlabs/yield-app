@@ -11,6 +11,17 @@ Cut a new release of the Yield macOS app. The argument is the version number (e.
 
 If `$ARGUMENTS` is empty, read the current `MARKETING_VERSION` from `project.yml` and ask the user what version to release.
 
+## Execution discipline (read first)
+
+This pipeline is a long run of repetitive shell + edit steps, which makes it easy to slip into *describing* a command instead of *running* it. Two rules:
+
+1. **Every step is a real tool call** — an actual `Bash` or `Edit` invocation, never command text pasted into your reply. If you catch yourself writing out a command in prose or a code fence as if it ran, stop: it did not run. Re-issue it as a genuine tool call.
+2. **Confirm each step produced a tool result before moving on.** If a step yields no output/result, you emitted it as text rather than executing it — redo it as a tool call. Don't advance the pipeline on an assumed result; every command here has observable output (test summary, `** ARCHIVE SUCCEEDED **`, notarization `status: Accepted`, a commit hash, a release URL). No output = it didn't happen.
+
+## Known account-level snag: notarization 403
+
+If `notarytool submit` fails with `HTTP status code: 403. A required agreement is missing or has expired`, this is **not** a build problem — Apple has a pending legal agreement that freezes notarization. Tell the user to sign in at developer.apple.com/account (as Account Holder for team 7G49Y875S8), accept any pending agreement banner (usually the Apple Developer Program License Agreement; also check App Store Connect → Agreements, Tax, and Banking), and that membership isn't lapsed. Acceptance can take a few minutes to propagate. The archive/signed app/zip remain valid in `/tmp` — just re-run from the notarization step once they confirm. Don't tight-loop the endpoint; retry on the user's go-ahead.
+
 ## Process
 
 Execute each step in order. If any step fails, stop immediately and report the error — do not continue to subsequent steps.
