@@ -22,10 +22,11 @@ struct ProjectRowView: View {
     var onCopyEntryToToday: ((TimeEntryInfo) -> Void)? = nil
     var isHarvestDown: Bool = false
     var onStartTimerForProject: (() -> Void)? = nil
-    /// Quick-start a timer using this project's most-recently-used
-    /// favorite task, bypassing the new-timer form. Wired only when
-    /// `FavoritesStore` has a favorite for `project.harvestProjectId`.
-    /// Receives `(projectId, taskId)` for the favorite to start.
+    /// Quick-start a timer for this project, bypassing the new-timer
+    /// form. The task is resolved by `quickStartTaskId(for:)` — the
+    /// explicit hard favorite when one exists, otherwise the inferred
+    /// "soft favorite" (the task the user tends to log on this project
+    /// lately). Receives `(projectId, taskId)`.
     var onQuickStartFavorite: ((Int, Int) -> Void)? = nil
     /// Restart this project's most recent today entry. Shown in the
     /// right-click menu when there's a today entry on the project and
@@ -304,13 +305,27 @@ struct ProjectRowView: View {
 
     /// Number of quick-action buttons that will render for this row.
     /// Add Time is always present (when actionable); Resume and Quick
-    /// Start are conditional on entry/favorite state.
+    /// Start are conditional on entry / favorite state. Must stay in
+    /// lockstep with `quickActionsBar` — the reveal-zone width is sized
+    /// from this count.
     private var quickActionCount: Int {
         guard let projectId = project.harvestProjectId else { return 0 }
         var count = 1 // Add Time
         if !project.isTracking, project.todayEntryId != nil { count += 1 }
-        if FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: projectId) != nil { count += 1 }
+        if quickStartTaskId(for: projectId) != nil { count += 1 }
         return count
+    }
+
+    /// The task Quick Start would launch for this project: the hard
+    /// favorite (explicit user intent) when present, otherwise the
+    /// soft favorite inferred from usage. `nil` when the project has
+    /// neither — no bolt shown. Mirrors the new-timer form's
+    /// hard-then-soft auto-select precedence.
+    private func quickStartTaskId(for projectId: Int) -> Int? {
+        if let favorite = FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: projectId) {
+            return favorite.taskId
+        }
+        return ProjectTaskHistoryStore.shared.bestTask(forProjectId: projectId)
     }
 
     /// Full natural width of the action bar: 22pt per button, 4pt
@@ -352,9 +367,9 @@ struct ProjectRowView: View {
                         onResumeToday?(entryId)
                     }
                 }
-                if let favorite = FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: projectId) {
+                if let taskId = quickStartTaskId(for: projectId) {
                     quickActionButton(systemImage: "bolt.fill", help: "Quick Start") {
-                        onQuickStartFavorite?(projectId, favorite.taskId)
+                        onQuickStartFavorite?(projectId, taskId)
                     }
                 }
                 quickActionButton(systemImage: "plus.circle.fill", help: "Add Time") {
