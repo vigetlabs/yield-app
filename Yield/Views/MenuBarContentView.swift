@@ -270,6 +270,7 @@ struct MenuBarContentView: View {
                     effectiveLoggedHours: viewModel.effectiveLoggedHours(for: project),
                     visibleEntries: viewModel.visibleEntries(for: project),
                     dayFilteredHours: viewModel.dayFilteredHours(for: project),
+                    selectedDay: viewModel.dayFilter,
                     onToggleEntryTimer: { entryId, isRunning in
                         Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: isRunning) }
                     },

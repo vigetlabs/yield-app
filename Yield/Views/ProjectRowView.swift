@@ -13,6 +13,10 @@ struct ProjectRowView: View {
     /// contributes to the week total. Progress bar still reflects the
     /// week against booked.
     var dayFilteredHours: Double? = nil
+    /// The day the weekday filter is focused on (YYYY-MM-DD), when active.
+    /// The day-grid bar still renders every day's hours, but fades the
+    /// non-selected days back so this one's segment reads as the focus.
+    var selectedDay: String? = nil
     var onToggleEntryTimer: ((Int, Bool) -> Void)? = nil
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
@@ -98,13 +102,17 @@ struct ProjectRowView: View {
             VStack(spacing: 0) {
                 if project.isForecasted || !visibleEntries.isEmpty {
                     SegmentedProgressBarView(
-                        entries: visibleEntries,
+                        // Always the full week's entries so every day's
+                        // segment renders, even under a day filter — the
+                        // filter dims the other days rather than hiding them.
+                        entries: project.timeEntries,
                         todayEffectiveHours: effectiveTodayHours,
                         booked: project.bookedHours,
                         isDrawerExpanded: isExpanded,
                         dailyTarget: DateHelpers.dailyHours(fromWeekly: Double(weeklyHoursTarget)),
                         showWeekend: weekHasWeekendActivity,
-                        weekStart: weekStart
+                        weekStart: weekStart,
+                        selectedDay: selectedDay
                     )
                     // Left padding matches the task-entry text indent (32)
                     // so the bar aligns with the rows below it. Top padding
@@ -587,6 +595,10 @@ struct SegmentedProgressBarView: View {
     /// week; pass a different value when rendering a past-week snapshot
     /// so the day grid matches the entries' spent_date values.
     var weekStart: Date? = nil
+    /// When a day filter is active (YYYY-MM-DD), this day's cell stays at
+    /// full strength while the others fade back — highlighting the focused
+    /// day without hiding the rest of the week.
+    var selectedDay: String? = nil
 
     /// Scales every fill from 0 → 1. Animated to 1 when the parent
     /// drawer opens and snapped back to 0 when it closes, giving a "fill
@@ -714,11 +726,22 @@ struct SegmentedProgressBarView: View {
                 }
                 .frame(width: cellWidth, height: 8)
                 .clipShape(RoundedRectangle(cornerRadius: 2))
-                .opacity(cell.isToday ? 1.0 : 0.75)
+                .opacity(cellOpacity(for: cell))
+                .animation(.easeInOut(duration: 0.2), value: selectedDay)
                 .help("\(cell.label): \(formatHMColon(cell.actualHours))")
             }
         }
         .frame(width: totalWidth, height: 8, alignment: .leading)
+    }
+
+    /// Per-cell strength. Under a day filter the focused day stays full
+    /// and the rest fade well back so the selection reads as a spotlight;
+    /// with no filter, today gets a gentle lift over the other days.
+    private func cellOpacity(for cell: DayCell) -> Double {
+        if let selectedDay {
+            return cell.id == selectedDay ? 1.0 : 0.3
+        }
+        return cell.isToday ? 1.0 : 0.75
     }
 
     /// Format hours as "H:MM" (e.g. 3.25 → "3:15"). Tooltip-friendly.
