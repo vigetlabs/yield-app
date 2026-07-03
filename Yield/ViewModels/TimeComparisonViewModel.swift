@@ -486,6 +486,19 @@ final class TimeComparisonViewModel {
         return transitionSnapshot.statuses
     }
 
+    /// True when any project in the displayed week logged time on a
+    /// Saturday or Sunday. Drives the drawer's segmented bar to render
+    /// 7 day-segments instead of 5 — week-wide, so every project's bar
+    /// keeps the same grid regardless of which one worked the weekend.
+    var displayedWeekHasWeekendActivity: Bool {
+        displayedStatuses.contains { status in
+            status.timeEntries.contains { entry in
+                guard let date = DateHelpers.dateFormatter.date(from: entry.date) else { return false }
+                return Calendar.current.isDateInWeekend(date)
+            }
+        }
+    }
+
     /// Display statuses filtered by tab / week context.
     /// - Current week: respects the Recent / Forecasted tab selection.
     /// - Future weeks: only booked projects (no logged time exists yet).

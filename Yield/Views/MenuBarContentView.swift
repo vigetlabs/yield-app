@@ -311,7 +311,8 @@ struct MenuBarContentView: View {
                     },
                     onResumeToday: { entryId in
                         Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false) }
-                    }
+                    },
+                    weekHasWeekendActivity: viewModel.displayedWeekHasWeekendActivity
                 )
             }
         }
@@ -380,7 +381,8 @@ struct MenuBarContentView: View {
                         visibleEntries: project.timeEntries,
                         isHarvestDown: viewModel.isHarvestDown,
                         isReadOnly: true,
-                        weekStart: weekStart
+                        weekStart: weekStart,
+                        weekHasWeekendActivity: viewModel.displayedWeekHasWeekendActivity
                     )
                 }
             }

@@ -41,6 +41,12 @@ struct ProjectRowView: View {
     /// week); set to a specific date when rendering a past-week snapshot
     /// so the segmented bar aligns with that week's entries.
     var weekStart: Date? = nil
+    /// Week-wide flag: any project logged weekend time this week, so the
+    /// day-grid bar renders all seven days rather than just Mon–Fri.
+    var weekHasWeekendActivity: Bool = false
+    /// User's weekly-hours target, read here so the drawer's day grid
+    /// can size each cell to the daily target (weekly ÷ 5).
+    @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
     @State private var isExpanded: Bool = false
     @State private var isHovered: Bool = false
     /// True while the cursor is over the row's right-side zone
@@ -96,6 +102,8 @@ struct ProjectRowView: View {
                         todayEffectiveHours: effectiveTodayHours,
                         booked: project.bookedHours,
                         isDrawerExpanded: isExpanded,
+                        dailyTarget: DateHelpers.dailyHours(fromWeekly: Double(weeklyHoursTarget)),
+                        showWeekend: weekHasWeekendActivity,
                         weekStart: weekStart
                     )
                     // Left padding matches the task-entry text indent (32)
@@ -232,7 +240,13 @@ struct ProjectRowView: View {
                 // icons reveal fully and the progress bar reflows. No
                 // popover (popovers inside MenuBarExtra panels cause
                 // window resize jumps).
-                HStack {
+                // spacing 0 (not the HStack default 8) so the zero-width
+                // resting action slot doesn't reserve a phantom 8pt gap —
+                // that would inset the progress bar 8pt from the panel edge
+                // and misalign it with the expanded segmented bar below.
+                // The gap before the actions is re-added only when they have
+                // width (see the ZStack's conditional leading padding).
+                HStack(spacing: 0) {
                     VStack(alignment: .trailing, spacing: 8) {
                         timeLabel
 
@@ -267,6 +281,10 @@ struct ProjectRowView: View {
                         }
                         .frame(width: rightZoneWidth, alignment: .trailing)
                         .clipped()
+                        // 8pt gap before the actions, but only while they're
+                        // actually revealed — keeps the progress bar flush to
+                        // the panel edge when the zone is collapsed.
+                        .padding(.leading, rightZoneWidth > 0 ? 8 : 0)
                     }
                 }
                 // Expand the hit area to the full row height so the
@@ -513,7 +531,7 @@ struct ProgressBarView: View {
         ZStack(alignment: .leading) {
             // Background: overage color when over, default otherwise
             RoundedRectangle(cornerRadius: YieldRadius.progressBar)
-                .fill(isOver ? YieldStatusColors.over.opacity(0.4) : YieldColors.surfaceActive)
+                .fill(isOver ? YieldStatusColors.over.opacity(0.4) : YieldColors.progressTrack)
                 .frame(width: YieldDimensions.progressBarWidth, height: YieldDimensions.progressBarHeight)
 
             // Fill: booked portion. Dimmed when a day filter is active so
@@ -544,99 +562,98 @@ struct ProgressBarView: View {
 
 // MARK: - Segmented Progress Bar (expanded day-by-day view)
 
-/// Full-width progress bar broken into per-day segments. Each visible
-/// segment's width is proportional to that day's hours vs. the weekly
-/// booked budget, so empty days show no segment and the gaps between
-/// segments visually separate days. Day labels sit underneath each
-/// segment. Clicking anywhere in the parent collapses this view.
+/// Fixed day-grid progress bar. The week is divided into equal-width
+/// cells — one per weekday (Mon–Fri), or all seven days when the week
+/// has weekend activity — and each cell represents `dailyTarget` hours
+/// (the weekly-hours setting ÷ 5). A day's tracked hours fill its cell
+/// on that scale, capping at a full cell when the day exceeds the
+/// target (the excess isn't drawn; the tooltip still shows the real
+/// total). The fill turns from green to red at the point where
+/// cumulative tracked hours cross the project's *booked* budget, so the
+/// over-budget moment is visible within the exact day it happened.
 struct SegmentedProgressBarView: View {
     let entries: [TimeEntryInfo]
     let todayEffectiveHours: Double
     let booked: Double
     let isDrawerExpanded: Bool
+    /// Hours one cell represents — the daily target (weekly ÷ 5). A
+    /// full cell = this many hours; a day's fill is `hours / dailyTarget`
+    /// capped at 1.
+    var dailyTarget: Double
+    /// Render all seven days rather than just Mon–Fri. Set week-wide
+    /// (any project worked the weekend) so every bar shares the grid.
+    var showWeekend: Bool = false
     /// Monday of the week this bar represents. Defaults to the current
     /// week; pass a different value when rendering a past-week snapshot
     /// so the day grid matches the entries' spent_date values.
     var weekStart: Date? = nil
 
-    /// Scales every segment width from 0 → 1. Animated to 1 when the parent
+    /// Scales every fill from 0 → 1. Animated to 1 when the parent
     /// drawer opens and snapped back to 0 when it closes, giving a "fill
     /// sweep" on each open without playing the animation in reverse when
     /// the drawer collapses (clipped content doesn't need to animate).
     @State private var fillProgress: Double = 0
 
-    private struct DayFill: Identifiable {
+    /// One cell of the grid: the day's shown (capped) hours, split into
+    /// the portion within budget (under color) and the portion past it
+    /// (over color). Cumulative across days, so the over split only
+    /// appears once the running total crosses `booked`.
+    private struct DayCell: Identifiable {
         let id: String          // date string
         let label: String       // "Mon", etc.
-        let hours: Double
+        let actualHours: Double  // real logged total (for the tooltip)
+        let shownHours: Double   // min(actual, dailyTarget) — what's drawn
+        let underHours: Double
+        let overHours: Double
         let isToday: Bool
     }
 
-
-    /// One entry per day of the target week. Today's hours are replaced
-    /// with `todayEffectiveHours` so the live-ticking timer shows up.
-    private var days: [DayFill] {
+    /// The grid's cells in calendar order. Cumulative budget tracking
+    /// uses the *shown* (capped) hours so the drawn green/red matches
+    /// what's on screen. Today's hours come from `todayEffectiveHours`
+    /// so the live-ticking timer shows up.
+    private var cells: [DayCell] {
         let resolvedWeekStart = weekStart ?? DateHelpers.currentWeekBounds().start
         let todayString = DateHelpers.dateFormatter.string(from: Date())
         let calendar = Calendar.current
 
-        // Sum hours per date from the entries
         var hoursByDate: [String: Double] = [:]
         for entry in entries {
             hoursByDate[entry.date, default: 0] += entry.hours
         }
 
-        var result: [DayFill] = []
-        for i in 0..<7 {
+        let dayCount = showWeekend ? 7 : DateHelpers.workdaysPerWeek
+        let cap = booked > 0 ? booked : .infinity
+        var cumulative: Double = 0
+        var result: [DayCell] = []
+        for i in 0..<dayCount {
             guard let date = calendar.date(byAdding: .day, value: i, to: resolvedWeekStart) else { continue }
             let dateStr = DateHelpers.dateFormatter.string(from: date)
             let isToday = dateStr == todayString
-            let hours = isToday ? todayEffectiveHours : (hoursByDate[dateStr] ?? 0)
-            result.append(DayFill(id: dateStr, label: DateHelpers.weekdayLabels[i], hours: hours, isToday: isToday))
+            let actual = isToday ? todayEffectiveHours : (hoursByDate[dateStr] ?? 0)
+            let shown = min(actual, dailyTarget)
+
+            let remaining = max(cap - cumulative, 0)
+            let under = min(shown, remaining)
+            let over = shown - under
+            cumulative += shown
+
+            result.append(DayCell(
+                id: dateStr,
+                label: DateHelpers.weekdayLabels[i],
+                actualHours: actual,
+                shownHours: shown,
+                underHours: under,
+                overHours: over,
+                isToday: isToday
+            ))
         }
         return result
     }
 
-    /// Each day's hours split into the portion that fits within the
-    /// remaining budget (under color) and the portion that pushes past
-    /// it (over color). Built in calendar order so cumulative tracking
-    /// is accurate. For unbooked projects, every day is fully "under"
-    /// (there's no budget to bust).
-    private struct DaySegment: Identifiable {
-        let id: String
-        let label: String
-        let isToday: Bool
-        let totalHours: Double
-        let underHours: Double
-        let overHours: Double
-    }
-
-    /// Convert pre-filtered active days into budget-aware segments.
-    /// Takes the days as a parameter (rather than reading the
-    /// computed `days` chain) so callers can hoist the expensive
-    /// `days` computation and reuse it for `totalHours` etc.
-    private func segments(from activeDays: [DayFill]) -> [DaySegment] {
-        let cap = booked > 0 ? booked : .infinity
-        var cumulative: Double = 0
-        return activeDays.map { day in
-            let remaining = max(cap - cumulative, 0)
-            let under = min(day.hours, remaining)
-            let over = day.hours - under
-            cumulative += day.hours
-            return DaySegment(
-                id: day.id,
-                label: day.label,
-                isToday: day.isToday,
-                totalHours: day.hours,
-                underHours: under,
-                overHours: over
-            )
-        }
-    }
-
     var body: some View {
         GeometryReader { geo in
-            segmentedBar(totalWidth: geo.size.width)
+            grid(totalWidth: geo.size.width)
         }
         .frame(height: 8)
         .onChange(of: isDrawerExpanded) { _, expanded in
@@ -658,62 +675,50 @@ struct SegmentedProgressBarView: View {
     }
 
     @ViewBuilder
-    private func segmentedBar(totalWidth: CGFloat) -> some View {
-        // Compute the day chain once per render. The old shape had
-        // separate computed properties (`activeDays`, `totalHours`,
-        // `segmentedDays`) that each independently re-evaluated the
-        // expensive `days` property (entries walk + 7 DateFormatter
-        // calls), so `days` ran 3× per body pass. Hoisting collapses
-        // that to a single computation.
-        let allDays = days
-        let activeDays = allDays.filter { $0.hours > 0 || $0.isToday }
-        let totalHours = allDays.reduce(0) { $0 + $1.hours }
-        let segmentedDays = segments(from: activeDays)
+    private func grid(totalWidth: CGFloat) -> some View {
+        let dayCells = cells
+        // Reserve the 2pt inter-cell gaps before dividing the remaining
+        // width evenly, so N equal cells + (N-1) gaps exactly fill the
+        // container.
+        let gapCount = max(dayCells.count - 1, 0)
+        let cellWidth = max((totalWidth - CGFloat(gapCount) * 2) / CGFloat(max(dayCells.count, 1)), 0)
+        let target = max(dailyTarget, 0.0001)
 
-        // Reserve space for the 2pt gaps between days *before*
-        // dividing the remaining width across segments. Without this,
-        // a fully-filled bar (at-budget or over-budget projects)
-        // overflows the container by gapCount × 2pt because each
-        // segment is sized against the full width while the HStack
-        // *also* inserts gaps between them.
-        let gapCount = max(segmentedDays.count - 1, 0)
-        let segmentSpace = max(totalWidth - CGFloat(gapCount) * 2, 0)
-        let denominator = max(booked, totalHours, 0.0001)
-        ZStack(alignment: .leading) {
-            // Neutral background; over/under is conveyed per-segment.
-            Rectangle()
-                .fill(YieldColors.surfaceActive)
+        HStack(spacing: 2) {
+            ForEach(dayCells) { cell in
+                // Each cell: a neutral slot (so empty days read as empty
+                // cells in the grid) with the day's fill inside. Under
+                // (green) and over (red) sit adjacent so the color break
+                // lands at the exact hour the budget was crossed.
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(YieldColors.progressTrack)
 
-            // Per-day filled segments, separated by 2px gaps. Within
-            // each day, an inner HStack stacks the under and over
-            // portions adjacent (no gap) so the transition between
-            // colors lands at the exact hour when budget was crossed.
-            // Both portions scale with fillProgress so the sweep-in
-            // animation still works.
-            HStack(spacing: 2) {
-                ForEach(segmentedDays) { day in
                     HStack(spacing: 0) {
-                        if day.underHours > 0 {
+                        if cell.underHours > 0 {
                             Rectangle()
                                 .fill(YieldStatusColors.under)
-                                .frame(width: max(CGFloat(day.underHours / denominator) * segmentSpace * fillProgress, 0))
+                                .frame(width: max(CGFloat(cell.underHours / target) * cellWidth * fillProgress, 0))
+                                // Round the right edge only when this is the
+                                // trailing segment (no over fill after it).
+                                .clipShape(.rect(bottomTrailingRadius: cell.overHours > 0 ? 0 : 2,
+                                                 topTrailingRadius: cell.overHours > 0 ? 0 : 2))
                         }
-                        if day.overHours > 0 {
+                        if cell.overHours > 0 {
                             Rectangle()
                                 .fill(YieldStatusColors.over)
-                                .frame(width: max(CGFloat(day.overHours / denominator) * segmentSpace * fillProgress, 0))
+                                .frame(width: max(CGFloat(cell.overHours / target) * cellWidth * fillProgress, 0))
+                                .clipShape(.rect(bottomTrailingRadius: 2, topTrailingRadius: 2))
                         }
                     }
-                    .opacity(day.isToday ? 1.0 : 0.75)
-                    .help("\(day.label): \(formatHMColon(day.totalHours))")
                 }
+                .frame(width: cellWidth, height: 8)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .opacity(cell.isToday ? 1.0 : 0.75)
+                .help("\(cell.label): \(formatHMColon(cell.actualHours))")
             }
         }
-        // Pin the ZStack's width so the HStack can't push the
-        // background rectangle past the container, even before the
-        // clipShape masks the visual overflow.
         .frame(width: totalWidth, height: 8, alignment: .leading)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
     /// Format hours as "H:MM" (e.g. 3.25 → "3:15"). Tooltip-friendly.
@@ -757,7 +762,12 @@ struct TaskEntryRowView: View {
         let parsedDate = DateHelpers.dateFormatter.date(from: entry.date)
         let isToday = parsedDate.map { Calendar.current.isDateInToday($0) } ?? false
 
-        return HStack {
+        // spacing 0 so the collapsed (zero-width) action zone doesn't
+        // reserve a phantom 8pt gap that insets the day-label column from
+        // the panel edge — that's what made the day names fall short of the
+        // segmented bar's right edge above. The gap before a real trailing
+        // control (play button / revealed action) is re-added explicitly.
+        return HStack(spacing: 0) {
             // Task details + time info (double-click to edit)
             HStack {
                 VStack(alignment: .leading, spacing: hasNotes ? 6 : 0) {
@@ -804,7 +814,12 @@ struct TaskEntryRowView: View {
                         Text(formatDayLabel(for: parsedDate))
                             .font(YieldFonts.monoXS)
                             .foregroundStyle(YieldColors.textSecondary)
-                            .padding(.horizontal, 4)
+                            // Leading-only padding: keep the gap from the
+                            // hours value but let the day glyph sit flush to
+                            // the column's right edge so it lines up with the
+                            // segmented bar. (The "Now" badge keeps symmetric
+                            // padding — it needs it for its background pill.)
+                            .padding(.leading, 4)
                             .padding(.vertical, 2)
                     }
                 }
@@ -827,6 +842,7 @@ struct TaskEntryRowView: View {
                     destructiveOnHover: entry.isRunning
                 ))
                 .disabledWhenHarvestDown(isHarvestDown)
+                .padding(.leading, 8)
             } else if !isReadOnly {
                 // Past-day entry in the current week: quick-start that
                 // copies project + task + note onto a fresh, immediately-
@@ -866,6 +882,9 @@ struct TaskEntryRowView: View {
                 }
                 .frame(width: (isHovered || isActionZoneHovered) ? 22 : 0, alignment: .trailing)
                 .clipped()
+                // 8pt gap before the zone, but only while it has width — keeps
+                // the day-label column flush right when the zone is collapsed.
+                .padding(.leading, (isHovered || isActionZoneHovered) ? 8 : 0)
                 // Grow the hit area to full row height so the cursor
                 // doesn't fall out of the zone above/below the icon,
                 // matching the header's action-zone behavior.

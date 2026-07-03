@@ -21,7 +21,7 @@ enum YieldColors {
     /// the harshness of pure white.
     static let background = dynamicColor(
         light: NSColor(red: 0.961, green: 0.961, blue: 0.965, alpha: 1.0),  // #F5F5F6
-        dark:  NSColor(red: 0.102, green: 0.106, blue: 0.110, alpha: 1.0)   // #1A1B1C
+        dark:  NSColor(red: 0.082, green: 0.086, blue: 0.090, alpha: 1.0)   // #151617 — one step darker so surfaceActive slots read distinctly
     )
 
     // Brand accents flip between a bright dark-mode value and a darker
@@ -76,6 +76,15 @@ enum YieldColors {
     static let surfaceActive = dynamicColor(
         light: NSColor.black.withAlphaComponent(0.06),
         dark:  NSColor.white.withAlphaComponent(0.1)
+    )
+
+    /// Unfilled track behind progress bars and the day-segment slots.
+    /// Stronger than `surfaceActive` so an empty track/slot reads as
+    /// clearly distinct from the panel background — kept separate from
+    /// `surfaceActive` so tuning it doesn't darken every hover surface.
+    static let progressTrack = dynamicColor(
+        light: NSColor.black.withAlphaComponent(0.10),
+        dark:  NSColor.white.withAlphaComponent(0.13)
     )
 
     /// Generic foreground that should always contrast the panel
