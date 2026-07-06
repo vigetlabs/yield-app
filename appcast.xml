@@ -3,6 +3,24 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.4.0</title>
+      <sparkle:version>59</sparkle:version>
+      <sparkle:shortVersionString>1.4.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>A clearer week view when you expand a project.</strong> The day-by-day bar in the expanded drawer is now an even grid — one segment per weekday (plus the weekend when you've logged time then). Each segment is scaled to your daily target, so at a glance you can see which days were light or heavy, and a segment still turns from green to red at the exact point you cross the project's booked hours.</li>
+          <li><strong>Filtering by a day keeps the rest of the week in view.</strong> Tapping a weekday now dims the other days in the drawer bar rather than hiding them, so the day you're focused on stands out while you can still see the full week around it.</li>
+          <li><strong>Quick Start now shows up on more projects.</strong> The lightning-bolt quick-start button appears on any project where Yield can tell which task you usually log — no need to have starred a favorite first. An explicit favorite still wins when you've set one.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.4.0/Yield-1.4.0.zip"
+        sparkle:edSignature="TSu6k4hcedEODfu3cz0sEb+NqGYJLNqUMYp+rAn1KEaI2GszN17h5pLrWRaSmQwN/Hqj2AeFBhVguWfHzRzeBA=="
+        length="2851139"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.3.0</title>
       <sparkle:version>58</sparkle:version>
       <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
