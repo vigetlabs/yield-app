@@ -492,4 +492,72 @@ final class RefreshPipelineTests: XCTestCase {
         )
         XCTAssertEqual(vm.projectStatuses.first { $0.id == "harvest-700" }?.harvestLinkState, .linked)
     }
+
+    // MARK: - Harvest link state in look-ahead (future) weeks
+
+    /// A Forecast assignment covering the whole target week, so the
+    /// project shows up with booked hours in `buildSnapshot`.
+    private func assignment(
+        id: Int,
+        projectId: Int,
+        weekBounds: (start: Date, end: Date),
+        allocationSeconds: Int = 4 * 3600
+    ) -> ForecastAssignment {
+        ForecastAssignment(
+            id: id,
+            projectId: projectId,
+            personId: 1,
+            placeholderId: nil,
+            startDate: DateHelpers.dateFormatter.string(from: weekBounds.start),
+            endDate: DateHelpers.dateFormatter.string(from: weekBounds.end),
+            allocation: allocationSeconds,
+            activeOnDaysOff: nil,
+            notes: nil
+        )
+    }
+
+    /// Drive the look-ahead builder for a future week with a single
+    /// booked project and a given membership set.
+    private func lookAheadStatus(
+        forecastId: Int,
+        harvestId: Int?,
+        assignedHarvestProjectIds: Set<Int>?
+    ) -> ProjectStatus? {
+        let bounds = DateHelpers.weekBounds(offset: 1)
+        let snapshot = TimeComparisonViewModel.buildSnapshot(
+            offset: 1,
+            weekBounds: bounds,
+            entries: [],
+            assignments: [assignment(id: 1, projectId: forecastId, weekBounds: bounds)],
+            projects: [forecastProject(id: forecastId, name: "Future", harvestId: harvestId)],
+            clients: [],
+            fallbackTimeOffProjectId: nil,
+            fullDayHours: 8,
+            assignedHarvestProjectIds: assignedHarvestProjectIds
+        )
+        return snapshot.statuses.first { $0.id == "forecast-\(forecastId)" }
+    }
+
+    func test_lookAhead_flagsUnassigned_forFutureWeek() {
+        // Booked on harvest project 600 next week, but the user is only a
+        // member of 500 — flag it even though there's no logged time yet.
+        let status = lookAheadStatus(forecastId: 20, harvestId: 600, assignedHarvestProjectIds: [500])
+        XCTAssertEqual(status?.harvestLinkState, .unassigned)
+    }
+
+    func test_lookAhead_linked_whenMember() {
+        let status = lookAheadStatus(forecastId: 20, harvestId: 500, assignedHarvestProjectIds: [500])
+        XCTAssertEqual(status?.harvestLinkState, .linked)
+    }
+
+    func test_lookAhead_prospective_whenNoHarvestId() {
+        let status = lookAheadStatus(forecastId: 20, harvestId: nil, assignedHarvestProjectIds: [500])
+        XCTAssertEqual(status?.harvestLinkState, .prospective)
+    }
+
+    func test_lookAhead_failsSafeToLinked_whenMembershipUnknown() {
+        // No membership set fetched yet → never false-flag a future week.
+        let status = lookAheadStatus(forecastId: 20, harvestId: 600, assignedHarvestProjectIds: nil)
+        XCTAssertEqual(status?.harvestLinkState, .linked)
+    }
 }

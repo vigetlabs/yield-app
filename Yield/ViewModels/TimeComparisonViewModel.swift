@@ -928,6 +928,21 @@ final class TimeComparisonViewModel {
     /// — never false-flag. Only a positively-known set that omits the
     /// project yields `.unassigned`.
     private func harvestLinkState(forHarvestId harvestId: Int?, logged: Double) -> ProjectStatus.HarvestLinkState {
+        Self.harvestLinkState(
+            forHarvestId: harvestId,
+            logged: logged,
+            assignedHarvestProjectIds: assignedHarvestProjectIds
+        )
+    }
+
+    /// Pure classifier shared by the current-week refresh and the
+    /// `buildSnapshot` look-ahead path (which has no instance access).
+    /// Same rules as the instance overload above.
+    static func harvestLinkState(
+        forHarvestId harvestId: Int?,
+        logged: Double,
+        assignedHarvestProjectIds: Set<Int>?
+    ) -> ProjectStatus.HarvestLinkState {
         guard let harvestId else { return .prospective }
         guard let assigned = assignedHarvestProjectIds else { return .linked }
         if assigned.contains(harvestId) || logged > 0 { return .linked }
@@ -2537,7 +2552,8 @@ final class TimeComparisonViewModel {
                 projects: resolvedProjects,
                 clients: resolvedClients,
                 fallbackTimeOffProjectId: cachedTimeOffProjectId,
-                fullDayHours: dailyHoursTarget
+                fullDayHours: dailyHoursTarget,
+                assignedHarvestProjectIds: assignedHarvestProjectIds
             )
             weekSnapshots[offset] = snapshot
             noteFetchSucceeded()
@@ -2549,8 +2565,9 @@ final class TimeComparisonViewModel {
 
     /// Pure function that builds a WeekSnapshot from raw fetched data.
     /// Mirrors the current-week pipeline in applyRefreshedData but without
-    /// touching any instance state.
-    private static func buildSnapshot(
+    /// touching any instance state. Internal (not private) so the
+    /// look-ahead pipeline can be driven directly from tests.
+    static func buildSnapshot(
         offset: Int,
         weekBounds: (start: Date, end: Date),
         entries: [HarvestTimeEntry],
@@ -2560,7 +2577,11 @@ final class TimeComparisonViewModel {
         fallbackTimeOffProjectId: Int?,
         /// Daily-hours target — passed in to keep this static helper
         /// pure (no UserDefaults access).
-        fullDayHours: Double
+        fullDayHours: Double,
+        /// The Harvest projects the current user is a member of, so a
+        /// booked-but-unassigned project can be flagged in look-ahead
+        /// weeks too. `nil` when unknown — no project is flagged then.
+        assignedHarvestProjectIds: Set<Int>?
     ) -> WeekSnapshot {
         let projectMap = projects.indexed { $0.id }
         let clientMap = clients.indexed { $0.id }
@@ -2644,7 +2665,12 @@ final class TimeComparisonViewModel {
                 todayEntryId: nil,
                 lastTaskId: nil,
                 timeEntries: makeEntryInfos(from: harvestId.flatMap { entriesByHarvestProject[$0] } ?? []),
-                forecastNotes: notesByForecastProject[forecastProjectId]
+                forecastNotes: notesByForecastProject[forecastProjectId],
+                harvestLinkState: harvestLinkState(
+                    forHarvestId: harvestId,
+                    logged: logged,
+                    assignedHarvestProjectIds: assignedHarvestProjectIds
+                )
             ))
         }
 

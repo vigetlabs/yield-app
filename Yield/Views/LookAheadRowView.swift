@@ -10,13 +10,12 @@ struct LookAheadRowView: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
-            // Left colored line — pink for prospective (no Harvest link
-            // yet), otherwise the white hairline used on booked rows so
-            // the visual rhythm matches the current-week list.
+            // Left colored line, matching the current-week list: pink for
+            // prospective (no Harvest link yet), amber when booked but the
+            // user isn't a member of the Harvest project, otherwise the
+            // white hairline used on normal booked rows.
             Rectangle()
-                .fill(project.harvestProjectId == nil
-                    ? YieldStatusColors.prospective
-                    : YieldColors.onBackground.opacity(0.7))
+                .fill(statusLineColor)
                 .frame(width: 2)
                 .frame(maxHeight: .infinity)
 
@@ -33,10 +32,19 @@ struct LookAheadRowView: View {
                             .foregroundStyle(YieldColors.textSecondary)
                             .lineLimit(1)
                     }
-                    Text(project.displayName)
-                        .font(YieldFonts.titleMedium)
-                        .foregroundStyle(YieldColors.textPrimary)
-                        .lineLimit(1)
+                    HStack(spacing: 10) {
+                        Text(project.displayName)
+                            .font(YieldFonts.titleMedium)
+                            .foregroundStyle(YieldColors.textPrimary)
+                            .lineLimit(1)
+
+                        // Booked here but not a member of the Harvest
+                        // project — flag it in look-ahead weeks too so the
+                        // gap is visible before the week arrives.
+                        if project.harvestLinkState == .unassigned {
+                            HarvestUnassignedIcon(projectName: project.displayName)
+                        }
+                    }
                 }
 
                 Spacer(minLength: 8)
@@ -55,6 +63,17 @@ struct LookAheadRowView: View {
             Rectangle()
                 .fill(YieldColors.border)
                 .frame(height: 1)
+        }
+    }
+
+    /// Leading status-line color, mirroring `ProjectRowView`: prospective
+    /// (no Harvest link) is pink, booked-but-unassigned is amber, a normal
+    /// linked booking is the white hairline.
+    private var statusLineColor: Color {
+        switch project.harvestLinkState {
+        case .prospective: return YieldStatusColors.prospective
+        case .unassigned:  return YieldStatusColors.warning
+        case .linked:      return YieldColors.onBackground.opacity(0.7)
         }
     }
 
