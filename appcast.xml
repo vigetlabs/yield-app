@@ -3,6 +3,22 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.4.1</title>
+      <sparkle:version>60</sparkle:version>
+      <sparkle:shortVersionString>1.4.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>The "booked but not on the project in Harvest" warning now shows in future weeks too.</strong> When you look ahead to an upcoming week and you're booked in Forecast on a project you haven't been added to in Harvest, that row now carries the same amber warning badge you'd see on the current week — so you can spot the gap and get added before the work starts, not after.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.4.1/Yield-1.4.1.zip"
+        sparkle:edSignature="CiakyvPCZzDFmuUGttboPDqgLNBUo3l4wLmOx6N7nXJG9EIZt+3U71drMk7jLfkwtSTYGvgRVLxNOIgCel+bCw=="
+        length="2853017"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.4.0</title>
       <sparkle:version>59</sparkle:version>
       <sparkle:shortVersionString>1.4.0</sparkle:shortVersionString>
