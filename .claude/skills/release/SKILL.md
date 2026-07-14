@@ -5,169 +5,112 @@ description: "Cut a new release of the Yield macOS app. Use this skill whenever 
 
 # Release Yield
 
-Cut a new release of the Yield macOS app. The argument is the version number (e.g., `0.9.7`).
+Cut a new release of the Yield macOS app. The argument is the version number (e.g., `1.4.2`).
 
 **Version argument: $ARGUMENTS**
 
 If `$ARGUMENTS` is empty, read the current `MARKETING_VERSION` from `project.yml` and ask the user what version to release.
 
-## Execution discipline (read first)
+## How this works
 
-This pipeline is a long run of repetitive shell + edit steps, which makes it easy to slip into *describing* a command instead of *running* it. Two rules:
+The mechanical, failure-prone half of the pipeline lives in **`scripts/release.sh`** — a single `set -euo pipefail` script that runs:
 
-1. **Every step is a real tool call** — an actual `Bash` or `Edit` invocation, never command text pasted into your reply. If you catch yourself writing out a command in prose or a code fence as if it ran, stop: it did not run. Re-issue it as a genuine tool call.
-2. **Confirm each step produced a tool result before moving on.** If a step yields no output/result, you emitted it as text rather than executing it — redo it as a tool call. Don't advance the pipeline on an assumed result; every command here has observable output (test summary, `** ARCHIVE SUCCEEDED **`, notarization `status: Accepted`, a commit hash, a release URL). No output = it didn't happen.
+> preflight → test (unsigned) → version bump + commit → archive → export → re-sign Sparkle → zip → notarize → staple → re-zip → verify (Gatekeeper) → Sparkle-sign
 
-## Known account-level snag: notarization 403
+It halts on the first failure, so there's no such thing as a half-applied release. Your job is the **judgment half**: release notes, the appcast entry, and the GitHub release.
 
-If `notarytool submit` fails with `HTTP status code: 403. A required agreement is missing or has expired`, this is **not** a build problem — Apple has a pending legal agreement that freezes notarization. Tell the user to sign in at developer.apple.com/account (as Account Holder for team 7G49Y875S8), accept any pending agreement banner (usually the Apple Developer Program License Agreement; also check App Store Connect → Agreements, Tax, and Banking), and that membership isn't lapsed. Acceptance can take a few minutes to propagate. The archive/signed app/zip remain valid in `/tmp` — just re-run from the notarization step once they confirm. Don't tight-loop the endpoint; retry on the user's go-ahead.
+Do **not** hand-run the archive/notarize/staple/sign steps. They're in the script. Run the script.
 
 ## Process
 
-Execute each step in order. If any step fails, stop immediately and report the error — do not continue to subsequent steps.
-
-### 1. Run Tests
-
-Run the full test suite *before* bumping version or building anything. If any test fails, stop the release immediately — surface the failing test names and don't continue. The release shouldn't take a single further step until tests are green.
+### 1. Run the build
 
 ```bash
-xcodebuild test -project Yield.xcodeproj -scheme Yield -configuration Debug -destination 'platform=macOS'
+./scripts/release.sh VERSION
 ```
 
-A passing run ends with `** TEST SUCCEEDED **`. Anything else is a failure.
+This takes a few minutes (notarization alone is 1–3). Use a generous timeout (600000ms).
 
-### 2. Bump Version
+On success it prints:
 
-In `project.yml`, update:
-- `MARKETING_VERSION` to the new version (`$ARGUMENTS`)
-- `CURRENT_PROJECT_VERSION` — increment by 1 from its current value
-
-Then regenerate the Xcode project:
-
-```bash
-xcodegen generate
+```
+━━ Build ready ━━
+  version   1.4.2  (build 61)
+  zip       /path/to/build/Yield-1.4.2.zip
+  appcast   sparkle:edSignature="..." length="..."
 ```
 
-Commit the version bump:
+Capture the **version**, **build number**, **zip path**, **edSignature**, and **length** — the appcast needs all five.
 
-```bash
-git add project.yml Yield.xcodeproj/project.pbxproj Yield/Info.plist
-```
+If the script exits non-zero, stop and report the error. It fails loudly and specifically; don't work around it by running the underlying commands by hand. Cases it already explains in its own error output:
 
-Commit message: `Bump version to VERSION (build N)`
+- **Dirty working tree** → commit or stash first.
+- **Tests failed** → fix them; the release doesn't proceed.
+- **Notarization 403 / "required agreement is missing or has expired"** → account-level block, *not* a build problem. The user must sign in at developer.apple.com/account (Account Holder, team 7G49Y875S8), accept the pending agreement (usually the Apple Developer Program License Agreement; also check App Store Connect → Agreements, Tax, and Banking), wait a few minutes, then re-run. Don't tight-loop the endpoint.
 
-### 3. Archive & Export
+Re-running after a mid-pipeline failure is safe: the version bump is idempotent (it won't double-bump the build number), and `--skip-tests` skips a suite you already know is green.
 
-Archive:
-```bash
-xcodebuild -project Yield.xcodeproj -scheme Yield -configuration Release archive -archivePath /tmp/Yield.xcarchive
-```
+### 2. Write release notes
 
-Create an export options plist at `/tmp/export-options.plist`:
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>developer-id</string>
-    <key>teamID</key>
-    <string>7G49Y875S8</string>
-    <key>signingStyle</key>
-    <string>manual</string>
-    <key>signingCertificate</key>
-    <string>Developer ID Application</string>
-</dict>
-</plist>
-```
-
-Export:
-```bash
-xcodebuild -exportArchive -archivePath /tmp/Yield.xcarchive -exportPath /tmp/YieldExport -exportOptionsPlist /tmp/export-options.plist
-```
-
-### 4. Re-sign Sparkle & Zip
-
-Re-sign Sparkle so it matches the app's identity:
-```bash
-codesign --force --deep --sign "Developer ID Application: Jeremy Fields (7G49Y875S8)" --options runtime /tmp/YieldExport/Yield.app/Contents/Frameworks/Sparkle.framework
-```
-
-Create the zip. This MUST use `COPYFILE_DISABLE=1` and `--norsrc` to strip macOS AppleDouble `._` resource fork files — without this, Gatekeeper rejects the app with "unsealed contents present in the root directory of an embedded framework":
-```bash
-cd /tmp/YieldExport && COPYFILE_DISABLE=1 ditto -c -k --norsrc --keepParent Yield.app /tmp/Yield-VERSION.zip
-```
-
-### 5. Notarize & Staple
-
-Submit for notarization (this takes 1-3 minutes):
-```bash
-xcrun notarytool submit /tmp/Yield-VERSION.zip --keychain-profile "notarytool-profile" --wait
-```
-
-If notarization fails with "No Keychain password item found", tell the user to run:
-```
-xcrun notarytool store-credentials "notarytool-profile" --apple-id EMAIL --team-id 7G49Y875S8
-```
-
-Staple the ticket to the app:
-```bash
-xcrun stapler staple /tmp/YieldExport/Yield.app
-```
-
-Re-zip the stapled app (replaces the previous zip):
-```bash
-cd /tmp/YieldExport && rm -f /tmp/Yield-VERSION.zip && COPYFILE_DISABLE=1 ditto -c -k --norsrc --keepParent Yield.app /tmp/Yield-VERSION.zip
-```
-
-### 6. Sparkle Signature
-
-Sign the zip for Sparkle auto-updates:
-```bash
-/Users/jeremyfields/Sites/yield-app/build/derived/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update /tmp/Yield-VERSION.zip
-```
-
-Capture the `sparkle:edSignature="..."` and `length=...` values from the output — these go in the appcast.
-
-### 7. Update Appcast
-
-Generate release notes from commits since the last tag:
 ```bash
 git log $(git describe --tags --abbrev=0)..HEAD --oneline
 ```
 
-Add a new `<item>` at the TOP of the `<channel>` in `appcast.xml` (after `<title>Yield Updates</title>`), using the version, build number, edSignature, length, and release notes.
+Group the user-facing changes; skip internal churn (version bumps, skill/doc edits, refactors with no visible effect). Write for someone who *uses* Yield, not someone who wrote it: lead with what changed for them and why it matters. Match the voice of the existing entries in `appcast.xml`.
 
-Commit:
-```bash
-git add appcast.xml
+### 3. Update the appcast
+
+Add a new `<item>` at the **top** of the `<channel>` in `appcast.xml` (right after `<title>Yield Updates</title>`), using the version, build number, edSignature, and length from step 1:
+
+```xml
+    <item>
+      <title>Version X.Y.Z</title>
+      <sparkle:version>BUILD</sparkle:version>
+      <sparkle:shortVersionString>X.Y.Z</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Headline.</strong> What changed and why it matters.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/vX.Y.Z/Yield-X.Y.Z.zip"
+        sparkle:edSignature="..."
+        length="..."
+        type="application/octet-stream"/>
+    </item>
 ```
 
-Commit message: `Update appcast for vVERSION`
+The `edSignature` and `length` **must** match the zip you're about to upload, or Sparkle auto-updates will reject it.
 
-### 8. Push, Tag & GitHub Release
+Commit:
 
-Push commits, then create and push the tag *before* creating the release. This ensures the tag exists on the correct commit when GitHub fires the `published` event (otherwise the Slack notification workflow may not trigger):
+```bash
+git add appcast.xml
+git commit -m "Update appcast for vX.Y.Z"
+```
+
+### 4. Push, tag & release
+
+Push commits, then create and push the tag *before* creating the release — this ensures the tag exists on the correct commit when GitHub fires the `published` event (otherwise the Slack notification workflow may not trigger):
 
 ```bash
 git push origin main
-git tag vVERSION
-git push origin vVERSION
+git tag vX.Y.Z
+git push origin vX.Y.Z
+gh release create vX.Y.Z <zip-path-from-step-1> --title "vX.Y.Z" --notes "RELEASE_NOTES" --verify-tag
 ```
 
-Create the GitHub release pointing at the existing tag:
-```bash
-gh release create vVERSION /tmp/Yield-VERSION.zip --title "vVERSION" --notes "RELEASE_NOTES" --verify-tag
-```
+Format the GitHub notes with markdown headers and bullets. Keep them attribution-free — no "Generated with Claude Code" line.
 
-The release notes for GitHub should be formatted with markdown headers and bullet points. Do NOT append a "Generated with Claude Code" line to release notes — keep them attribution-free.
+The `.github/workflows/slack-release-notify.yml` workflow posts to #yield-app automatically when the release is created. No manual Slack step.
 
-The GitHub Actions workflow (`.github/workflows/slack-release-notify.yml`) will automatically post to #yield-app when the release is created — no manual Slack step needed.
+### 5. Report
+
+Give the user the release URL. Notarization and Gatekeeper acceptance were already gated by the script — if you got past step 1, the build is good.
 
 ## Reminders
 
-- All commit messages must end with `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
-- Use HEREDOC syntax for commit messages to preserve formatting
-- The zip MUST use `COPYFILE_DISABLE=1 ditto --norsrc` — never use plain `zip`
-- Set timeout to 600000ms for notarization (it can take a few minutes)
-- Report the GitHub release URL when done
+- Commit messages end with `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`; use HEREDOC syntax to preserve formatting.
+- `scripts/release.sh --dry-run` exercises the whole build/sign/zip path with no git writes, no notarization, and no publish. Use it to validate changes to the script itself.
+- The script owns every signing/zip invariant (the `COPYFILE_DISABLE=1 ditto --norsrc` AppleDouble strip that Gatekeeper requires, the Sparkle re-sign, the pinned `derivedDataPath`). If you're about to type `codesign`, `ditto`, `notarytool`, or `xcodebuild` during a release — stop. That's the script's job.

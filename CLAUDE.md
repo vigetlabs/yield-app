@@ -53,13 +53,24 @@ Yield/
 
 ## Release Process
 
-When creating release zips, **always** use `COPYFILE_DISABLE=1` and `--norsrc` to strip macOS AppleDouble `._` resource fork files:
+The build/sign/notarize half of a release is a single script — don't hand-run its steps:
 
 ```bash
-COPYFILE_DISABLE=1 ditto -c -k --norsrc --keepParent Yield.app Yield-X.Y.Z.zip
+./scripts/release.sh 1.4.2      # preflight → test → bump → archive → export →
+                                # sign → zip → notarize → staple → verify → Sparkle-sign
+./scripts/release.sh --dry-run  # same machinery, no git writes, no notarize, no publish
 ```
 
-Without this, `._` files inside the Sparkle framework cause Gatekeeper to reject the app with "unsealed contents present in the root directory of an embedded framework" — even if notarization passes.
+It halts on the first failure (`set -euo pipefail`), the version bump is idempotent (safe to re-run after a mid-pipeline failure), and it gates on Gatekeeper accepting the build before you can publish. It prints the `edSignature` + `length` the appcast needs.
+
+The `/release` skill wraps it and handles the judgment half: release notes, the `appcast.xml` entry, the tag, and the GitHub release (which auto-posts to Slack).
+
+Invariants the script owns — **don't** reintroduce them by hand:
+
+- **Zips must use `COPYFILE_DISABLE=1 ditto --norsrc`.** Without it, AppleDouble `._` files inside the Sparkle framework make Gatekeeper reject the app with "unsealed contents present in the root directory of an embedded framework" — even when notarization passes.
+- **Sparkle is re-signed** under our Developer ID so the whole bundle traces to one identity.
+- **`-derivedDataPath build/derived` is pinned** — it keeps stale global DerivedData from breaking the test step, and puts Sparkle's `sign_update` at a stable repo-relative path.
+- **Tests run unsigned** (`CODE_SIGNING_ALLOWED=NO`) — they're pure logic, and signing only added a flaky keychain dependency to the first step of every release.
 
 ## APIs
 
