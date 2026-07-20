@@ -426,7 +426,7 @@ struct ProjectRowView: View {
     private var statusLine: some View {
         Rectangle()
             .fill(statusLineColor)
-            .frame(width: 2)
+            .frame(width: 3)
             .frame(maxHeight: .infinity)
     }
 
