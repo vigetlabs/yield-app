@@ -129,6 +129,16 @@ struct TimerBannerView: View {
                 Label("Edit Timer", systemImage: "pencil")
             }
             .disabled(viewModel.isHarvestDown || currentEntry == nil)
+            // Relocate part of this timer's time to another task — the
+            // "left it running through a meeting" fix. Presentation is
+            // driven by `pendingTimerMove` on the view model (like the
+            // idle-move flow), so no callback plumbing is needed here.
+            Button {
+                viewModel.startTimerMove()
+            } label: {
+                Label("Move Time…", systemImage: "arrow.turn.up.right")
+            }
+            .disabled(viewModel.isHarvestDown || currentEntry == nil)
             Button(role: .destructive) {
                 if let entry = currentEntry { onDeleteEntry?(entry) }
             } label: {

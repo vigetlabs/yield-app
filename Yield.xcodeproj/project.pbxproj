@@ -72,6 +72,7 @@
 		DAC3301F5AA18C5088CC521C /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC15EED42FBAABA8E309340 /* KeychainHelper.swift */; };
 		DD5B690291EBA5B1C1FB36F3 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A0F29CD8D3681B5AF53341 /* APIClient.swift */; };
 		E06685FE380D69C1A83B581B /* LogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 381BBDC41541927F83D08FC9 /* LogStore.swift */; };
+		E2096B4873D09ACA62B6ABCA /* TimerMoveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1350494431A405E6124039A /* TimerMoveTests.swift */; };
 		E334718332CF138B1EAC4ADF /* ForecastModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */; };
 		E5313E47A1EB9F49F7167096 /* HarvestUnassignedIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F63540F6619ABDAA4C196355 /* HarvestUnassignedIcon.swift */; };
 		E668F374FE5C32E40B8F3CCE /* MenuBarStatusItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457D60FE27EF219D36D1901E /* MenuBarStatusItem.swift */; };
@@ -157,6 +158,7 @@
 		DB799247D52776862953EA20 /* Yield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yield.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		DE23809963F31EA6370A8FD9 /* CalendarEventPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventPickerView.swift; sourceTree = "<group>"; };
+		E1350494431A405E6124039A /* TimerMoveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerMoveTests.swift; sourceTree = "<group>"; };
 		E5CE6E83B352C722A6F67C56 /* AppLocationCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocationCheck.swift; sourceTree = "<group>"; };
 		E6AE4314E6BA70459850E000 /* Yield.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Yield.entitlements; sourceTree = "<group>"; };
 		EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastService.swift; sourceTree = "<group>"; };
@@ -264,6 +266,7 @@
 				CA00826B19142EA4BF7E31AE /* ProjectStatusTests.swift */,
 				F0026089ABF0FF282F424F51 /* ProjectTaskHistoryStoreTests.swift */,
 				97071C361541C20FA140647C /* RefreshPipelineTests.swift */,
+				E1350494431A405E6124039A /* TimerMoveTests.swift */,
 			);
 			path = YieldTests;
 			sourceTree = "<group>";
@@ -481,6 +484,7 @@
 				B1E1DB795329B77618CC033D /* ProjectStatusTests.swift in Sources */,
 				66D7F234238C6D5934DEE795 /* ProjectTaskHistoryStoreTests.swift in Sources */,
 				2501F935F826E25CC679DB9B /* RefreshPipelineTests.swift in Sources */,
+				E2096B4873D09ACA62B6ABCA /* TimerMoveTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -11,6 +11,13 @@ struct NewTimerFormView: View {
     /// to today, and the action buttons commit the move (rather than
     /// starting a new timer or logging time).
     let idleMove: TimeComparisonViewModel.PendingIdleMove?
+    /// When non-nil, the form is moving a user-chosen amount of time off
+    /// the banner's current timer onto another task (the left-it-running-
+    /// through-a-meeting fix). Date locked to today, the time field
+    /// starts empty (the user knows how long the meeting was; the app
+    /// doesn't), and the actions commit the move — either keeping the
+    /// source timer going or switching the timer to the destination.
+    let timerMove: TimeComparisonViewModel.PendingTimerMove?
     let onDismiss: () -> Void
 
     @State private var allProjects: [TimeComparisonViewModel.TimerProjectOption] = []
@@ -47,17 +54,19 @@ struct NewTimerFormView: View {
     /// which is noisy and not what the user asked for.
     @State private var sourcedFromCalendarPicker = false
 
-    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, onDismiss: @escaping () -> Void) {
+    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, timerMove: TimeComparisonViewModel.PendingTimerMove? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
         self.editingEntry = editingEntry
         self.preselectedProjectId = preselectedProjectId
         self.targetDate = targetDate
         self.idleMove = idleMove
+        self.timerMove = timerMove
         self.onDismiss = onDismiss
     }
 
     private var isEditing: Bool { editingEntry != nil }
     private var isIdleMove: Bool { idleMove != nil }
+    private var isTimerMove: Bool { timerMove != nil }
     private var isSpentDateToday: Bool { Calendar.current.isDateInToday(spentDate) }
     private var spentDateString: String { DateHelpers.dateFormatter.string(from: spentDate) }
 
@@ -78,6 +87,7 @@ struct NewTimerFormView: View {
     private var headerPrefix: String {
         if isEditing { return "Edit time entry:" }
         if isIdleMove { return "Move idle time:" }
+        if isTimerMove { return "Move time:" }
         return "New time entry:"
     }
 
@@ -100,7 +110,7 @@ struct NewTimerFormView: View {
     /// user target any day of the current week.
     @ViewBuilder
     private var dateSelector: some View {
-        if isEditing || isIdleMove {
+        if isEditing || isIdleMove || isTimerMove {
             Text(dateLabel(for: spentDate))
                 .font(YieldFonts.titleMedium)
                 .foregroundStyle(YieldColors.textPrimary)
@@ -162,6 +172,23 @@ struct NewTimerFormView: View {
 
     private var canLog: Bool {
         canStart && enteredHours > 0
+    }
+
+    /// True when the timer-move destination is the very task the time is
+    /// being moved from — a no-op that would just churn the entry.
+    private var isMoveSelfTarget: Bool {
+        guard let move = timerMove else { return false }
+        return selectedProjectId == move.sourceProjectId && selectedTaskId == move.sourceTaskId
+    }
+
+    /// Timer-move commit gate: a real destination, a positive amount, and
+    /// no more than the source timer currently holds. The ceiling is live
+    /// (the source keeps ticking under the form), and the commit path
+    /// clamps again at commit time.
+    private var canMove: Bool {
+        guard let move = timerMove else { return false }
+        return canStart && enteredHours > 0 && !isMoveSelfTarget
+            && enteredHours <= viewModel.timerMoveAvailableHours(move) + 0.0001
     }
 
     var body: some View {
@@ -230,6 +257,10 @@ struct NewTimerFormView: View {
                     unassignedBanner(projectName: unselectableProjectName)
                 }
 
+                if let move = timerMove {
+                    moveSourceBanner(move)
+                }
+
                 HStack(alignment: .center, spacing: 8) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 8) {
@@ -271,9 +302,16 @@ struct NewTimerFormView: View {
             }
             .padding(16)
 
-            // Duplicate timer confirmation
+            // Duplicate timer confirmation. In timer-move mode this is
+            // informational (an existing destination entry gets merged
+            // into, matching Harvest's own same-task-same-day behavior)
+            // rather than an action fork.
             if let entries = duplicateConfirmEntries {
-                duplicateConfirmBanner(entries: entries)
+                if isTimerMove {
+                    moveTargetBanner(entries: entries)
+                } else {
+                    duplicateConfirmBanner(entries: entries)
+                }
             }
 
             // Actions. Swapped for an inline delete-confirmation row
@@ -311,6 +349,30 @@ struct NewTimerFormView: View {
                         .buttonStyle(.greenOutlined)
                         .disabled(!canLog || duplicateConfirmEntries != nil)
                         .opacity(canLog && duplicateConfirmEntries == nil ? 1 : 0.5)
+                    } else if let move = timerMove {
+                        // Timer-move mode: two commits. Keep = source
+                        // stays as it was (running keeps running at the
+                        // reduced total); Start = the timer switches to
+                        // the destination task. The duplicate banner is
+                        // informational here — an existing destination
+                        // entry is merged into, so it never blocks.
+                        Button {
+                            Task { await commitTimerMove(switchTimer: false) }
+                        } label: {
+                            Text(move.sourceWasRunning ? "Move & Keep Timing" : "Move Time")
+                        }
+                        .buttonStyle(.greenOutlined)
+                        .disabled(!canMove)
+                        .opacity(canMove ? 1 : 0.5)
+
+                        Button {
+                            Task { await commitTimerMove(switchTimer: true) }
+                        } label: {
+                            Text("Move & Start Timer")
+                        }
+                        .buttonStyle(.yieldBordered)
+                        .disabled(!canMove)
+                        .opacity(canMove ? 1 : 0.5)
                     } else if isSpentDateToday {
                         Button {
                             Task { await startTimer() }
@@ -329,7 +391,7 @@ struct NewTimerFormView: View {
 
                     Spacer()
 
-                    if !isEditing && !isIdleMove {
+                    if !isEditing && !isIdleMove && !isTimerMove {
                         calendarPickerButton
 
                         Button {
@@ -357,13 +419,14 @@ struct NewTimerFormView: View {
         .task {
             // Initialize spent date. Priority:
             //   1. Edit mode → entry's own date
-            //   2. Idle-move mode → today (idle moves are constrained to today)
+            //   2. Idle-move / timer-move mode → today (moves are
+            //      constrained to today — the source timer is today's)
             //   3. Explicit targetDate parameter
             //   4. Active weekday filter → pre-fill the filtered day
             //   5. Today (default)
             if let entry = editingEntry, let parsed = DateHelpers.dateFormatter.date(from: entry.date) {
                 spentDate = parsed
-            } else if isIdleMove {
+            } else if isIdleMove || isTimerMove {
                 spentDate = Date()
             } else if let target = targetDate {
                 spentDate = target
@@ -833,6 +896,28 @@ struct NewTimerFormView: View {
         await viewModel.deleteTimeEntry(entryId: entry.id)
     }
 
+    /// Commit the timer-move flow. The view model resolves whether the
+    /// destination is an existing today entry (merge) or a new one
+    /// (create), adjusts the source, and starts/keeps whichever timer
+    /// `switchTimer` says should run.
+    private func commitTimerMove(switchTimer: Bool) async {
+        guard let move = timerMove,
+              let projectId = selectedProjectId,
+              let taskId = selectedTaskId else { return }
+        let hours = enteredHours
+        let notesToSend = notes.isEmpty ? nil : notes
+        FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
+        onDismiss()
+        await viewModel.commitTimerMove(
+            move,
+            projectId: projectId,
+            taskId: taskId,
+            hoursToMove: hours,
+            notes: notesToSend,
+            switchTimer: switchTimer
+        )
+    }
+
     /// Commit the idle-move flow with a brand-new entry on the chosen
     /// project/task. The duplicate banner short-circuits this path
     /// when an existing entry would be a better target.
@@ -889,6 +974,57 @@ struct NewTimerFormView: View {
         .padding(12)
         .background(YieldStatusColors.warning.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: YieldRadius.card))
+    }
+
+    /// Compact context line for timer-move mode: where the time is
+    /// coming from and how much is on that timer right now. The total
+    /// is live — `elapsedOffset` on the observable view model ticks
+    /// every minute, so the line keeps counting under the open form.
+    private func moveSourceBanner(_ move: TimeComparisonViewModel.PendingTimerMove) -> some View {
+        let available = viewModel.timerMoveAvailableHours(move)
+        let (h, m) = available.roundedHM
+        return HStack(spacing: 6) {
+            Image(systemName: "arrow.turn.up.right")
+                .font(.system(size: 11))
+                .foregroundStyle(YieldColors.textSecondary)
+            Text("From \(move.sourceProjectName) / \(move.sourceTaskName) — \(h):\(String(format: "%02d", m)) on the timer")
+                .font(YieldFonts.dmSans(11))
+                .foregroundStyle(YieldColors.textSecondary)
+                .lineLimit(1)
+        }
+    }
+
+    /// Timer-move replacement for `duplicateConfirmBanner` — informational
+    /// rather than an action fork. Two cases: the picked task already has
+    /// time today (fine — the move merges into it), or the picked task IS
+    /// the source timer (blocked; `canMove` disables the commit buttons).
+    private func moveTargetBanner(entries: [TimeEntryInfo]) -> some View {
+        let totalHours = entries.reduce(0.0) { $0 + $1.hours }
+        let projectName = selectedProject?.displayName ?? "This project"
+        let taskName = entries.first?.taskName ?? "this task"
+        let (h, m) = totalHours.roundedHM
+        let timeStr = "\(h)h \(String(format: "%02d", m))m"
+        let message = isMoveSelfTarget
+            ? "That's the timer you're moving time from — pick a different task."
+            : "\(projectName) / \(taskName) already has \(timeStr) today. The moved time will be added to that entry."
+
+        return HStack(alignment: .top, spacing: 6) {
+            Image(systemName: isMoveSelfTarget ? "exclamationmark.triangle.fill" : "info.circle")
+                .font(.system(size: 10))
+                .foregroundStyle(isMoveSelfTarget ? YieldColors.yellowAccent : YieldColors.textSecondary)
+                .padding(.top, 1)
+            Text(message)
+                .font(YieldFonts.dmSans(11))
+                .foregroundStyle(YieldColors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(isMoveSelfTarget ? YieldColors.yellowFaint : YieldColors.surfaceDefault)
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+        .transition(.opacity)
     }
 
     private func duplicateConfirmBanner(entries: [TimeEntryInfo]) -> some View {

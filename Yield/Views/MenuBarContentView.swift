@@ -96,17 +96,21 @@ struct MenuBarContentView: View {
                         }
                     }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
-                } else if showNewTimerForm || editingEntry != nil || viewModel.pendingIdleMove != nil {
+                } else if showNewTimerForm || editingEntry != nil || viewModel.pendingIdleMove != nil || viewModel.pendingTimerMove != nil {
                     NewTimerFormView(
                         viewModel: viewModel,
                         editingEntry: editingEntry,
                         preselectedProjectId: preselectedProjectId,
                         targetDate: newTimerTargetDate,
-                        idleMove: viewModel.pendingIdleMove
+                        idleMove: viewModel.pendingIdleMove,
+                        timerMove: viewModel.pendingTimerMove
                     ) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             if viewModel.pendingIdleMove != nil {
                                 viewModel.idleMoveCancel()
+                            }
+                            if viewModel.pendingTimerMove != nil {
+                                viewModel.timerMoveCancel()
                             }
                             showNewTimerForm = false
                             editingEntry = nil
@@ -134,8 +138,9 @@ struct MenuBarContentView: View {
             .animation(.easeInOut(duration: 0.2), value: editingEntry?.id)
             .animation(.easeInOut(duration: 0.2), value: viewModel.idleAlertState != nil)
             .animation(.easeInOut(duration: 0.2), value: viewModel.pendingIdleMove != nil)
+            .animation(.easeInOut(duration: 0.2), value: viewModel.pendingTimerMove != nil)
 
-            if viewModel.idleAlertState == nil && viewModel.pendingIdleMove == nil && !showSettings && !showNewTimerForm && editingEntry == nil {
+            if viewModel.idleAlertState == nil && viewModel.pendingIdleMove == nil && viewModel.pendingTimerMove == nil && !showSettings && !showNewTimerForm && editingEntry == nil {
                 MenuBarFooterView(viewModel: viewModel) {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         showSettings = true

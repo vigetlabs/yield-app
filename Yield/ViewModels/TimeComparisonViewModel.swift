@@ -309,6 +309,28 @@ final class TimeComparisonViewModel {
 
     private(set) var pendingIdleMove: PendingIdleMove? = nil
 
+    /// In-flight "move time off the current timer" flow, started from
+    /// the timer banner's right-click menu (the left-it-running-through-
+    /// a-meeting scenario). Unlike `PendingIdleMove` the amount is
+    /// user-entered in the form, and the source hours keep ticking while
+    /// the form is open — so this captures identity only, and the
+    /// available/remaining math happens live at commit time.
+    struct PendingTimerMove {
+        let sourceEntryId: Int
+        /// Source project/task ids so the form can refuse moving time
+        /// onto the very timer it came from.
+        let sourceProjectId: Int?
+        let sourceTaskId: Int?
+        let sourceProjectName: String
+        let sourceTaskName: String
+        /// Whether the source was running (vs paused) when the flow
+        /// started — decides whether it gets restarted after its hours
+        /// are adjusted.
+        let sourceWasRunning: Bool
+    }
+
+    private(set) var pendingTimerMove: PendingTimerMove? = nil
+
     // MARK: - External timer-change detection
     //
     // Tracks the running entry across refreshes so we can pop a HUD when
@@ -1123,6 +1145,7 @@ final class TimeComparisonViewModel {
         pausedState = nil
         idleAlertState = nil
         pendingIdleMove = nil
+        pendingTimerMove = nil
         notifiedProjectIds.removeAll()
         trackingSessionBaseline.removeAll()
         currentWeekStart = nil
@@ -1416,6 +1439,170 @@ final class TimeComparisonViewModel {
             await refresh()
         } catch {
             errorMessage = "Failed to move idle time: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Timer move (banner right-click → "Move Time…")
+
+    /// Begin a timer-move flow from the banner's current entry — the
+    /// running timer when active, the paused entry otherwise. Captures
+    /// identity only; nothing is touched until a commit succeeds, so
+    /// cancelling the form is a no-op on data.
+    @MainActor
+    func startTimerMove() {
+        if let project = trackingProject, let entry = trackingEntry {
+            pendingTimerMove = PendingTimerMove(
+                sourceEntryId: entry.id,
+                sourceProjectId: project.harvestProjectId,
+                sourceTaskId: entry.taskId,
+                sourceProjectName: project.displayName,
+                sourceTaskName: entry.taskName,
+                sourceWasRunning: true
+            )
+        } else if let paused = pausedState {
+            let entry = projectStatuses
+                .flatMap(\.timeEntries)
+                .first(where: { $0.id == paused.entryId })
+            pendingTimerMove = PendingTimerMove(
+                sourceEntryId: paused.entryId,
+                sourceProjectId: entry?.harvestProjectId,
+                sourceTaskId: entry?.taskId,
+                sourceProjectName: paused.projectDisplayName,
+                sourceTaskName: paused.taskName,
+                sourceWasRunning: false
+            )
+        }
+    }
+
+    /// Cancel an in-progress timer move without touching any data.
+    @MainActor
+    func timerMoveCancel() {
+        pendingTimerMove = nil
+    }
+
+    /// The source timer's current total — the ceiling on how much can
+    /// be moved. Live: includes the local elapsed offset while the
+    /// source is still running, so it keeps ticking under the open form.
+    func timerMoveAvailableHours(_ move: PendingTimerMove) -> Double {
+        if let entry = projectStatuses
+            .flatMap(\.timeEntries)
+            .first(where: { $0.id == move.sourceEntryId }) {
+            return entry.hours + (entry.isRunning ? elapsedOffset : 0)
+        }
+        // Paused entries can drop out of `projectStatuses` edge cases;
+        // the frozen banner total is the same number the user is seeing.
+        return pausedState?.frozenHours ?? 0
+    }
+
+    /// Move `hoursToMove` from the source timer to (projectId, taskId)
+    /// today. Merges into the most recent existing entry on the
+    /// destination when there is one (Harvest's own same-task-same-day
+    /// behavior), otherwise creates a new entry. Destination-first, like
+    /// the idle move: a failure after the destination lands leaves extra
+    /// time on the source — visible and easy to fix — never missing time.
+    ///
+    /// `switchTimer: false` → the source keeps its state (running keeps
+    /// running at the reduced total; paused stays paused).
+    /// `switchTimer: true`  → the source stops and the destination's
+    /// timer starts.
+    @MainActor
+    func commitTimerMove(
+        _ move: PendingTimerMove,
+        projectId: Int,
+        taskId: Int,
+        hoursToMove: Double,
+        notes: String?,
+        switchTimer: Bool
+    ) async {
+        guard let (harvestService, _) = makeServices() else { return }
+
+        // Clamp against the live source total at commit time — the form
+        // validated against a number that has kept ticking since.
+        let available = timerMoveAvailableHours(move)
+        let moved = min(hoursToMove, available)
+        guard moved > 0 else { return }
+        let newSourceHours = max(0, available - moved)
+
+        let todayString = DateHelpers.dateFormatter.string(from: Date())
+        let existingDest = projectStatuses
+            .first(where: { $0.harvestProjectId == projectId })?
+            .timeEntries
+            .filter { $0.taskId == taskId && $0.date == todayString && $0.id != move.sourceEntryId }
+            .max(by: { $0.id < $1.id })
+
+        markUserTimerMutation()
+
+        do {
+            let destEntryId: Int
+            if let existing = existingDest {
+                // Merge notes the way Harvest does when it merges timers:
+                // append on a new line. nil omits the field and preserves
+                // the existing notes untouched.
+                var mergedNotes: String? = nil
+                if let notes, !notes.isEmpty {
+                    if let existingNotes = existing.notes, !existingNotes.isEmpty {
+                        mergedNotes = existingNotes + "\n" + notes
+                    } else {
+                        mergedNotes = notes
+                    }
+                }
+                _ = try await harvestService.updateTimeEntry(
+                    entryId: existing.id,
+                    hours: existing.hours + moved,
+                    notes: mergedNotes
+                )
+                destEntryId = existing.id
+            } else {
+                let created = try await harvestService.createTimeEntry(
+                    projectId: projectId,
+                    taskId: taskId,
+                    hours: moved,
+                    notes: notes
+                )
+                destEntryId = created.id
+            }
+            // Real tracked time landed on the destination — feed the
+            // soft-favorite inference like the other create paths.
+            ProjectTaskHistoryStore.shared.record(projectId: projectId, taskId: taskId)
+
+            do {
+                // Stop the source before setting its hours so the PATCH
+                // semantics never depend on Harvest's behavior for
+                // updating a running entry.
+                if move.sourceWasRunning {
+                    _ = try await harvestService.stopTimer(entryId: move.sourceEntryId)
+                }
+                _ = try await harvestService.updateTimeEntry(
+                    entryId: move.sourceEntryId,
+                    hours: newSourceHours,
+                    notes: nil
+                )
+
+                if switchTimer {
+                    _ = try await harvestService.restartTimer(entryId: destEntryId)
+                    pausedState = nil
+                } else if move.sourceWasRunning {
+                    _ = try await harvestService.restartTimer(entryId: move.sourceEntryId)
+                } else if let paused = pausedState, paused.entryId == move.sourceEntryId {
+                    // Paused source stays paused — refreeze the banner's
+                    // total at the reduced amount.
+                    pausedState = PausedTimerState(
+                        clientName: paused.clientName,
+                        projectName: paused.projectName,
+                        projectCode: paused.projectCode,
+                        taskName: paused.taskName,
+                        entryId: paused.entryId,
+                        frozenHours: newSourceHours
+                    )
+                }
+            } catch {
+                errorMessage = "Time was added to the destination, but the source timer could not be adjusted. Edit it manually."
+            }
+
+            await refresh()
+        } catch {
+            errorMessage = "Failed to move time: \(error.localizedDescription)"
+            await refresh()
         }
     }
 
@@ -2851,8 +3038,10 @@ extension TimeComparisonViewModel {
         currentRefreshDay: String? = nil,
         hasSeenInitialTrackingState: Bool? = nil,
         lastTrackingEntryId: Int? = nil,
-        suppressNextTimerChangeHUD: Bool? = nil
+        suppressNextTimerChangeHUD: Bool? = nil,
+        pausedState: PausedTimerState? = nil
     ) {
+        if let pausedState { self.pausedState = pausedState }
         if let projectStatuses { self.projectStatuses = projectStatuses }
         if let notifiedProjectIds { self.notifiedProjectIds = notifiedProjectIds }
         if let trackingSessionBaseline { self.trackingSessionBaseline = trackingSessionBaseline }
