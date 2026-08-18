@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.5.0</title>
+      <sparkle:version>61</sparkle:version>
+      <sparkle:shortVersionString>1.5.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Move time off a runaway timer.</strong> Left a timer running while you sat in a meeting? Right-click the timer bar and choose Move Time. Pick the task the time really belongs to, enter how much to move, and either keep timing what you were working on or switch the timer to the new task. If you've already tracked to that task today, the moved time folds into the existing entry.</li>
+          <li><strong>Timer actions on hover.</strong> The timer bar now uses the same hover reveal as the project rows — hover to surface Edit, Move Time, and Delete as one-click icons. The right-click menu still works too, with labels alongside the icons.</li>
+          <li><strong>Right-click works everywhere.</strong> Project rows gained a right-click menu that mirrors their hover actions — Resume Timer, Quick Start, and Add Time — so both paths are always available.</li>
+          <li>The colored status line on each row is a touch thicker, so booked-but-unassigned (amber) and prospective (pink) projects are easier to spot.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.5.0/Yield-1.5.0.zip"
+        sparkle:edSignature="SkjZEsaMBeFkxtGsmqRD1iqay9c/yWRtJSbIZOSRsI+1oCJiJWmkcvwXXllWiUiqUbs/PP67/YbtzMQpqdb7Dw=="
+        length="2908011"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.4.1</title>
       <sparkle:version>60</sparkle:version>
       <sparkle:shortVersionString>1.4.1</sparkle:shortVersionString>
