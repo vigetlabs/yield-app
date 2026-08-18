@@ -16,6 +16,12 @@ struct TimerBannerView: View {
     /// Measured at first layout via `onGeometryChange`; the initial
     /// value is just a stale-until-measured estimate.
     @State private var contentHeight: CGFloat = 74
+    /// Banner-level hover — stage 1 of the action reveal (the ellipsis
+    /// peek). Mirrors the project rows' two-stage quick-action system.
+    @State private var isHovered: Bool = false
+    /// True while the cursor is over the action zone itself — stage 2:
+    /// the ellipsis cross-fades to the Edit / Move / Delete icons.
+    @State private var isActionZoneHovered: Bool = false
 
     private let emptyHeight: CGFloat = 16
 
@@ -122,6 +128,10 @@ struct TimerBannerView: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
         }
+        // Right-click menu: secondary path to the same actions the
+        // hover reveal offers — a backup with text labels alongside
+        // the icons, for anyone who reaches for it by muscle memory.
+        // Kept in lockstep with `overflowActionsBar`.
         .contextMenu {
             Button {
                 if let entry = currentEntry { onEditEntry?(entry) }
@@ -129,10 +139,6 @@ struct TimerBannerView: View {
                 Label("Edit Timer", systemImage: "pencil")
             }
             .disabled(viewModel.isHarvestDown || currentEntry == nil)
-            // Relocate part of this timer's time to another task — the
-            // "left it running through a meeting" fix. Presentation is
-            // driven by `pendingTimerMove` on the view model (like the
-            // idle-move flow), so no callback plumbing is needed here.
             Button {
                 viewModel.startTimerMove()
             } label: {
@@ -148,7 +154,16 @@ struct TimerBannerView: View {
         }
         .onAppear { syncDotPulse() }
         .onChange(of: isActive) { _, _ in syncDotPulse() }
-        .onChange(of: hasTimer) { _, _ in syncDotPulse() }
+        .onChange(of: hasTimer) { _, _ in
+            syncDotPulse()
+            // The banner can collapse out from under the cursor (timer
+            // stopped from the reveal itself) — clear the hover states
+            // so the next timer doesn't appear with the zone pre-opened.
+            if !hasTimer {
+                isHovered = false
+                isActionZoneHovered = false
+            }
+        }
     }
 
     @ViewBuilder
@@ -195,8 +210,13 @@ struct TimerBannerView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Right: timer + controls
-                HStack(spacing: 12) {
+                // Right: timer + controls + hover-revealed overflow
+                // actions. spacing 0 (not the HStack default) so the
+                // zero-width resting action zone doesn't reserve a
+                // phantom gap that would shift the stop button off its
+                // usual position — the real gaps are explicit paddings,
+                // mirroring the project rows' fix for the same issue.
+                HStack(spacing: 0) {
                     timerDisplay(totalSeconds: totalSeconds)
 
                     HStack(spacing: 8) {
@@ -233,11 +253,106 @@ struct TimerBannerView: View {
                         ))
                         .disabledWhenHarvestDown(viewModel.isHarvestDown)
                     }
+                    .padding(.leading, 12)
+
+                    actionRevealZone
                 }
             }
             .padding(16)
         }
         .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isHovered = hovering
+            }
+        }
+    }
+
+    // MARK: - Overflow Action Reveal
+
+    /// Same two-stage reveal as the project rows: banner hover → 22pt
+    /// ellipsis peek; zone hover → the ellipsis cross-fades to the
+    /// Edit / Move / Delete icon bar sliding in from the trailing edge.
+    /// The formerly-right-click-only actions become one-click and
+    /// discoverable.
+    private var actionRevealZone: some View {
+        ZStack(alignment: .trailing) {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(YieldColors.textSecondary)
+                .frame(width: 22, height: 22)
+                .opacity(showPeekIcon ? 1 : 0)
+
+            overflowActionsBar
+                .fixedSize()
+                .opacity(isActionZoneHovered ? 1 : 0)
+        }
+        .frame(width: actionZoneWidth, alignment: .trailing)
+        .clipped()
+        // Gap before the zone only while it has width — keeps the stop
+        // button in its usual trailing position when idle.
+        .padding(.leading, actionZoneWidth > 0 ? 8 : 0)
+        // Full-height hit area so the cursor doesn't drop out of the
+        // zone when it strays above or below the icons.
+        .frame(maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isActionZoneHovered = hovering
+            }
+        }
+    }
+
+    /// Reveal-zone width staging, mirroring the project rows:
+    ///   - Zone hovered  → full bar (3 × 22pt icons + 2 × 4pt gaps + 4pt lead)
+    ///   - Banner hovered → 22pt peek slot
+    ///   - Neither        → 0
+    private var actionZoneWidth: CGFloat {
+        guard hasTimer else { return 0 }
+        if isActionZoneHovered { return 3 * 22 + 2 * 4 + 4 }
+        if isHovered { return 22 }
+        return 0
+    }
+
+    private var showPeekIcon: Bool {
+        hasTimer && isHovered && !isActionZoneHovered
+    }
+
+    /// Edit / Move / Delete, in the old context menu's order. Styled
+    /// identically to the project rows' quick-action buttons so the two
+    /// reveal systems read as one.
+    private var overflowActionsBar: some View {
+        HStack(spacing: 4) {
+            overflowActionButton(systemImage: "pencil", help: "Edit Timer") {
+                if let entry = currentEntry { onEditEntry?(entry) }
+            }
+            // Relocate part of this timer's time to another task — the
+            // "left it running through a meeting" fix. Presentation is
+            // driven by `pendingTimerMove` on the view model (like the
+            // idle-move flow), so no callback plumbing is needed here.
+            overflowActionButton(systemImage: "arrow.turn.up.right", help: "Move Time…") {
+                viewModel.startTimerMove()
+            }
+            overflowActionButton(systemImage: "trash", help: "Delete Timer") {
+                if let entry = currentEntry { onDeleteEntry?(entry) }
+            }
+        }
+        .padding(.leading, 4)
+    }
+
+    private func overflowActionButton(systemImage: String, help: String, action: @escaping () -> Void) -> some View {
+        let disabled = viewModel.isHarvestDown || currentEntry == nil
+        return Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(YieldColors.textSecondary)
+                .frame(width: 22, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .disabled(disabled)
+        .opacity(disabled ? 0.4 : 1)
     }
 
     /// Heartbeat for the status dot — only when a timer is set AND

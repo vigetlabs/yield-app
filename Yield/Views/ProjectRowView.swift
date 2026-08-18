@@ -82,6 +82,9 @@ struct ProjectRowView: View {
                     withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
                 }
 
+            // The right-click menu attaches to the Button (not the
+            // label inside it) so right-clicks reach it reliably; the
+            // plain-view branch gets the same menu directly.
             if hasEntries {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -91,8 +94,10 @@ struct ProjectRowView: View {
                     header
                 }
                 .buttonStyle(.plain)
+                .contextMenu { rowContextMenu }
             } else {
                 header
+                    .contextMenu { rowContextMenu }
             }
 
             // Accordion drawer: day-by-day breakdown bar at the top, then the
@@ -404,6 +409,39 @@ struct ProjectRowView: View {
             }
         }
         .padding(.leading, 4)
+    }
+
+    /// Right-click menu: secondary path to the same actions the hover
+    /// reveal offers — a backup with text labels alongside the icons,
+    /// mirroring the timer banner's pairing of the two systems. Same
+    /// items, same order, same gating as `quickActionsBar` — keep them
+    /// in lockstep. Empty (no menu shown) when the row has no actions.
+    @ViewBuilder
+    private var rowContextMenu: some View {
+        if hasOverflowActions, let projectId = project.harvestProjectId {
+            if !project.isTracking, let entryId = project.todayEntryId {
+                Button {
+                    onResumeToday?(entryId)
+                } label: {
+                    Label("Resume Timer", systemImage: "arrow.clockwise")
+                }
+                .disabled(isHarvestDown)
+            }
+            if let taskId = quickStartTaskId(for: projectId) {
+                Button {
+                    onQuickStartFavorite?(projectId, taskId)
+                } label: {
+                    Label("Quick Start", systemImage: "bolt.fill")
+                }
+                .disabled(isHarvestDown)
+            }
+            Button {
+                onStartTimerForProject?()
+            } label: {
+                Label("Add Time", systemImage: "plus.circle.fill")
+            }
+            .disabled(isHarvestDown)
+        }
     }
 
     @ViewBuilder
