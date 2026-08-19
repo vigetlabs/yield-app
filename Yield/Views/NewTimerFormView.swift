@@ -54,13 +54,27 @@ struct NewTimerFormView: View {
     /// which is noisy and not what the user asked for.
     @State private var sourcedFromCalendarPicker = false
 
-    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, timerMove: TimeComparisonViewModel.PendingTimerMove? = nil, startInCalendarPicker: Bool = false, onDismiss: @escaping () -> Void) {
+    /// Meeting-prompt routing: the meeting's title, prefilled as notes.
+    /// Non-nil also marks the save as meeting-sourced so it records to
+    /// `MeetingHistoryStore` — the first-encounter save is what makes
+    /// the next prompt's Start Timer instant.
+    let meetingNotes: String?
+    /// Timer-move mode only: prefill the amount (elapsed-since-meeting-
+    /// start when routed from the prompt bar) instead of starting at 0.
+    let timerMovePrefillHours: Double?
+
+    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, timerMove: TimeComparisonViewModel.PendingTimerMove? = nil, startInCalendarPicker: Bool = false, meetingNotes: String? = nil, timerMovePrefillHours: Double? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
         self.editingEntry = editingEntry
         self.preselectedProjectId = preselectedProjectId
         self.targetDate = targetDate
         self.idleMove = idleMove
         self.timerMove = timerMove
+        self.meetingNotes = meetingNotes
+        self.timerMovePrefillHours = timerMovePrefillHours
+        // Meeting-sourced saves record to MeetingHistoryStore the same
+        // way calendar-picker saves do.
+        _sourcedFromCalendarPicker = State(initialValue: meetingNotes != nil)
         // Header calendar shortcut: open directly on the event picker
         // rather than making the user tap through the form to reach it.
         _showCalendarPicker = State(initialValue: startInCalendarPicker)
@@ -268,6 +282,15 @@ struct NewTimerFormView: View {
             // sees the amount being relocated.
             if let move = idleMove {
                 (timeHours, timeMinutes) = move.idleHours.roundedHM
+            }
+
+            // Meeting-prompt routing: title as notes, and (in timer-move
+            // mode) the elapsed-since-start amount ready to move.
+            if let meetingNotes, notes.isEmpty {
+                notes = meetingNotes
+            }
+            if isTimerMove, let prefill = timerMovePrefillHours {
+                (timeHours, timeMinutes) = prefill.roundedHM
             }
 
             await loadProjects()
@@ -988,6 +1011,12 @@ struct NewTimerFormView: View {
         let hours = enteredHours
         let notesToSend = notes.isEmpty ? nil : notes
         FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
+        // Meeting-sourced moves (the prompt bar's first-encounter path)
+        // train the title → (project, task) memory like the other
+        // calendar-sourced saves.
+        if sourcedFromCalendarPicker {
+            MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
+        }
         onDismiss()
         await viewModel.commitTimerMove(
             move,

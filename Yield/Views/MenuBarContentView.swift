@@ -72,6 +72,12 @@ struct MenuBarContentView: View {
     /// When the form opens via the header's calendar shortcut, start it
     /// directly on the calendar event picker instead of the blank form.
     @State private var openFormInCalendarPicker = false
+    /// Meeting-prompt routing for first-encounter meetings (no stored
+    /// memory): the form opens with the meeting title as notes — and,
+    /// when a timer is running past the event's start, in timer-move
+    /// mode with the elapsed amount prefilled.
+    @State private var formMeetingNotes: String? = nil
+    @State private var formTimerMovePrefillHours: Double? = nil
     @State private var editingEntry: TimeEntryInfo? = nil
     @State private var preselectedProjectId: Int? = nil
     @State private var newTimerTargetDate: Date? = nil
@@ -115,7 +121,9 @@ struct MenuBarContentView: View {
                         targetDate: newTimerTargetDate,
                         idleMove: viewModel.pendingIdleMove,
                         timerMove: viewModel.pendingTimerMove,
-                        startInCalendarPicker: openFormInCalendarPicker
+                        startInCalendarPicker: openFormInCalendarPicker,
+                        meetingNotes: formMeetingNotes,
+                        timerMovePrefillHours: formTimerMovePrefillHours
                     ) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             if viewModel.pendingIdleMove != nil {
@@ -126,6 +134,8 @@ struct MenuBarContentView: View {
                             }
                             showNewTimerForm = false
                             openFormInCalendarPicker = false
+                            formMeetingNotes = nil
+                            formTimerMovePrefillHours = nil
                             editingEntry = nil
                             preselectedProjectId = nil
                             newTimerTargetDate = nil
@@ -224,6 +234,18 @@ struct MenuBarContentView: View {
                 // have PTO this week" signal lives at the top of the panel.
                 if let timeOff = viewModel.displayedTimeOff, viewModel.selectedTab != .chart {
                     TimeOffRowView(block: timeOff)
+                }
+
+                // Meeting-start prompt bar — sits directly above the
+                // timer banner it's suggesting you change. Current week
+                // only, matching the banner's gate.
+                if let promptEvent = viewModel.activeMeetingPrompt, !viewModel.isViewingOtherWeek {
+                    MeetingPromptBarView(
+                        viewModel: viewModel,
+                        event: promptEvent,
+                        onStartTimer: { startTimerForMeetingPrompt(promptEvent) }
+                    )
+                    .transition(.opacity)
                 }
 
                 // Timer banner / inactive slot — only shown for the current
@@ -369,6 +391,29 @@ struct MenuBarContentView: View {
         // short.
         .frame(maxHeight: viewModel.selectedTab == .chart ? 0 : nil, alignment: .top)
         .clipped()
+    }
+
+    /// The prompt bar's Start Timer action. Remembered meetings are
+    /// handled entirely by the view model (instant start, or move-and-
+    /// switch when a timer is running past the event start). First
+    /// encounters route to the form — title prefilled, and in timer-
+    /// move mode with the elapsed amount when there's time to move —
+    /// so picking the project/task trains the memory for next time.
+    private func startTimerForMeetingPrompt(_ event: CalendarEvent) {
+        Task {
+            let handled = await viewModel.startTimerForMeetingPrompt()
+            guard !handled else { return }
+            let elapsed = viewModel.meetingPromptElapsedHours()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                formMeetingNotes = event.summary
+                if viewModel.trackingEntry != nil, elapsed > 0 {
+                    formTimerMovePrefillHours = elapsed
+                    viewModel.startTimerMove()
+                } else {
+                    showNewTimerForm = true
+                }
+            }
+        }
     }
 
     /// Project list for past (read-only) or future (look-ahead) weeks.

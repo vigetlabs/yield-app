@@ -21,6 +21,11 @@ enum DefaultsKey {
     /// Weekly hours target. Default 40. Daily target is derived as
     /// `DateHelpers.dailyHours(fromWeekly:)`.
     static let weeklyHoursTarget = "weeklyHoursTarget"
+    /// Whether meeting-start timer prompts (notification + panel bar)
+    /// are shown. Only meaningful — and only surfaced in Settings —
+    /// while Google Calendar is connected. Default on: connecting the
+    /// calendar is the opt-in signal.
+    static let meetingPromptsEnabled = "meetingPromptsEnabled"
 
     // MARK: - User data
     static let favorites = "favorites"
@@ -33,6 +38,11 @@ enum DefaultsKey {
     /// frequency) powering the implicit "soft favorite" task pre-fill in
     /// the new-timer form. See `ProjectTaskHistoryStore`.
     static let projectTaskHistory = "projectTaskHistory"
+    /// Normalized meeting titles the user has permanently muted from
+    /// meeting-start timer prompts ("Don't prompt for meetings like
+    /// this"). See `MutedMeetingsStore`; managed from the Calendar
+    /// settings card.
+    static let mutedMeetingTitles = "mutedMeetingTitles"
     /// Cached Forecast project id for the global "Time Off" project,
     /// so the first refresh after relaunch doesn't pay for a second
     /// lookup. See TimeComparisonViewModel.

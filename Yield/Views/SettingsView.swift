@@ -71,19 +71,16 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     AboutCard()
-                    // Account + Calendar share a row at 50/50.
-                    // `alignment: .top` keeps both cards anchored at
-                    // the top edge so the shorter of the two doesn't
-                    // stretch — they grow vertically independently
-                    // based on their own sign-in state.
-                    HStack(alignment: .top, spacing: 12) {
-                        AccountCard(oAuthService: oAuthService, onDismiss: onDismiss)
-                            .frame(maxWidth: .infinity)
-                        GoogleCalendarCard()
-                            .frame(maxWidth: .infinity)
-                    }
+                    // Account + Calendar stack full-width. They were
+                    // 50/50 side-by-side, but the Calendar card's
+                    // content (prompt toggle, connect states) outgrew
+                    // the Account card and the mismatched heights read
+                    // as broken.
+                    AccountCard(oAuthService: oAuthService, onDismiss: onDismiss)
+                    GoogleCalendarCard()
                     PreferencesCard()
                     FavoritesCard(allProjects: allProjects, isLoadingProjects: isLoadingProjects)
+                    MutedMeetingsCard()
                 }
                 .padding(16)
             }

@@ -1062,6 +1062,10 @@ final class TimeComparisonViewModel {
         // menu open and manual refresh, so no need for a periodic hard refresh.
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.triggerSoftRefresh()
+            // Minute cadence for the meeting-start prompt window —
+            // runs regardless of tracking state (unlike the elapsed
+            // ticker, which only exists while a timer runs).
+            Task { @MainActor in self?.updateMeetingPrompt() }
         }
 
         // Fire an immediate refresh when network connectivity comes back
@@ -1148,6 +1152,9 @@ final class TimeComparisonViewModel {
         pendingTimerMove = nil
         cachedCalendarEvents = nil
         calendarEventsFetchedAt = nil
+        activeMeetingPrompt = nil
+        meetingPromptDismissedIds.removeAll()
+        meetingPromptNotifiedIds.removeAll()
         notifiedProjectIds.removeAll()
         trackingSessionBaseline.removeAll()
         currentWeekStart = nil
@@ -1651,6 +1658,192 @@ final class TimeComparisonViewModel {
         }
         guard calendarCacheIsStale else { return }
         try? await fetchAndCacheCalendarEvents()
+        // Fresh events can open (or close) a prompt window — a meeting
+        // added minutes ago should prompt on this same cycle.
+        updateMeetingPrompt()
+    }
+
+    // MARK: - Meeting-start timer prompts
+
+    /// The calendar event the panel's prompt bar is currently offering
+    /// to start a timer for. Nil when no event is in its prompt window
+    /// (or prompts are disabled / the event was dismissed / muted /
+    /// already being timed).
+    private(set) var activeMeetingPrompt: CalendarEvent? = nil
+
+    /// Events dismissed from the bar this session (the × button) —
+    /// dismiss means dismissed, the same event never re-prompts.
+    /// Session-scoped by design: Google event ids are per-instance,
+    /// so tomorrow's standup is a different id anyway.
+    private var meetingPromptDismissedIds: Set<String> = []
+
+    /// Events whose start notification already fired — once per event.
+    private var meetingPromptNotifiedIds: Set<String> = []
+
+    /// Store seams for the prompt engine. Production uses the shared
+    /// singletons; tests inject non-persisted instances so exercising
+    /// mute/memory rules can't write into the user's real UserDefaults.
+    @ObservationIgnored var meetingHistoryStore: MeetingHistoryStore = .shared
+    @ObservationIgnored var mutedMeetingsStore: MutedMeetingsStore = .shared
+
+    /// How long after its start an event keeps prompting. Past this,
+    /// a prompt is more likely noise than help — Move Time covers the
+    /// discovered-it-late case.
+    private static let meetingPromptWindowAfterStart: TimeInterval = 30 * 60
+    /// How long before its start an event may begin prompting.
+    private static let meetingPromptWindowBeforeStart: TimeInterval = 2 * 60
+
+    private var meetingPromptsEnabled: Bool {
+        UserDefaults.standard.object(forKey: DefaultsKey.meetingPromptsEnabled) as? Bool ?? true
+    }
+
+    /// Re-evaluate which event (if any) should be prompting right now.
+    /// Runs on the 60s soft-refresh cadence and after the calendar
+    /// cache updates. Fires the start notification once per event.
+    @MainActor
+    func updateMeetingPrompt(now: Date = Date()) {
+        guard meetingPromptsEnabled,
+              AppState.shared.googleAuthService.isAuthenticated,
+              let events = cachedCalendarEvents else {
+            activeMeetingPrompt = nil
+            return
+        }
+
+        let candidate = events.first { event in
+            meetingPromptEligible(event, now: now)
+        }
+        // Animate only real appearance/disappearance/replacement so the
+        // bar fades if the panel happens to be open at the minute tick;
+        // same-event re-evaluations stay transaction-free.
+        if candidate?.id != activeMeetingPrompt?.id {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                activeMeetingPrompt = candidate
+            }
+        }
+
+        if let candidate, !meetingPromptNotifiedIds.contains(candidate.id) {
+            meetingPromptNotifiedIds.insert(candidate.id)
+            sendMeetingStartNotification(for: candidate)
+        }
+    }
+
+    /// The suppression gauntlet. An event prompts only when every
+    /// reason to stay quiet fails:
+    /// - untitled events have no identity to remember or mute
+    /// - inside the window: shortly before start until 30 min after
+    ///   (and never past the event's end)
+    /// - not dismissed this session, not permanently muted
+    /// - not already being timed — either the running entry matches
+    ///   the event's meeting-history resolution, or its notes match
+    ///   the title (covers first-encounter timers started via the form)
+    ///
+    /// Internal (vs. private) so XCTest can drive the gauntlet directly
+    /// without the auth/enabled gates `updateMeetingPrompt` adds.
+    func meetingPromptEligible(_ event: CalendarEvent, now: Date) -> Bool {
+        guard !event.summary.isEmpty else { return false }
+        let windowStart = event.start.addingTimeInterval(-Self.meetingPromptWindowBeforeStart)
+        let windowEnd = min(event.end, event.start.addingTimeInterval(Self.meetingPromptWindowAfterStart))
+        guard now >= windowStart, now < windowEnd else { return false }
+        guard !meetingPromptDismissedIds.contains(event.id) else { return false }
+        guard !mutedMeetingsStore.isMuted(title: event.summary) else { return false }
+
+        if let entry = trackingEntry {
+            if let memory = meetingHistoryStore.lookup(title: event.summary),
+               entry.harvestProjectId == memory.projectId, entry.taskId == memory.taskId {
+                return false
+            }
+            if let notes = entry.notes,
+               MeetingHistoryStore.normalize(notes) == MeetingHistoryStore.normalize(event.summary) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Hours elapsed since the prompt event started — the amount the
+    /// bar offers to move off the running timer. Zero before start.
+    func meetingPromptElapsedHours(now: Date = Date()) -> Double {
+        guard let event = activeMeetingPrompt else { return 0 }
+        return max(0, now.timeIntervalSince(event.start) / 3600)
+    }
+
+    /// Dismiss the current prompt (the bar's ×) — that event stays
+    /// quiet for the rest of the session.
+    @MainActor
+    func dismissMeetingPrompt() {
+        guard let event = activeMeetingPrompt else { return }
+        meetingPromptDismissedIds.insert(event.id)
+        activeMeetingPrompt = nil
+    }
+
+    /// "Don't prompt for meetings like this" — permanently mute the
+    /// event's title. Managed (undoable) from the Calendar settings card.
+    @MainActor
+    func muteMeetingPrompt() {
+        guard let event = activeMeetingPrompt else { return }
+        mutedMeetingsStore.mute(title: event.summary)
+        activeMeetingPrompt = nil
+    }
+
+    /// The bar's Start Timer action, for events meeting history can
+    /// resolve. Two shapes:
+    /// - a timer is running and the event already started → move the
+    ///   elapsed-since-start time onto the meeting's entry and switch
+    ///   the timer to it (the timeline reads as if you switched at the
+    ///   event's start)
+    /// - otherwise → plain running timer on the remembered pair
+    /// Returns false when there's no memory for the title — the caller
+    /// routes to the form instead (first encounters train the memory).
+    @MainActor
+    func startTimerForMeetingPrompt() async -> Bool {
+        guard let event = activeMeetingPrompt,
+              let memory = meetingHistoryStore.lookup(title: event.summary) else { return false }
+
+        let elapsed = meetingPromptElapsedHours()
+        meetingHistoryStore.record(notes: event.summary, projectId: memory.projectId, taskId: memory.taskId)
+        activeMeetingPrompt = nil
+
+        // Built directly (not via `startTimerMove()` → `pendingTimerMove`)
+        // — that state's non-nil presents the timer-move form, which
+        // this path must never flash.
+        if let project = trackingProject, let entry = trackingEntry, elapsed > 0 {
+            let move = PendingTimerMove(
+                sourceEntryId: entry.id,
+                sourceProjectId: project.harvestProjectId,
+                sourceTaskId: entry.taskId,
+                sourceProjectName: project.displayName,
+                sourceTaskName: entry.taskName,
+                sourceWasRunning: true
+            )
+            await commitTimerMove(
+                move,
+                projectId: memory.projectId,
+                taskId: memory.taskId,
+                hoursToMove: elapsed,
+                notes: event.summary,
+                switchTimer: true
+            )
+            return true
+        }
+        await startNewTimer(projectId: memory.projectId, taskId: memory.taskId, notes: event.summary)
+        return true
+    }
+
+    /// Meeting-start nudge. A quiet banner (no sound): the panel bar
+    /// carries the actions; this just catches the eye. Suppressed
+    /// under XCTest like the other notification senders.
+    @MainActor
+    private func sendMeetingStartNotification(for event: CalendarEvent) {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Meeting started"
+        content.body = "\(event.summary) — open Yield to start a timer."
+        let request = UNNotificationRequest(
+            identifier: "meeting-start-\(event.id)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
     }
 
     /// If the project is already at or over its booked budget, mark it as already-notified
@@ -3091,9 +3284,13 @@ extension TimeComparisonViewModel {
         hasSeenInitialTrackingState: Bool? = nil,
         lastTrackingEntryId: Int? = nil,
         suppressNextTimerChangeHUD: Bool? = nil,
-        pausedState: PausedTimerState? = nil
+        pausedState: PausedTimerState? = nil,
+        cachedCalendarEvents: [CalendarEvent]? = nil,
+        activeMeetingPrompt: CalendarEvent? = nil
     ) {
         if let pausedState { self.pausedState = pausedState }
+        if let cachedCalendarEvents { self.cachedCalendarEvents = cachedCalendarEvents }
+        if let activeMeetingPrompt { self.activeMeetingPrompt = activeMeetingPrompt }
         if let projectStatuses { self.projectStatuses = projectStatuses }
         if let notifiedProjectIds { self.notifiedProjectIds = notifiedProjectIds }
         if let trackingSessionBaseline { self.trackingSessionBaseline = trackingSessionBaseline }

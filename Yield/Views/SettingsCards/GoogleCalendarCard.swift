@@ -10,6 +10,9 @@ struct GoogleCalendarCard: View {
     private let googleAuth: GoogleAuthService = AppState.shared.googleAuthService
 
     @State private var showGoogleDisconnectConfirm = false
+    /// Meeting-start timer prompts (notification + panel bar). Only
+    /// surfaced while connected — an irrelevant toggle is noise.
+    @AppStorage(DefaultsKey.meetingPromptsEnabled) private var meetingPromptsEnabled = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -45,6 +48,31 @@ struct GoogleCalendarCard: View {
                     Spacer()
                 }
                 .padding(12)
+
+                Rectangle()
+                    .fill(YieldColors.border)
+                    .frame(height: 1)
+
+                // Meeting-start timer prompts: when an event begins,
+                // Yield nudges (notification + a bar above the timer)
+                // to start or switch a timer for it.
+                HStack(spacing: 10) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 11))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .frame(width: 16)
+                    Text("Meeting timer prompts")
+                        .font(YieldFonts.dmSans(11, weight: .medium))
+                        .foregroundStyle(YieldColors.textPrimary)
+                        .help("When a calendar event starts, Yield offers to start a timer for it — including moving the minutes since the event began off the running timer.")
+                    Spacer()
+                    Toggle("Meeting timer prompts", isOn: $meetingPromptsEnabled)
+                        .toggleStyle(.switch)
+                        .controlSize(.mini)
+                        .labelsHidden()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
 
                 Rectangle()
                     .fill(YieldColors.border)
