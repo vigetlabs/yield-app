@@ -78,10 +78,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
             guard className.contains("MenuBarExtra") else { return }
             Task { @MainActor in
                 AppState.shared.isPanelOpen = true
-                // Tear down any visible timer-change HUD — the panel
-                // about to open shows the same state, so leaving the
-                // HUD up would be redundant noise.
-                TimerChangeHUDController.shared.dismiss()
+                // Clear any delivered timer-change notification — the
+                // panel about to open shows the same state, so leaving
+                // the announcement in Notification Center would be
+                // redundant noise.
+                UNUserNotificationCenter.current().removeDeliveredNotifications(
+                    withIdentifiers: [TimeComparisonViewModel.externalTimerChangeNotificationId]
+                )
                 await AppState.shared.viewModel.refreshIfStale()
             }
         }

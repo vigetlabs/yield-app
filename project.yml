@@ -31,6 +31,12 @@ targets:
         LSUIElement: true
         CFBundleDisplayName: "Yield"
         CFBundleName: Yield
+        # Default notification presentation: temporary banners, not
+        # persistent alerts. Without this declared, macOS picked
+        # "Alerts" for the agent app on at least one system — every
+        # nudge then stuck around until manually dismissed. Only the
+        # default: users can still choose Alerts in System Settings.
+        NSUserNotificationAlertStyle: banner
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
           NSAllowsLocalNetworking: true

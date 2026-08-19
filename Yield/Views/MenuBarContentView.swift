@@ -405,6 +405,11 @@ struct MenuBarContentView: View {
             guard !handled else { return }
             let elapsed = viewModel.meetingPromptElapsedHours()
             withAnimation(.easeInOut(duration: 0.2)) {
+                // Acting on the prompt dismisses it — same finality as
+                // the ×. The form takes over from here; if the user
+                // cancels out, the bar staying gone is what they'd
+                // expect from a button they already pressed.
+                viewModel.dismissMeetingPrompt()
                 formMeetingNotes = event.summary
                 if viewModel.trackingEntry != nil, elapsed > 0 {
                     formTimerMovePrefillHours = elapsed

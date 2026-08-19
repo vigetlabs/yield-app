@@ -429,22 +429,64 @@ final class TimeComparisonViewModel {
         if currentId == lastTrackingEntryId { return }
 
         if let project = currentProject, let entry = currentEntry {
-            TimerChangeHUDController.shared.show(TimerChangeInfo(
-                kind: .started,
+            sendExternalTimerChangeNotification(
+                title: "Timer started elsewhere",
                 clientName: project.clientName,
                 projectName: project.projectName,
                 projectCode: project.projectCode,
                 taskName: entry.taskName
-            ))
+            )
         } else if let projectName = lastTrackingProjectName {
-            TimerChangeHUDController.shared.show(TimerChangeInfo(
-                kind: .stopped,
+            sendExternalTimerChangeNotification(
+                title: "Timer stopped elsewhere",
                 clientName: lastTrackingClientName,
                 projectName: projectName,
                 projectCode: lastTrackingProjectCode,
                 taskName: lastTrackingTaskName
-            ))
+            )
         }
+    }
+
+    /// Identifier shared by all external-change notifications: a stop
+    /// arriving after a start replaces the now-stale banner instead of
+    /// stacking, and the panel-open handler can clear the delivered one
+    /// (once you're looking at the timer state, the announcement is
+    /// redundant).
+    static let externalTimerChangeNotificationId = "external-timer-change"
+
+    /// System-notification successor to the old floating HUD, so every
+    /// Yield nudge rides the same channel — same Focus/DND respect,
+    /// same suppression during screen sharing, same Notification
+    /// Center persistence. Quiet banner, no sound: it's a passive FYI
+    /// about something the user did themselves in another Harvest
+    /// surface.
+    @MainActor
+    private func sendExternalTimerChangeNotification(
+        title: String,
+        clientName: String?,
+        projectName: String,
+        projectCode: String?,
+        taskName: String?
+    ) {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        // Respect the user's preference (registered default: true).
+        guard UserDefaults.standard.bool(forKey: DefaultsKey.timerChangeHUDEnabled) else { return }
+        // Suppressed while the panel is open — the user is already
+        // looking at the timer state, the announcement would be noise.
+        guard !AppState.shared.isPanelOpen else { return }
+
+        let projectDisplay = ProjectStatus.displayName(code: projectCode, project: projectName)
+        let context = ProjectStatus.qualifiedName(client: clientName, project: projectDisplay)
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = taskName.map { "\(context) · \($0)" } ?? context
+
+        let request = UNNotificationRequest(
+            identifier: Self.externalTimerChangeNotificationId,
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
     }
 
     /// Current-week day filter. When non-nil, the project list hides
@@ -1801,6 +1843,11 @@ final class TimeComparisonViewModel {
 
         let elapsed = meetingPromptElapsedHours()
         meetingHistoryStore.record(notes: event.summary, projectId: memory.projectId, taskId: memory.taskId)
+        // Full dismissal (not just clearing): acting on the prompt is
+        // as final as the × — it must not resurface for this event,
+        // even if the start fails and the suppression rules can't see
+        // a matching timer on the next tick.
+        meetingPromptDismissedIds.insert(event.id)
         activeMeetingPrompt = nil
 
         // Built directly (not via `startTimerMove()` → `pendingTimerMove`)

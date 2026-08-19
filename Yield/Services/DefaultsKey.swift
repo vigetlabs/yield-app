@@ -14,9 +14,11 @@ enum DefaultsKey {
     static let menuBarLabelMode = "menuBarLabelMode"
     static let idleDetectionEnabled = "idleDetectionEnabled"
     static let idleMinutes = "idleMinutes"
-    /// Whether the HUD that announces externally-triggered timer
-    /// starts/stops (e.g. from the Harvest browser extension) is shown.
-    /// On = surface the HUD; off = silent.
+    /// Whether externally-triggered timer starts/stops (e.g. from the
+    /// Harvest browser extension) are announced via a system
+    /// notification. Key name predates the move from a custom HUD to
+    /// system notifications — kept so existing users' preference
+    /// survives.
     static let timerChangeHUDEnabled = "timerChangeHUDEnabled"
     /// Weekly hours target. Default 40. Daily target is derived as
     /// `DateHelpers.dailyHours(fromWeekly:)`.
