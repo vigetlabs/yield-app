@@ -210,14 +210,20 @@ struct TimerBannerView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Right: timer + controls + hover-revealed overflow
-                // actions. spacing 0 (not the HStack default) so the
-                // zero-width resting action zone doesn't reserve a
-                // phantom gap that would shift the stop button off its
-                // usual position — the real gaps are explicit paddings,
-                // mirroring the project rows' fix for the same issue.
+                // Right: timer + hover-revealed overflow actions +
+                // controls. The reveal zone sits BEFORE pause/stop:
+                // the whole cluster is trailing-anchored, so expanding
+                // the zone pushes the timer *text* left while pause and
+                // stop never move — revealing (or collapsing) the icons
+                // can't slide the primary controls out from under a
+                // cursor that's heading for them. spacing 0 (not the
+                // HStack default) so the zero-width resting zone doesn't
+                // reserve a phantom gap — the real gaps are explicit
+                // paddings, mirroring the project rows' fix.
                 HStack(spacing: 0) {
                     timerDisplay(totalSeconds: totalSeconds)
+
+                    actionRevealZone
 
                     HStack(spacing: 8) {
                         // Pause / Play button
@@ -254,8 +260,6 @@ struct TimerBannerView: View {
                         .disabledWhenHarvestDown(viewModel.isHarvestDown)
                     }
                     .padding(.leading, 12)
-
-                    actionRevealZone
                 }
             }
             .padding(16)
@@ -289,8 +293,9 @@ struct TimerBannerView: View {
         }
         .frame(width: actionZoneWidth, alignment: .trailing)
         .clipped()
-        // Gap before the zone only while it has width — keeps the stop
-        // button in its usual trailing position when idle.
+        // Gap between the timer text and the zone, only while the zone
+        // has width — collapsed, the timer sits at its usual 12pt from
+        // the pause button with no phantom inset.
         .padding(.leading, actionZoneWidth > 0 ? 8 : 0)
         // Full-height hit area so the cursor doesn't drop out of the
         // zone when it strays above or below the icons.
