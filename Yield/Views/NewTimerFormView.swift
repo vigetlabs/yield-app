@@ -54,15 +54,28 @@ struct NewTimerFormView: View {
     /// which is noisy and not what the user asked for.
     @State private var sourcedFromCalendarPicker = false
 
-    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, timerMove: TimeComparisonViewModel.PendingTimerMove? = nil, onDismiss: @escaping () -> Void) {
+    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, timerMove: TimeComparisonViewModel.PendingTimerMove? = nil, startInCalendarPicker: Bool = false, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
         self.editingEntry = editingEntry
         self.preselectedProjectId = preselectedProjectId
         self.targetDate = targetDate
         self.idleMove = idleMove
         self.timerMove = timerMove
+        // Header calendar shortcut: open directly on the event picker
+        // rather than making the user tap through the form to reach it.
+        _showCalendarPicker = State(initialValue: startInCalendarPicker)
+        // Back should return wherever the picker was opened from: the
+        // main view for the header shortcut, the form for the in-form
+        // calendar icon (which resets this when it opens the picker).
+        _pickerOpenedFromMainView = State(initialValue: startInCalendarPicker)
         self.onDismiss = onDismiss
     }
+
+    /// True while the open picker was reached via the header's calendar
+    /// shortcut — its Back button then dismisses the whole form back to
+    /// the main view instead of stranding the user on a blank form they
+    /// never asked for.
+    @State private var pickerOpenedFromMainView: Bool = false
 
     private var isEditing: Bool { editingEntry != nil }
     private var isIdleMove: Bool { idleMove != nil }
@@ -197,13 +210,93 @@ struct NewTimerFormView: View {
         // sheets or popovers, so an inline swap is the only way
         // to surface secondary UI without breaking the panel's
         // resize/positioning behavior.
-        if showCalendarPicker {
-            CalendarEventPickerView(
-                onSelect: applyCalendarEvent,
-                onCancel: { showCalendarPicker = false }
-            )
-        } else {
-            formBody
+        // ZStack (not Group) so the outgoing and incoming views overlap
+        // during the swap instead of stacking — same fix as the panel's
+        // top-level container. The picker slides in from the trailing
+        // edge like every deeper navigation in the panel; the form
+        // cross-fades back in like the main content does. Each
+        // `showCalendarPicker` mutation is wrapped in `withAnimation`
+        // at its call site — a value-keyed `.animation` modifier alone
+        // doesn't propagate to the MenuBarExtra panel's NSPanel resize,
+        // so the panel would snap while the views animate.
+        ZStack(alignment: .top) {
+            if showCalendarPicker {
+                CalendarEventPickerView(
+                    viewModel: viewModel,
+                    onSelect: applyCalendarEvent,
+                    onStartTimer: startTimerFromEvent,
+                    onCancel: {
+                        if pickerOpenedFromMainView {
+                            onDismiss()
+                        } else {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showCalendarPicker = false
+                            }
+                        }
+                    }
+                )
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else {
+                formBody
+                    .transition(.opacity)
+            }
+        }
+        // Setup lives on the Group (not formBody) so projects start
+        // loading even when the form opens directly on the calendar
+        // picker — `applyCalendarEvent`'s meeting-history auto-select
+        // needs `allProjects` populated by the time an event is picked.
+        .task {
+            // Initialize spent date. Priority:
+            //   1. Edit mode → entry's own date
+            //   2. Idle-move / timer-move mode → today (moves are
+            //      constrained to today — the source timer is today's)
+            //   3. Explicit targetDate parameter
+            //   4. Active weekday filter → pre-fill the filtered day
+            //   5. Today (default)
+            if let entry = editingEntry, let parsed = DateHelpers.dateFormatter.date(from: entry.date) {
+                spentDate = parsed
+            } else if isIdleMove || isTimerMove {
+                spentDate = Date()
+            } else if let target = targetDate {
+                spentDate = target
+            } else if let filter = viewModel.dayFilter,
+                      let parsed = DateHelpers.dateFormatter.date(from: filter) {
+                spentDate = parsed
+            }
+
+            // Pre-fill the time field with the idle hours so the user
+            // sees the amount being relocated.
+            if let move = idleMove {
+                (timeHours, timeMinutes) = move.idleHours.roundedHM
+            }
+
+            await loadProjects()
+            if let entry = editingEntry {
+                // Edit mode: populate all fields
+                selectedProjectId = entry.harvestProjectId
+                notes = entry.notes ?? ""
+                (timeHours, timeMinutes) = entry.hours.roundedHM
+                if let project = allProjects.first(where: { $0.harvestProjectId == entry.harvestProjectId }) {
+                    availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
+                }
+                selectedTaskId = entry.taskId
+            } else if let projectId = preselectedProjectId {
+                if let project = allProjects.first(where: { $0.harvestProjectId == projectId }) {
+                    // Pre-selected project: populate project and load its tasks
+                    selectProject(project)
+                } else {
+                    // The project was preselected but isn't in the user's
+                    // Harvest assignments — almost always "booked in
+                    // Forecast, not a member in Harvest." Surface a clear
+                    // explanation instead of silently leaving the picker
+                    // empty (the old dead-end). Row quick-actions are
+                    // already gated for this state; this guard covers any
+                    // remaining path here.
+                    unselectableProjectName = viewModel.projectStatuses
+                        .first { $0.harvestProjectId == projectId }?
+                        .displayName ?? "this project"
+                }
+            }
         }
     }
 
@@ -392,7 +485,9 @@ struct NewTimerFormView: View {
                     Spacer()
 
                     if !isEditing && !isIdleMove && !isTimerMove {
-                        calendarPickerButton
+                        if AppState.shared.googleAuthService.isAuthenticated {
+                            calendarPickerButton
+                        }
 
                         Button {
                             Task { await logTime() }
@@ -414,59 +509,6 @@ struct NewTimerFormView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 16)
-            }
-        }
-        .task {
-            // Initialize spent date. Priority:
-            //   1. Edit mode → entry's own date
-            //   2. Idle-move / timer-move mode → today (moves are
-            //      constrained to today — the source timer is today's)
-            //   3. Explicit targetDate parameter
-            //   4. Active weekday filter → pre-fill the filtered day
-            //   5. Today (default)
-            if let entry = editingEntry, let parsed = DateHelpers.dateFormatter.date(from: entry.date) {
-                spentDate = parsed
-            } else if isIdleMove || isTimerMove {
-                spentDate = Date()
-            } else if let target = targetDate {
-                spentDate = target
-            } else if let filter = viewModel.dayFilter,
-                      let parsed = DateHelpers.dateFormatter.date(from: filter) {
-                spentDate = parsed
-            }
-
-            // Pre-fill the time field with the idle hours so the user
-            // sees the amount being relocated.
-            if let move = idleMove {
-                (timeHours, timeMinutes) = move.idleHours.roundedHM
-            }
-
-            await loadProjects()
-            if let entry = editingEntry {
-                // Edit mode: populate all fields
-                selectedProjectId = entry.harvestProjectId
-                notes = entry.notes ?? ""
-                (timeHours, timeMinutes) = entry.hours.roundedHM
-                if let project = allProjects.first(where: { $0.harvestProjectId == entry.harvestProjectId }) {
-                    availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
-                }
-                selectedTaskId = entry.taskId
-            } else if let projectId = preselectedProjectId {
-                if let project = allProjects.first(where: { $0.harvestProjectId == projectId }) {
-                    // Pre-selected project: populate project and load its tasks
-                    selectProject(project)
-                } else {
-                    // The project was preselected but isn't in the user's
-                    // Harvest assignments — almost always "booked in
-                    // Forecast, not a member in Harvest." Surface a clear
-                    // explanation instead of silently leaving the picker
-                    // empty (the old dead-end). Row quick-actions are
-                    // already gated for this state; this guard covers any
-                    // remaining path here.
-                    unselectableProjectName = viewModel.projectStatuses
-                        .first { $0.harvestProjectId == projectId }?
-                        .displayName ?? "this project"
-                }
             }
         }
     }
@@ -504,25 +546,23 @@ struct NewTimerFormView: View {
     /// 32×32 icon next to `TimeInputView` that opens the Google
     /// Calendar event picker. Mirrors the favorite-star button's
     /// shape exactly (size, weight, hit target, plain style) so the
-    /// two icon affordances feel like a set. Disabled when Google
-    /// Calendar isn't connected; tooltip points the user at Settings.
+    /// two icon affordances feel like a set. Hidden entirely (see the
+    /// call site) when Google Calendar isn't connected.
     private var calendarPickerButton: some View {
-        let connected = AppState.shared.googleAuthService.isAuthenticated
-        return Button {
-            showCalendarPicker = true
+        Button {
+            pickerOpenedFromMainView = false
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showCalendarPicker = true
+            }
         } label: {
             Image(systemName: "calendar")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(connected ? YieldColors.textPrimary : YieldColors.textSecondary)
+                .foregroundStyle(YieldColors.textPrimary)
                 .frame(width: 32, height: 32)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(!connected)
-        .opacity(connected ? 1 : 0.4)
-        .help(connected
-            ? "Pick from today's calendar events"
-            : "Connect Google Calendar in Settings")
+        .help("Pick from today's calendar events")
     }
 
     /// Apply a selected calendar event to the form's fields. Empty
@@ -554,7 +594,48 @@ struct NewTimerFormView: View {
         }
 
         sourcedFromCalendarPicker = true
-        showCalendarPicker = false
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showCalendarPicker = false
+        }
+    }
+
+    /// The picker's "Start Timer" quick action. When meeting history
+    /// recognizes the event's title, start a running timer on the
+    /// remembered project + task immediately — no form stop. Otherwise
+    /// land in the form with just the title prefilled (no duration —
+    /// a timer runs from now) so the user picks where it belongs; that
+    /// save records the pairing, making the next start instant.
+    private func startTimerFromEvent(_ event: CalendarEvent) {
+        if let memory = MeetingHistoryStore.shared.lookup(title: event.summary),
+           isMemoryUsable(memory) {
+            MeetingHistoryStore.shared.record(notes: event.summary, projectId: memory.projectId, taskId: memory.taskId)
+            onDismiss()
+            Task {
+                await viewModel.startNewTimer(
+                    projectId: memory.projectId,
+                    taskId: memory.taskId,
+                    notes: event.summary.isEmpty ? nil : event.summary
+                )
+            }
+        } else {
+            if !event.summary.isEmpty {
+                notes = event.summary
+            }
+            sourcedFromCalendarPicker = true
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showCalendarPicker = false
+            }
+        }
+    }
+
+    /// A stored meeting memory is usable unless the loaded project list
+    /// disproves it (project gone, task unassigned). While projects are
+    /// still loading we trust it — a stale pairing just surfaces the
+    /// API error, same as any failed start.
+    private func isMemoryUsable(_ memory: (projectId: Int, taskId: Int)) -> Bool {
+        guard !allProjects.isEmpty else { return true }
+        guard let project = allProjects.first(where: { $0.harvestProjectId == memory.projectId }) else { return false }
+        return project.taskAssignments.contains { $0.task.id == memory.taskId }
     }
 
     // MARK: - Favorites Pill Row

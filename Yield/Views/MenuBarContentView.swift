@@ -69,6 +69,9 @@ enum MenuBarLabelMode: String, CaseIterable {
 struct MenuBarContentView: View {
     let viewModel: TimeComparisonViewModel
     @State private var showNewTimerForm = false
+    /// When the form opens via the header's calendar shortcut, start it
+    /// directly on the calendar event picker instead of the blank form.
+    @State private var openFormInCalendarPicker = false
     @State private var editingEntry: TimeEntryInfo? = nil
     @State private var preselectedProjectId: Int? = nil
     @State private var newTimerTargetDate: Date? = nil
@@ -85,7 +88,15 @@ struct MenuBarContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Group {
+            // ZStack (not Group): during a swap transition the outgoing
+            // and incoming views coexist briefly, and as plain VStack
+            // siblings their heights would SUM — the panel visibly
+            // jumps taller for the duration of the crossfade (worst
+            // when both surfaces are tall, e.g. main view → cached
+            // calendar list). Overlapping them caps the transitional
+            // height at the taller of the two, and the slide-in glides
+            // over the fading view instead of below it.
+            ZStack(alignment: .top) {
                 if viewModel.idleAlertState != nil {
                     IdleAlertView(viewModel: viewModel)
                         .transition(.opacity.animation(.easeInOut(duration: 0.2)))
@@ -103,7 +114,8 @@ struct MenuBarContentView: View {
                         preselectedProjectId: preselectedProjectId,
                         targetDate: newTimerTargetDate,
                         idleMove: viewModel.pendingIdleMove,
-                        timerMove: viewModel.pendingTimerMove
+                        timerMove: viewModel.pendingTimerMove,
+                        startInCalendarPicker: openFormInCalendarPicker
                     ) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             if viewModel.pendingIdleMove != nil {
@@ -113,6 +125,7 @@ struct MenuBarContentView: View {
                                 viewModel.timerMoveCancel()
                             }
                             showNewTimerForm = false
+                            openFormInCalendarPicker = false
                             editingEntry = nil
                             preselectedProjectId = nil
                             newTimerTargetDate = nil
@@ -186,9 +199,16 @@ struct MenuBarContentView: View {
             // Fixed top region — measured as a single block so we know
             // how much vertical space the project list has left.
             VStack(alignment: .leading, spacing: 0) {
-                MenuBarHeaderView(viewModel: viewModel) {
-                    showNewTimerForm.toggle()
-                }
+                MenuBarHeaderView(
+                    viewModel: viewModel,
+                    onToggleNewTimerForm: {
+                        showNewTimerForm.toggle()
+                    },
+                    onOpenCalendarTimerForm: {
+                        openFormInCalendarPicker = true
+                        showNewTimerForm = true
+                    }
+                )
 
                 if !viewModel.serviceErrors.isEmpty {
                     ServiceWarningBanner(viewModel: viewModel)

@@ -9,10 +9,37 @@ import SwiftUI
 /// MenuBarExtra panels can't host either) so the panel reflows to
 /// the picker's natural height.
 struct CalendarEventPickerView: View {
+    let viewModel: TimeComparisonViewModel
+    /// "Add Time" — apply the event's duration + title to the form.
+    /// Also the whole-row tap action.
     let onSelect: (CalendarEvent) -> Void
+    /// "Start Timer" — instantly start a timer when meeting history
+    /// recognizes the event, otherwise land in the form with just the
+    /// title prefilled (no duration) ready to start one manually.
+    let onStartTimer: (CalendarEvent) -> Void
     let onCancel: () -> Void
 
     @State private var phase: Phase = .loading
+
+    init(
+        viewModel: TimeComparisonViewModel,
+        onSelect: @escaping (CalendarEvent) -> Void,
+        onStartTimer: @escaping (CalendarEvent) -> Void,
+        onCancel: @escaping () -> Void
+    ) {
+        self.viewModel = viewModel
+        self.onSelect = onSelect
+        self.onStartTimer = onStartTimer
+        self.onCancel = onCancel
+        // Seed the phase from the cache SYNCHRONOUSLY so the picker's
+        // very first frame is already at its final height. Applying the
+        // cache from `.task` (one frame later) re-targeted the panel's
+        // height mid-transition — an unanimated snap that read as the
+        // panel jumping taller while the open animation was running.
+        if let cached = viewModel.cachedCalendarEvents {
+            _phase = State(initialValue: cached.isEmpty ? .empty : .loaded(cached))
+        }
+    }
 
     /// The picker's render state. `loaded` carries the events so the
     /// view can switch on a single value rather than juggling parallel
@@ -41,7 +68,24 @@ struct CalendarEventPickerView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .task {
-            await loadEvents()
+            // Cache-first: init already seeded the phase from the cache,
+            // so the common case rendered instantly — this just silently
+            // revalidates (no spinner — stale events beat one) and swaps
+            // in anything new, animated so a height delta from a changed
+            // calendar glides instead of snapping. Cold cache (first
+            // open before any background fetch, or Google just
+            // connected) falls back to the inline fetch with the full
+            // loading/error UI.
+            if let cached = viewModel.cachedCalendarEvents {
+                await viewModel.refreshCalendarEventsIfStale()
+                if let fresh = viewModel.cachedCalendarEvents, fresh != cached {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        phase = fresh.isEmpty ? .empty : .loaded(fresh)
+                    }
+                }
+            } else {
+                await loadEvents()
+            }
         }
     }
 
@@ -111,7 +155,11 @@ struct CalendarEventPickerView: View {
             Text("No events on your calendar today.")
                 .font(YieldFonts.dmSans(11))
                 .foregroundStyle(YieldColors.textSecondary)
-            Button("Back to form", action: onCancel)
+            // Just "Back" — where it lands depends on where the picker
+            // was opened from (main view via the header shortcut, or
+            // the new-timer form), so naming a destination would lie
+            // half the time.
+            Button("Back", action: onCancel)
                 .buttonStyle(.plain)
                 .foregroundStyle(YieldColors.greenAccent)
                 .font(YieldFonts.dmSans(11, weight: .medium))
@@ -154,9 +202,11 @@ struct CalendarEventPickerView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(events) { event in
-                    EventRow(event: event) {
-                        onSelect(event)
-                    }
+                    EventRow(
+                        event: event,
+                        onSelect: { onSelect(event) },
+                        onStartTimer: { onStartTimer(event) }
+                    )
                 }
             }
         }
@@ -179,17 +229,26 @@ struct CalendarEventPickerView: View {
 
     private func loadEvents() async {
         phase = .loading
-        let auth = AppState.shared.googleAuthService
-        let service = GoogleCalendarService(tokenProvider: { try await auth.getAccessToken() })
+        // Every terminal phase lands as an animated change: the panel
+        // height difference between the spinner and the loaded list (or
+        // an error card) glides instead of snapping.
+        let resolved: Phase
         do {
-            let events = try await service.fetchTodayEvents()
-            phase = events.isEmpty ? .empty : .loaded(events)
+            // Routed through the view model so a successful cold-open
+            // fetch also seeds the background cache — the next open is
+            // instant instead of re-fetching.
+            try await viewModel.fetchAndCacheCalendarEvents()
+            let events = viewModel.cachedCalendarEvents ?? []
+            resolved = events.isEmpty ? .empty : .loaded(events)
         } catch APIError.unauthorized {
-            phase = .error("Reconnect Google Calendar in Settings.")
+            resolved = .error("Reconnect Google Calendar in Settings.")
         } catch APIError.notConfigured {
-            phase = .error("Google Calendar isn't connected. Connect it in Settings.")
+            resolved = .error("Google Calendar isn't connected. Connect it in Settings.")
         } catch {
-            phase = .error("Couldn't reach Google Calendar.\n\(error.localizedDescription)")
+            resolved = .error("Couldn't reach Google Calendar.\n\(error.localizedDescription)")
+        }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            phase = resolved
         }
     }
 }
@@ -199,6 +258,7 @@ struct CalendarEventPickerView: View {
 private struct EventRow: View {
     let event: CalendarEvent
     let onSelect: () -> Void
+    let onStartTimer: () -> Void
 
     @State private var isHovered = false
 
@@ -248,18 +308,30 @@ private struct EventRow: View {
             // tokens (`titleMedium` + `monoSmall`) so the picker reads
             // as a sibling to the rest of the panel rather than a
             // separate visual system.
-            VStack(alignment: .leading, spacing: 6) {
-                Text(displayTitle)
-                    .font(YieldFonts.titleMedium)
-                    .foregroundStyle(YieldColors.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(displayTitle)
+                        .font(YieldFonts.titleMedium)
+                        .foregroundStyle(YieldColors.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
 
-                Text(timeAndDurationLine)
-                    .font(YieldFonts.monoSmall)
-                    .foregroundStyle(YieldColors.textSecondary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
+                    Text(timeAndDurationLine)
+                        .font(YieldFonts.monoSmall)
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+
+                Spacer(minLength: 8)
+
+                // Always-visible quick actions (no hover reveal — the
+                // picker is a transient surface, so discoverability
+                // beats quiet). Same glyphs as the project rows so the
+                // verbs carry over: bolt = start timing, plus = add
+                // logged time.
+                actionIcon("bolt.fill", help: "Start Timer", action: onStartTimer)
+                actionIcon("plus.circle.fill", help: "Add Time", action: onSelect)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -276,5 +348,19 @@ private struct EventRow: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
         }
+    }
+
+    /// Same shape as the project rows' `quickActionButton`: plain
+    /// style, 14pt semibold glyph in textSecondary, 22pt hit frame.
+    private func actionIcon(_ systemImage: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(YieldColors.textSecondary)
+                .frame(width: 22, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 }

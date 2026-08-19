@@ -1146,6 +1146,8 @@ final class TimeComparisonViewModel {
         idleAlertState = nil
         pendingIdleMove = nil
         pendingTimerMove = nil
+        cachedCalendarEvents = nil
+        calendarEventsFetchedAt = nil
         notifiedProjectIds.removeAll()
         trackingSessionBaseline.removeAll()
         currentWeekStart = nil
@@ -1604,6 +1606,51 @@ final class TimeComparisonViewModel {
             errorMessage = "Failed to move time: \(error.localizedDescription)"
             await refresh()
         }
+    }
+
+    // MARK: - Calendar event cache
+
+    /// Today's Google Calendar events, fetched in the background so the
+    /// event picker opens instantly instead of showing a spinner on
+    /// every visit. `nil` = never fetched (or Google disconnected) —
+    /// the picker falls back to an inline fetch with its loading UI.
+    private(set) var cachedCalendarEvents: [CalendarEvent]? = nil
+    private var calendarEventsFetchedAt: Date? = nil
+
+    /// The cache needs replacing when it's older than ~4 minutes (so
+    /// each 5-minute auto-refresh cycle picks up calendar changes) or
+    /// was fetched on a previous day (it holds *today's* events).
+    private var calendarCacheIsStale: Bool {
+        guard let fetchedAt = calendarEventsFetchedAt else { return true }
+        return Date().timeIntervalSince(fetchedAt) > 240
+            || !Calendar.current.isDateInToday(fetchedAt)
+    }
+
+    /// Fetch today's events into the cache, throwing on failure — the
+    /// picker's cold-open path uses this directly so it can render its
+    /// error states (reconnect / unreachable) with a retry.
+    @MainActor
+    func fetchAndCacheCalendarEvents() async throws {
+        let auth = AppState.shared.googleAuthService
+        let service = GoogleCalendarService(tokenProvider: { try await auth.getAccessToken() })
+        let events = try await service.fetchTodayEvents()
+        cachedCalendarEvents = events
+        calendarEventsFetchedAt = Date()
+    }
+
+    /// Best-effort background revalidation: skips when Google isn't
+    /// connected or the cache is still fresh; failures keep the previous
+    /// cache (stale events beat a spinner). Called from the refresh
+    /// cycle and when the picker opens onto cached data.
+    @MainActor
+    func refreshCalendarEventsIfStale() async {
+        guard AppState.shared.googleAuthService.isAuthenticated else {
+            cachedCalendarEvents = nil
+            calendarEventsFetchedAt = nil
+            return
+        }
+        guard calendarCacheIsStale else { return }
+        try? await fetchAndCacheCalendarEvents()
     }
 
     /// If the project is already at or over its booked budget, mark it as already-notified
@@ -2102,6 +2149,11 @@ final class TimeComparisonViewModel {
             return
         }
         lastRefreshAt = Date()
+
+        // Revalidate the calendar-event cache alongside the refresh
+        // cycle — detached so a slow Google round-trip can never delay
+        // the Harvest/Forecast data this method exists to fetch.
+        Task { await refreshCalendarEventsIfStale() }
 
         // A hard refresh invalidates the cached non-current-week snapshots
         // (they'd now be stale, and we should avoid the dictionary growing

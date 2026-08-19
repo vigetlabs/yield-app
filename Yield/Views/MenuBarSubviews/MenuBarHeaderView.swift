@@ -3,6 +3,9 @@ import SwiftUI
 struct MenuBarHeaderView: View {
     let viewModel: TimeComparisonViewModel
     let onToggleNewTimerForm: () -> Void
+    /// Opens the new-timer form directly on the calendar event picker —
+    /// the one-click "log a meeting" shortcut next to + Timer.
+    var onOpenCalendarTimerForm: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,6 +42,13 @@ struct MenuBarHeaderView: View {
 
                 if !viewModel.isViewingOtherWeek {
                     tabToggle
+                }
+
+                // Only rendered when Google Calendar is connected — a
+                // shortcut that can't work is header noise; the in-form
+                // Settings pointer covers discovery.
+                if AppState.shared.googleAuthService.isAuthenticated {
+                    calendarTimerButton
                 }
 
                 timerButton
@@ -157,6 +167,23 @@ struct MenuBarHeaderView: View {
         case .forecasted: return "Projects booked in Forecast"
         case .chart: return "Weekly time chart"
         }
+    }
+
+    /// Calendar shortcut beside + Timer: jumps straight into the
+    /// new-timer form with the calendar event picker already open, so
+    /// logging a meeting is one click instead of form → calendar icon.
+    /// Callers only render this when Google Calendar is connected.
+    private var calendarTimerButton: some View {
+        HeaderIconButton(
+            systemImage: "calendar",
+            help: "New timer from a calendar event"
+        ) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                onOpenCalendarTimerForm?()
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+        .disabledWhenHarvestDown(viewModel.isHarvestDown)
     }
 
     private var timerButton: some View {
