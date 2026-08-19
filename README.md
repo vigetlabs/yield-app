@@ -15,18 +15,19 @@ Unzip, drag Yield to your Applications folder, and launch — it'll take root in
 - 🤝 **Harvest + Forecast, side by side** — your logged hours and your booked hours in a single view, so you always know where the week stands.
 - ⏱️ **Full-featured time tracker** — start, stop, pause, resume, edit, and delete Harvest timers without leaving the menu bar. A duplicate-timer guard offers to resume an existing entry instead of doubling up.
 - 📊 **Color-coded progress bars** — every project shows status at a glance: green when under budget or on track, red when over.
-- 📐 **Day-by-day breakdown** — expand any project to see a segmented bar of its daily contribution to the week, alongside its individual time entries.
+- 📐 **Day-by-day breakdown** — expand any project for a Mon–Fri day grid (weekends join in when worked): each cell is one day scaled against your daily target, flipping green to red at the exact point tracked time crossed the booked budget. Individual time entries sit right below.
 - 🔭 **Past and future weeks** — peek ahead at what's booked (expected hours, holidays, your time off, prospective Forecast bookings) or step backward through past weeks for a read-only review.
 
 ### And more
 
 **Time tracking**
 
-- ⚡ **Quick actions on project rows** — hover a project to surface one-click icons on the right side: Resume your most-recently-used timer on that project, Quick Start a favorited task, or Add Time to open the full form. Skips the form/menu steps for the common cases.
+- ⚡ **Quick actions everywhere** — hover a project row to surface one-click icons: Resume a stopped timer, Quick Start the task you usually track on that project (starred, or simply inferred from habit), or Add Time to open the full form. The running-timer bar has its own hover set — Edit, Move Time, Delete — and every hover action is mirrored in a labeled right-click menu.
 - ✏️ **Entry workflow** — project + task dropdowns grouped by client. Add to any day of the week, not just today. Double-click any entry to edit it, or start a timer with pre-filled hours for catch-up tracking.
-- 📅 **Log time from a Google Calendar event** — connect Google Calendar in Settings, then the Add Time form gets a calendar icon next to Log Time. Tap it to pick from today's events and the time + notes fields fill in from the event's duration and title. If you've previously logged time against a meeting with the same title, the project + task auto-select too. Read-only access to your primary calendar — nothing is written back to Google.
-- ⭐ **Favorites** — star a project + task combo to save it. Picking a project auto-selects its most-recently-used favorite, a "Favorites" popover next to the project picker gives one-tap selection of any saved combo, and Settings lists every favorite so you can prune.
-- 📣 **External-change HUD** — when a timer is started or stopped from outside Yield (e.g. the Harvest browser extension), a small panel pops below the menu bar icon to acknowledge the change. Toggle off in Settings → Preferences if you don't want it.
+- 🔀 **Move time off a runaway timer** — left a timer running through a meeting? Right-click the timer bar, choose Move Time, pick where the time really belongs and how much of it to move, then either keep timing what you were doing or switch the timer to the new task. Time already tracked to that task today merges in automatically.
+- 📅 **Log time from a Google Calendar event** — connect Google Calendar in Settings and a calendar button appears beside + Timer, opening today's schedule as a mini day view: hour grid, a line marking now, overlapping meetings side by side. Events are cached in the background so it opens instantly. Every event carries one-click Start Timer and Add Time actions, and meetings you've logged before auto-select their project + task. Read-only access to your primary calendar — nothing is written back to Google.
+- ⭐ **Favorites** — star a project + task combo to save it. Picking a project auto-selects its most-recently-used favorite, a "Favorites" popover next to the project picker gives one-tap selection of any saved combo, and Settings lists every favorite so you can prune. No star? Yield also learns your habits and auto-selects the task you usually log on each project.
+- 📣 **External-change notifications** — when a timer is started or stopped from outside Yield (e.g. the Harvest browser extension), a system notification acknowledges the change. Toggle off in Settings → Preferences if you don't want it.
 
 **Visualizations & navigation**
 
@@ -38,6 +39,8 @@ Unzip, drag Yield to your Applications folder, and launch — it'll take root in
 
 - 🌴 **Time off** — your Forecast PTO surfaces as a dedicated summary row, and the menu bar icon switches to a moon when you're off for the full day.
 - 📝 **Forecast notes** — assignment notes from Forecast surface on project rows; hover the icon to read the full text.
+- 🗓️ **Meeting timer prompts** — when a calendar event starts, Yield nudges you (a notification plus a bar above the timer) to put your timer on it. Open Yield six minutes into the meeting and it offers to start the meeting's timer *and* move those six minutes off whatever was running — your timeline reads as if you'd switched on time. Mute any recurring meeting permanently ("Don't prompt for meetings like this"), or turn the feature off in Settings.
+- ⚠️ **Booked-but-unassigned warning** — booked on a project in Forecast but never added to it in Harvest? The project row flags it, this week and in look-ahead weeks, so you can get access sorted before time needs logging.
 - 💤 **Idle detection** — alerts you when you've been idle, with options to continue, stop, keep the time, or move the idle minutes to a different timer.
 - 🔔 **Budget notifications** — nudges you when you hit your booked target on a project so you know when to move on.
 - 🔒 **Locked weeks** — when Harvest has locked a past week from edits, a small lock icon appears next to each weekday in the header strip so you know the week is read-only.
@@ -56,12 +59,12 @@ Yield talks to a few services and stores nothing on a server we control:
 
 - **Harvest API** for time entries, timers, projects, tasks, and your account profile.
 - **Forecast API** (via the same Harvest OAuth token) for weekly assignments, projects, clients, and time-off blocks.
-- **Google Calendar API** (only if you connect it) for today's events on your primary calendar — read-only (`calendar.events.readonly` scope), fetched on demand when you open the picker, never written back to Google.
+- **Google Calendar API** (only if you connect it) for today's events on your primary calendar — read-only (`calendar.events.readonly` scope), refreshed in the background every few minutes while connected so the event picker and meeting prompts stay current (cached in memory only), never written back to Google.
 
 Locally on your machine:
 
 - **OAuth access + refresh tokens** (Harvest + Google) are stored in the macOS **Keychain**.
-- **Preferences and favorites** (appearance, idle setting, menu-bar display mode, favorited project/task pairs, meeting-title → project/task memory for calendar pre-fill) live in **UserDefaults**.
+- **Preferences and favorites** (appearance, idle setting, menu-bar display mode, notification toggles, favorited project/task pairs, per-project task-usage history, meeting-title → project/task memory for calendar pre-fill, muted meeting titles) live in **UserDefaults**.
 - **Error logs** are written to `~/Library/Logs/Yield/yield.log` (rotated at 256 KB) so you can attach them to bug reports. Nothing in the log leaves your machine unless you upload it yourself.
 
 Yield doesn't include any analytics, telemetry, or crash reporters that phone home.
