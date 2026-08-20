@@ -28,6 +28,11 @@ enum DefaultsKey {
     /// while Google Calendar is connected. Default on: connecting the
     /// calendar is the opt-in signal.
     static let meetingPromptsEnabled = "meetingPromptsEnabled"
+    /// Whether post-meeting overage reminders (notification + panel
+    /// bar when a calendar-started timer outlives its meeting) are
+    /// shown. Like `meetingPromptsEnabled`: default on, only surfaced
+    /// in Settings while Google Calendar is connected.
+    static let postMeetingRemindersEnabled = "postMeetingRemindersEnabled"
 
     // MARK: - User data
     static let favorites = "favorites"

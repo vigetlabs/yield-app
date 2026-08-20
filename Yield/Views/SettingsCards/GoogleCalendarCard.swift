@@ -13,6 +13,9 @@ struct GoogleCalendarCard: View {
     /// Meeting-start timer prompts (notification + panel bar). Only
     /// surfaced while connected — an irrelevant toggle is noise.
     @AppStorage(DefaultsKey.meetingPromptsEnabled) private var meetingPromptsEnabled = true
+    /// Post-meeting overage reminders — the bookend nudge when a
+    /// calendar-started timer is still running past the event's end.
+    @AppStorage(DefaultsKey.postMeetingRemindersEnabled) private var postMeetingRemindersEnabled = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -67,6 +70,32 @@ struct GoogleCalendarCard: View {
                         .help("When a calendar event starts, Yield offers to start a timer for it — including moving the minutes since the event began off the running timer.")
                     Spacer()
                     Toggle("Meeting timer prompts", isOn: $meetingPromptsEnabled)
+                        .toggleStyle(.switch)
+                        .controlSize(.mini)
+                        .labelsHidden()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+                Rectangle()
+                    .fill(YieldColors.border)
+                    .frame(height: 1)
+
+                // Post-meeting reminders: when a timer started from a
+                // calendar event is still running past the event's end
+                // (by the idle-detection threshold), Yield nudges to
+                // move the overage.
+                HStack(spacing: 10) {
+                    Image(systemName: "calendar.badge.exclamationmark")
+                        .font(.system(size: 11))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .frame(width: 16)
+                    Text("Post-meeting reminders")
+                        .font(YieldFonts.dmSans(11, weight: .medium))
+                        .foregroundStyle(YieldColors.textPrimary)
+                        .help("When a timer you started from a calendar event keeps running past the event's end, Yield offers to move the extra time to another timer.")
+                    Spacer()
+                    Toggle("Post-meeting reminders", isOn: $postMeetingRemindersEnabled)
                         .toggleStyle(.switch)
                         .controlSize(.mini)
                         .labelsHidden()

@@ -171,6 +171,27 @@ final class MeetingPromptTests: XCTestCase {
 
     // MARK: - Dismiss / mute actions
 
+    func test_finalizeAction_suppressesEventAndClearsPrompt() {
+        // Form commits finalize deferred — same end state as the ×.
+        let vm = makeVM()
+        let evt = event(startOffsetMinutes: -5)
+        vm._setStateForTesting(activeMeetingPrompt: evt)
+        vm.finalizeMeetingPromptAction(for: evt)
+        XCTAssertNil(vm.activeMeetingPrompt)
+        XCTAssertFalse(vm.meetingPromptEligible(evt, now: now))
+    }
+
+    func test_finalizeAction_forOtherEvent_keepsActivePrompt() {
+        // Committing a picker-sourced timer for event B must not tear
+        // down event A's live prompt.
+        let vm = makeVM()
+        let active = event(id: "evt-a", startOffsetMinutes: -5)
+        vm._setStateForTesting(activeMeetingPrompt: active)
+        vm.finalizeMeetingPromptAction(for: event(id: "evt-b", startOffsetMinutes: -3))
+        XCTAssertEqual(vm.activeMeetingPrompt?.id, "evt-a")
+        XCTAssertTrue(vm.meetingPromptEligible(active, now: now))
+    }
+
     func test_dismiss_suppressesThatEventOnly() {
         let vm = makeVM()
         let evt = event(startOffsetMinutes: -5)

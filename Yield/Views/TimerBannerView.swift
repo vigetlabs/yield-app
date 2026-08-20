@@ -96,6 +96,72 @@ struct TimerBannerView: View {
         return f
     }()
 
+    /// Compact "9:00am" formatter, matching the calendar surfaces.
+    private static let eventTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mma"
+        f.amSymbol = "am"
+        f.pmSymbol = "pm"
+        return f
+    }()
+
+    // MARK: - Detail line (notes + calendar source)
+
+    /// The banner entry's notes, flattened to one line (Harvest's
+    /// timer merges join notes with newlines).
+    private var entryNotes: String? {
+        guard let notes = currentEntry?.notes, !notes.isEmpty else { return nil }
+        return notes.replacingOccurrences(of: "\n", with: " · ")
+    }
+
+    /// Third banner line: the entry's notes — prefixed with a calendar
+    /// glyph and suffixed with the event's intended length when the
+    /// running timer was started from a calendar event.
+    @ViewBuilder
+    private var detailLine: some View {
+        let source = viewModel.calendarSourceForCurrentTimer
+        if let text = detailLineText(source: source) {
+            HStack(spacing: 4) {
+                if source != nil {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 9))
+                        .foregroundStyle(YieldColors.textSecondary)
+                }
+                Text(text)
+                    .font(YieldFonts.dmSans(10))
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .help(detailLineTooltip(source: source))
+        }
+    }
+
+    private func detailLineText(source: TimeComparisonViewModel.CalendarSourcedTimer?) -> String? {
+        // Notes lead; a calendar-sourced timer normally carries the
+        // event title as its notes, so the fallback only matters when
+        // the user cleared them.
+        let base = entryNotes ?? source?.eventTitle
+        guard let base else { return nil }
+        guard let source else { return base }
+        return "\(base) · \(source.eventDurationHours.formattedColon) event"
+    }
+
+    /// Hover detail: the full (untruncated) notes, plus the event's
+    /// scheduled time range when calendar-sourced.
+    private func detailLineTooltip(source: TimeComparisonViewModel.CalendarSourcedTimer?) -> String {
+        var lines: [String] = []
+        if let notes = currentEntry?.notes, !notes.isEmpty {
+            lines.append(notes)
+        }
+        if let source {
+            let start = Self.eventTimeFormatter.string(from: source.eventStart)
+            let end = Self.eventTimeFormatter.string(from: source.eventEnd)
+            lines.append("Calendar event · \(start) – \(end)")
+        }
+        return lines.joined(separator: "\n")
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             LinearGradient(
@@ -206,6 +272,8 @@ struct TimerBannerView: View {
                                     .help(timerStartedTooltip)
                             }
                         }
+
+                        detailLine
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -53,28 +53,33 @@ struct NewTimerFormView: View {
     /// every save would learn from one-off freeform notes too,
     /// which is noisy and not what the user asked for.
     @State private var sourcedFromCalendarPicker = false
+    /// The actual event behind `sourcedFromCalendarPicker`, kept so a
+    /// running-timer commit can arm the post-meeting overage reminder
+    /// (which needs the event's end time, not just its title).
+    @State private var sourcedCalendarEvent: CalendarEvent?
 
-    /// Meeting-prompt routing: the meeting's title, prefilled as notes.
+    /// Meeting-prompt routing: the meeting whose title prefills notes.
     /// Non-nil also marks the save as meeting-sourced so it records to
     /// `MeetingHistoryStore` — the first-encounter save is what makes
     /// the next prompt's Start Timer instant.
-    let meetingNotes: String?
+    let meetingEvent: CalendarEvent?
     /// Timer-move mode only: prefill the amount (elapsed-since-meeting-
     /// start when routed from the prompt bar) instead of starting at 0.
     let timerMovePrefillHours: Double?
 
-    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, timerMove: TimeComparisonViewModel.PendingTimerMove? = nil, startInCalendarPicker: Bool = false, meetingNotes: String? = nil, timerMovePrefillHours: Double? = nil, onDismiss: @escaping () -> Void) {
+    init(viewModel: TimeComparisonViewModel, editingEntry: TimeEntryInfo? = nil, preselectedProjectId: Int? = nil, targetDate: Date? = nil, idleMove: TimeComparisonViewModel.PendingIdleMove? = nil, timerMove: TimeComparisonViewModel.PendingTimerMove? = nil, startInCalendarPicker: Bool = false, meetingEvent: CalendarEvent? = nil, timerMovePrefillHours: Double? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
         self.editingEntry = editingEntry
         self.preselectedProjectId = preselectedProjectId
         self.targetDate = targetDate
         self.idleMove = idleMove
         self.timerMove = timerMove
-        self.meetingNotes = meetingNotes
+        self.meetingEvent = meetingEvent
         self.timerMovePrefillHours = timerMovePrefillHours
         // Meeting-sourced saves record to MeetingHistoryStore the same
         // way calendar-picker saves do.
-        _sourcedFromCalendarPicker = State(initialValue: meetingNotes != nil)
+        _sourcedFromCalendarPicker = State(initialValue: meetingEvent != nil)
+        _sourcedCalendarEvent = State(initialValue: meetingEvent)
         // Header calendar shortcut: open directly on the event picker
         // rather than making the user tap through the form to reach it.
         _showCalendarPicker = State(initialValue: startInCalendarPicker)
@@ -286,8 +291,8 @@ struct NewTimerFormView: View {
 
             // Meeting-prompt routing: title as notes, and (in timer-move
             // mode) the elapsed-since-start amount ready to move.
-            if let meetingNotes, notes.isEmpty {
-                notes = meetingNotes
+            if let meetingEvent, notes.isEmpty, !meetingEvent.summary.isEmpty {
+                notes = meetingEvent.summary
             }
             if isTimerMove, let prefill = timerMovePrefillHours {
                 (timeHours, timeMinutes) = prefill.roundedHM
@@ -617,6 +622,7 @@ struct NewTimerFormView: View {
         }
 
         sourcedFromCalendarPicker = true
+        sourcedCalendarEvent = event
         withAnimation(.easeInOut(duration: 0.2)) {
             showCalendarPicker = false
         }
@@ -632,6 +638,7 @@ struct NewTimerFormView: View {
         if let memory = MeetingHistoryStore.shared.lookup(title: event.summary),
            isMemoryUsable(memory) {
             MeetingHistoryStore.shared.record(notes: event.summary, projectId: memory.projectId, taskId: memory.taskId)
+            viewModel.finalizeMeetingPromptAction(for: event)
             onDismiss()
             Task {
                 await viewModel.startNewTimer(
@@ -639,12 +646,14 @@ struct NewTimerFormView: View {
                     taskId: memory.taskId,
                     notes: event.summary.isEmpty ? nil : event.summary
                 )
+                viewModel.noteCalendarSourcedTimer(event: event, projectId: memory.projectId, taskId: memory.taskId)
             }
         } else {
             if !event.summary.isEmpty {
                 notes = event.summary
             }
             sourcedFromCalendarPicker = true
+            sourcedCalendarEvent = event
             withAnimation(.easeInOut(duration: 0.2)) {
                 showCalendarPicker = false
             }
@@ -946,8 +955,16 @@ struct NewTimerFormView: View {
         if sourcedFromCalendarPicker {
             MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
         }
+        if let event = sourcedCalendarEvent {
+            viewModel.finalizeMeetingPromptAction(for: event)
+        }
         onDismiss()
         await viewModel.startNewTimer(projectId: projectId, taskId: taskId, hours: hours, notes: notesToSend)
+        // Arm the post-meeting overage reminder — after the start, so
+        // the reminder's next tick sees the timer actually running.
+        if let event = sourcedCalendarEvent {
+            viewModel.noteCalendarSourcedTimer(event: event, projectId: projectId, taskId: taskId)
+        }
     }
 
     private func logTime() async {
@@ -961,6 +978,9 @@ struct NewTimerFormView: View {
         FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
         if sourcedFromCalendarPicker {
             MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
+        }
+        if let event = sourcedCalendarEvent {
+            viewModel.finalizeMeetingPromptAction(for: event)
         }
         onDismiss()
         await viewModel.logTimeEntry(
@@ -983,6 +1003,9 @@ struct NewTimerFormView: View {
         FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
         if sourcedFromCalendarPicker {
             MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
+        }
+        if let event = sourcedCalendarEvent {
+            viewModel.finalizeMeetingPromptAction(for: event)
         }
         onDismiss()
         await viewModel.updateExistingEntry(
@@ -1017,6 +1040,9 @@ struct NewTimerFormView: View {
         if sourcedFromCalendarPicker {
             MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
         }
+        if let event = sourcedCalendarEvent {
+            viewModel.finalizeMeetingPromptAction(for: event)
+        }
         onDismiss()
         await viewModel.commitTimerMove(
             move,
@@ -1026,6 +1052,11 @@ struct NewTimerFormView: View {
             notes: notesToSend,
             switchTimer: switchTimer
         )
+        // Only the switch shape leaves the destination timer running —
+        // that's the one worth watching for post-meeting overage.
+        if switchTimer, let event = sourcedCalendarEvent {
+            viewModel.noteCalendarSourcedTimer(event: event, projectId: projectId, taskId: taskId)
+        }
     }
 
     /// Commit the idle-move flow with a brand-new entry on the chosen
@@ -1192,9 +1223,24 @@ struct NewTimerFormView: View {
                         Button {
                             let mostRecent = entries.max(by: { ($0.id) < ($1.id) })
                             guard let entryId = mostRecent?.id else { return }
+                            // Resuming is as much a commit as Start
+                            // Timer — a calendar-sourced resume still
+                            // trains the meeting memory and arms the
+                            // banner indicator + post-meeting reminder.
+                            if sourcedFromCalendarPicker, let projectId = selectedProjectId, let taskId = selectedTaskId {
+                                MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
+                            }
+                            if let event = sourcedCalendarEvent {
+                                viewModel.finalizeMeetingPromptAction(for: event)
+                            }
                             onDismiss()
                             Task {
                                 await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false)
+                                if let event = sourcedCalendarEvent,
+                                   let projectId = selectedProjectId,
+                                   let taskId = selectedTaskId {
+                                    viewModel.noteCalendarSourcedTimer(event: event, projectId: projectId, taskId: taskId)
+                                }
                             }
                         } label: {
                             Text("Resume existing")

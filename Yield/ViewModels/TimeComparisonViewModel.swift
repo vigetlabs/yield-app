@@ -407,7 +407,9 @@ final class TimeComparisonViewModel {
     }
 
     @MainActor
-    private func detectExternalTimerChange() {
+    /// Internal (vs. private) so XCTest can drive the change-detection
+    /// rules directly without staging a full refresh.
+    func detectExternalTimerChange() {
         let currentEntry = trackingEntry
         let currentProject = trackingProject
         let currentId = currentEntry?.id
@@ -427,6 +429,16 @@ final class TimeComparisonViewModel {
         guard hasSeenInitialTrackingState else { return }
         if suppressNextTimerChangeHUD { return }
         if currentId == lastTrackingEntryId { return }
+
+        // An external change voids any pending idle alert: the entry it
+        // references is no longer the one running (or nothing is), so
+        // its four actions would operate on a timer the user already
+        // dealt with in another Harvest surface. Without this the alert
+        // gets stuck — it blocks the panel, and `checkIdleTime` never
+        // re-evaluates while an alert is showing.
+        if idleAlertState != nil {
+            idleAlertState = nil
+        }
 
         if let project = currentProject, let entry = currentEntry {
             sendExternalTimerChangeNotification(
@@ -1104,10 +1116,14 @@ final class TimeComparisonViewModel {
         // menu open and manual refresh, so no need for a periodic hard refresh.
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.triggerSoftRefresh()
-            // Minute cadence for the meeting-start prompt window —
-            // runs regardless of tracking state (unlike the elapsed
-            // ticker, which only exists while a timer runs).
-            Task { @MainActor in self?.updateMeetingPrompt() }
+            // Minute cadence for the meeting-start prompt window and
+            // the post-meeting overage reminder — runs regardless of
+            // tracking state (unlike the elapsed ticker, which only
+            // exists while a timer runs).
+            Task { @MainActor in
+                self?.updateMeetingPrompt()
+                self?.updatePostMeetingReminder()
+            }
         }
 
         // Fire an immediate refresh when network connectivity comes back
@@ -1197,6 +1213,10 @@ final class TimeComparisonViewModel {
         activeMeetingPrompt = nil
         meetingPromptDismissedIds.removeAll()
         meetingPromptNotifiedIds.removeAll()
+        calendarSourcedTimer = nil
+        activePostMeetingReminder = nil
+        postMeetingDismissedIds.removeAll()
+        postMeetingNotifiedIds.removeAll()
         notifiedProjectIds.removeAll()
         trackingSessionBaseline.removeAll()
         currentWeekStart = nil
@@ -1615,6 +1635,7 @@ final class TimeComparisonViewModel {
             // Real tracked time landed on the destination — feed the
             // soft-favorite inference like the other create paths.
             ProjectTaskHistoryStore.shared.record(projectId: projectId, taskId: taskId)
+            settlePostMeetingReminderForMove(move)
 
             do {
                 // Stop the source before setting its hours so the PATCH
@@ -1818,6 +1839,18 @@ final class TimeComparisonViewModel {
         activeMeetingPrompt = nil
     }
 
+    /// Finalize a prompt the user *acted on* through the form — the
+    /// same finality as the ×, but deferred to the moment a commit
+    /// actually lands. Backing out of the form without committing
+    /// leaves the prompt alone, so the bar is still there on return.
+    @MainActor
+    func finalizeMeetingPromptAction(for event: CalendarEvent) {
+        meetingPromptDismissedIds.insert(event.id)
+        if activeMeetingPrompt?.id == event.id {
+            activeMeetingPrompt = nil
+        }
+    }
+
     /// "Don't prompt for meetings like this" — permanently mute the
     /// event's title. Managed (undoable) from the Calendar settings card.
     @MainActor
@@ -1843,12 +1876,11 @@ final class TimeComparisonViewModel {
 
         let elapsed = meetingPromptElapsedHours()
         meetingHistoryStore.record(notes: event.summary, projectId: memory.projectId, taskId: memory.taskId)
-        // Full dismissal (not just clearing): acting on the prompt is
-        // as final as the × — it must not resurface for this event,
-        // even if the start fails and the suppression rules can't see
-        // a matching timer on the next tick.
-        meetingPromptDismissedIds.insert(event.id)
-        activeMeetingPrompt = nil
+        // Full dismissal (not just clearing): this instant path *is*
+        // the commit — it must not resurface for this event, even if
+        // the start fails and the suppression rules can't see a
+        // matching timer on the next tick.
+        finalizeMeetingPromptAction(for: event)
 
         // Built directly (not via `startTimerMove()` → `pendingTimerMove`)
         // — that state's non-nil presents the timer-move form, which
@@ -1870,9 +1902,11 @@ final class TimeComparisonViewModel {
                 notes: event.summary,
                 switchTimer: true
             )
+            noteCalendarSourcedTimer(event: event, projectId: memory.projectId, taskId: memory.taskId)
             return true
         }
         await startNewTimer(projectId: memory.projectId, taskId: memory.taskId, notes: event.summary)
+        noteCalendarSourcedTimer(event: event, projectId: memory.projectId, taskId: memory.taskId)
         return true
     }
 
@@ -1887,6 +1921,205 @@ final class TimeComparisonViewModel {
         content.body = "\(event.summary) — open Yield to start a timer."
         let request = UNNotificationRequest(
             identifier: "meeting-start-\(event.id)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    // MARK: - Post-meeting overage reminders
+
+    /// A running timer that was started from a calendar event — via the
+    /// meeting prompt bar, the event picker's quick actions, or a form
+    /// commit prefilled from an event. Recorded so the app can notice
+    /// when the meeting has ended but its timer is still going.
+    struct CalendarSourcedTimer {
+        let eventId: String
+        let eventTitle: String
+        let eventStart: Date
+        let eventEnd: Date
+        /// Destination the timer landed on. The reminder only stays
+        /// armed while the running timer still matches — stopping,
+        /// pausing, or switching timers resolves the situation.
+        let projectId: Int
+        let taskId: Int
+
+        /// The event's intended length in decimal hours — shown in the
+        /// timer banner so a meeting timer carries its expected size.
+        var eventDurationHours: Double {
+            eventEnd.timeIntervalSince(eventStart) / 3600
+        }
+    }
+
+    private(set) var calendarSourcedTimer: CalendarSourcedTimer? = nil
+
+    /// The reminder the panel's bar is currently showing: the meeting
+    /// ended a while ago and its timer is still running. Nil until the
+    /// overage passes the threshold (or after dismissal/resolution).
+    private(set) var activePostMeetingReminder: CalendarSourcedTimer? = nil
+
+    /// Events whose reminder was dismissed (the bar's × or acting on
+    /// it) — session-scoped like the meeting-prompt dismissals.
+    private var postMeetingDismissedIds: Set<String> = []
+
+    /// Events whose overage notification already fired — once per event.
+    private var postMeetingNotifiedIds: Set<String> = []
+
+    /// Threshold seam: minutes the meeting end must be exceeded by
+    /// before the reminder fires. Production reads the idle-detection
+    /// minutes setting — deliberately the same knob, since both answer
+    /// "how long before Yield suspects you forgot the timer". Tests
+    /// inject a fixed value so the user's real setting can't leak in.
+    @ObservationIgnored var postMeetingReminderMinutes: () -> Int = {
+        max(UserDefaults.standard.integer(forKey: DefaultsKey.idleMinutes), 1)
+    }
+
+    /// Enabled seam, same shape as the threshold: production reads the
+    /// Settings toggle (default on); tests inject a fixed value so the
+    /// user's real preference can't leak in.
+    @ObservationIgnored var postMeetingRemindersEnabled: () -> Bool = {
+        UserDefaults.standard.object(forKey: DefaultsKey.postMeetingRemindersEnabled) as? Bool ?? true
+    }
+
+    /// Record that the currently-starting timer came from a calendar
+    /// event. Call *after* the start commits so the next reminder tick
+    /// doesn't see a not-yet-running timer and clear the record.
+    /// Untitled events have nothing to show in a reminder, and an
+    /// already-ended meeting is a deliberate after-the-fact timer —
+    /// neither arms the reminder.
+    @MainActor
+    func noteCalendarSourcedTimer(event: CalendarEvent, projectId: Int, taskId: Int, now: Date = Date()) {
+        guard !event.summary.isEmpty, now < event.end else { return }
+        calendarSourcedTimer = CalendarSourcedTimer(
+            eventId: event.id,
+            eventTitle: event.summary,
+            eventStart: event.start,
+            eventEnd: event.end,
+            projectId: projectId,
+            taskId: taskId
+        )
+    }
+
+    /// The calendar event behind the currently *running* timer, if the
+    /// running timer is still the one a calendar start landed on. Drives
+    /// the banner's meeting indicator. Nil once the timer stops,
+    /// pauses, or switches — validation is per-read so a stale record
+    /// can never decorate an unrelated timer.
+    var calendarSourceForCurrentTimer: CalendarSourcedTimer? {
+        guard let source = calendarSourcedTimer,
+              let entry = trackingEntry,
+              entry.harvestProjectId == source.projectId,
+              entry.taskId == source.taskId else { return nil }
+        return source
+    }
+
+    /// Re-evaluate whether the post-meeting reminder should be showing.
+    /// Runs on the 60s soft-refresh cadence. Fires the overage
+    /// notification once per event.
+    @MainActor
+    func updatePostMeetingReminder(now: Date = Date()) {
+        guard let source = calendarSourcedTimer else {
+            clearPostMeetingReminder()
+            return
+        }
+
+        // The armed timer must still be running on the project + task
+        // the calendar start landed on. Stopped, paused, or switched —
+        // externally or in-app — means there's nothing left to catch.
+        guard let entry = trackingEntry,
+              entry.harvestProjectId == source.projectId,
+              entry.taskId == source.taskId else {
+            calendarSourcedTimer = nil
+            clearPostMeetingReminder()
+            return
+        }
+
+        // The setting gate sits *after* the running-timer validation so
+        // a stale source is still cleaned up while reminders are off —
+        // the banner's meeting indicator reads the same record.
+        //
+        // One calendar bar at a time: while a meeting-start prompt is
+        // up (a new event began — its "Start & move" resolves the
+        // over-running timer too), the reminder stays quiet and its
+        // notification is deferred. It surfaces on a later tick if the
+        // prompt passes or is dismissed with the overage still live.
+        // `updateMeetingPrompt` runs earlier on the same tick, so the
+        // prompt state read here is current.
+        guard postMeetingRemindersEnabled(),
+              activeMeetingPrompt == nil,
+              !postMeetingDismissedIds.contains(source.eventId) else {
+            clearPostMeetingReminder()
+            return
+        }
+
+        let threshold = Double(postMeetingReminderMinutes()) * 60.0
+        let due = now.timeIntervalSince(source.eventEnd) >= threshold
+
+        if due != (activePostMeetingReminder != nil) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                activePostMeetingReminder = due ? source : nil
+            }
+        }
+
+        if due, !postMeetingNotifiedIds.contains(source.eventId) {
+            postMeetingNotifiedIds.insert(source.eventId)
+            sendPostMeetingNotification(for: source)
+        }
+    }
+
+    private func clearPostMeetingReminder() {
+        guard activePostMeetingReminder != nil else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            activePostMeetingReminder = nil
+        }
+    }
+
+    /// A committed move off the armed meeting timer settles the
+    /// post-meeting question — the user just consciously adjusted that
+    /// timer, so never re-remind for its event. Deliberately keeps the
+    /// armed record itself: Move & Keep leaves the meeting timer
+    /// running and its banner indicator should survive; a switch
+    /// clears the record via the running-timer validation instead.
+    /// Internal (vs. private) so XCTest can drive it without the API
+    /// round-trip `commitTimerMove` wraps around it.
+    @MainActor
+    func settlePostMeetingReminderForMove(_ move: PendingTimerMove) {
+        guard let source = calendarSourcedTimer,
+              move.sourceProjectId == source.projectId,
+              move.sourceTaskId == source.taskId else { return }
+        postMeetingDismissedIds.insert(source.eventId)
+        clearPostMeetingReminder()
+    }
+
+    /// Hours elapsed since the reminded meeting ended — the amount the
+    /// bar offers to move off the running timer.
+    func postMeetingOverageHours(now: Date = Date()) -> Double {
+        guard let source = activePostMeetingReminder else { return 0 }
+        return max(0, now.timeIntervalSince(source.eventEnd) / 3600)
+    }
+
+    /// Dismiss the reminder (the bar's ×). The event never re-reminds
+    /// this session, and the armed record is dropped with it. Acting
+    /// on the bar instead routes through the form and settles on
+    /// commit — see `settlePostMeetingReminderForMove`.
+    @MainActor
+    func dismissPostMeetingReminder() {
+        guard let source = activePostMeetingReminder ?? calendarSourcedTimer else { return }
+        postMeetingDismissedIds.insert(source.eventId)
+        calendarSourcedTimer = nil
+        activePostMeetingReminder = nil
+    }
+
+    /// Post-meeting overage nudge. Quiet like the meeting-start one:
+    /// the panel bar carries the Move action; this catches the eye.
+    @MainActor
+    private func sendPostMeetingNotification(for source: CalendarSourcedTimer) {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Meeting ended — timer still running"
+        content.body = "\(source.eventTitle) is over. Open Yield to move the extra time."
+        let request = UNNotificationRequest(
+            identifier: "post-meeting-\(source.eventId)",
             content: content,
             trigger: nil
         )
@@ -3333,11 +3566,15 @@ extension TimeComparisonViewModel {
         suppressNextTimerChangeHUD: Bool? = nil,
         pausedState: PausedTimerState? = nil,
         cachedCalendarEvents: [CalendarEvent]? = nil,
-        activeMeetingPrompt: CalendarEvent? = nil
+        activeMeetingPrompt: CalendarEvent? = nil,
+        calendarSourcedTimer: CalendarSourcedTimer? = nil,
+        idleAlertState: IdleAlertState? = nil
     ) {
         if let pausedState { self.pausedState = pausedState }
+        if let idleAlertState { self.idleAlertState = idleAlertState }
         if let cachedCalendarEvents { self.cachedCalendarEvents = cachedCalendarEvents }
         if let activeMeetingPrompt { self.activeMeetingPrompt = activeMeetingPrompt }
+        if let calendarSourcedTimer { self.calendarSourcedTimer = calendarSourcedTimer }
         if let projectStatuses { self.projectStatuses = projectStatuses }
         if let notifiedProjectIds { self.notifiedProjectIds = notifiedProjectIds }
         if let trackingSessionBaseline { self.trackingSessionBaseline = trackingSessionBaseline }

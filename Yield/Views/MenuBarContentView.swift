@@ -75,8 +75,10 @@ struct MenuBarContentView: View {
     /// Meeting-prompt routing for first-encounter meetings (no stored
     /// memory): the form opens with the meeting title as notes — and,
     /// when a timer is running past the event's start, in timer-move
-    /// mode with the elapsed amount prefilled.
-    @State private var formMeetingNotes: String? = nil
+    /// mode with the elapsed amount prefilled. Carrying the full event
+    /// (not just the title) lets the form arm the post-meeting
+    /// overage reminder when its commit starts a timer.
+    @State private var formMeetingEvent: CalendarEvent? = nil
     @State private var formTimerMovePrefillHours: Double? = nil
     @State private var editingEntry: TimeEntryInfo? = nil
     @State private var preselectedProjectId: Int? = nil
@@ -122,7 +124,7 @@ struct MenuBarContentView: View {
                         idleMove: viewModel.pendingIdleMove,
                         timerMove: viewModel.pendingTimerMove,
                         startInCalendarPicker: openFormInCalendarPicker,
-                        meetingNotes: formMeetingNotes,
+                        meetingEvent: formMeetingEvent,
                         timerMovePrefillHours: formTimerMovePrefillHours
                     ) {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -134,7 +136,7 @@ struct MenuBarContentView: View {
                             }
                             showNewTimerForm = false
                             openFormInCalendarPicker = false
-                            formMeetingNotes = nil
+                            formMeetingEvent = nil
                             formTimerMovePrefillHours = nil
                             editingEntry = nil
                             preselectedProjectId = nil
@@ -239,11 +241,23 @@ struct MenuBarContentView: View {
                 // Meeting-start prompt bar — sits directly above the
                 // timer banner it's suggesting you change. Current week
                 // only, matching the banner's gate.
+                // One calendar bar at a time (mirroring the view
+                // model's precedence): the meeting-start prompt wins;
+                // the post-meeting overage reminder takes the slot
+                // only when no prompt is up. The else-if keeps them
+                // mutually exclusive even mid-transition.
                 if let promptEvent = viewModel.activeMeetingPrompt, !viewModel.isViewingOtherWeek {
                     MeetingPromptBarView(
                         viewModel: viewModel,
                         event: promptEvent,
                         onStartTimer: { startTimerForMeetingPrompt(promptEvent) }
+                    )
+                    .transition(.opacity)
+                } else if let reminder = viewModel.activePostMeetingReminder, !viewModel.isViewingOtherWeek {
+                    PostMeetingReminderBarView(
+                        viewModel: viewModel,
+                        reminder: reminder,
+                        onMoveTime: { moveTimeForPostMeetingReminder() }
                     )
                     .transition(.opacity)
                 }
@@ -405,12 +419,11 @@ struct MenuBarContentView: View {
             guard !handled else { return }
             let elapsed = viewModel.meetingPromptElapsedHours()
             withAnimation(.easeInOut(duration: 0.2)) {
-                // Acting on the prompt dismisses it — same finality as
-                // the ×. The form takes over from here; if the user
-                // cancels out, the bar staying gone is what they'd
-                // expect from a button they already pressed.
-                viewModel.dismissMeetingPrompt()
-                formMeetingNotes = event.summary
+                // The prompt is NOT dismissed here — the form covers
+                // the panel, so the bar just waits underneath. Backing
+                // out returns to it; a form commit finalizes it via
+                // `finalizeMeetingPromptAction`.
+                formMeetingEvent = event
                 if viewModel.trackingEntry != nil, elapsed > 0 {
                     formTimerMovePrefillHours = elapsed
                     viewModel.startTimerMove()
@@ -418,6 +431,20 @@ struct MenuBarContentView: View {
                     showNewTimerForm = true
                 }
             }
+        }
+    }
+
+    /// The reminder bar's Move action: open the timer-move form with
+    /// the overage (time since the meeting ended) prefilled, so the
+    /// user just picks where it belongs. The reminder is not dismissed
+    /// on entry — cancelling out of the form returns to the bar; a
+    /// committed move settles it in the view model
+    /// (`settlePostMeetingReminderForMove`).
+    private func moveTimeForPostMeetingReminder() {
+        let overage = viewModel.postMeetingOverageHours()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            formTimerMovePrefillHours = overage
+            viewModel.startTimerMove()
         }
     }
 
