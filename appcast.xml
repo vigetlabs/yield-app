@@ -3,6 +3,27 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.6.0</title>
+      <sparkle:version>62</sparkle:version>
+      <sparkle:shortVersionString>1.6.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Meeting timer prompts.</strong> When a calendar event starts, Yield nudges you — a notification plus a bar above the timer — to put your timer on it. Open Yield six minutes into the meeting and it offers to start the meeting's timer <em>and</em> move those six minutes off whatever was running, so your timeline reads as if you'd switched on time. Meetings you've logged before start with one click; mute any recurring meeting permanently, or turn the feature off in Settings.</li>
+          <li><strong>Post-meeting reminders.</strong> The bookend: start a timer from a calendar event and let it run long, and once the meeting's end has passed by your idle threshold Yield offers to move the extra minutes to whatever you actually did next. It stands down on its own if you stop or switch timers, and has its own Settings toggle.</li>
+          <li><strong>The event picker is now a real day view.</strong> Picking a calendar event shows your day as a timeline — hour grid, a line marking now, overlapping meetings side by side. Events are cached in the background so it opens instantly, every event carries one-click Start Timer and Add Time actions, and a calendar button next to + Timer jumps straight there.</li>
+          <li><strong>The timer bar shows more.</strong> Your running timer's notes now appear right in the bar (hover for the full text), and timers started from a calendar event carry a calendar glyph with the event's scheduled length.</li>
+          <li><strong>All nudges are system notifications now.</strong> The timer-started-elsewhere alert moved from a custom floating window to a standard macOS notification, so every Yield nudge respects Focus, Do Not Disturb, and screen-sharing suppression the same way.</li>
+          <li><strong>Fixed: a stuck idle alert.</strong> If you switched timers from another Harvest app while Yield's idle alert was up, the alert could strand itself pointing at a timer that was no longer running. External timer changes now clear it.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.6.0/Yield-1.6.0.zip"
+        sparkle:edSignature="e8FL5carideJBgSuuFckdhsLBN1VXasQq2igGIZM5kfHklYY9i5PifE9lgW3e4PXLGNp9FRPTaCuNTVZmxhhCQ=="
+        length="3067792"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.5.0</title>
       <sparkle:version>61</sparkle:version>
       <sparkle:shortVersionString>1.5.0</sparkle:shortVersionString>
