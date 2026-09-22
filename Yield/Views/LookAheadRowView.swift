@@ -38,12 +38,13 @@ struct LookAheadRowView: View {
                             .foregroundStyle(YieldColors.textPrimary)
                             .lineLimit(1)
 
-                        // Booked here but not a member of the Harvest
-                        // project — flag it in look-ahead weeks too so the
+                        // Booked here but the Harvest side can't take
+                        // time — flag it in look-ahead weeks too so the
                         // gap is visible before the week arrives.
-                        if project.harvestLinkState == .unassigned {
-                            HarvestUnassignedIcon(projectName: project.displayName)
-                        }
+                        HarvestLinkIcon(
+                            state: project.harvestLinkState,
+                            projectName: project.displayName
+                        )
                     }
                 }
 

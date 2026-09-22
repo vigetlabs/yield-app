@@ -214,13 +214,16 @@ struct ProjectRowView: View {
                             .foregroundStyle(YieldColors.textPrimary)
                             .lineLimit(1)
 
-                        // Booked in Forecast, but the user isn't a
-                        // member of the Harvest project — can't log time
-                        // until an admin adds them. Booked hours still
-                        // show in full; this just flags the gap.
-                        if project.harvestLinkState == .unassigned {
-                            HarvestUnassignedIcon(projectName: project.displayName)
-                        }
+                        // Booked in Forecast, but the Harvest side
+                        // can't take time — either the user isn't a
+                        // member of the project, or the project was
+                        // never linked to Harvest at all. Booked hours
+                        // still show in full; this just names the gap
+                        // (self-hides when the link is healthy).
+                        HarvestLinkIcon(
+                            state: project.harvestLinkState,
+                            projectName: project.displayName
+                        )
 
                         if hasEntries {
                             Image(systemName: "chevron.down")
