@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.6.1</title>
+      <sparkle:version>63</sparkle:version>
+      <sparkle:shortVersionString>1.6.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Fixed: idle alerts were silently missing on macOS 27.</strong> Yield used to force its menu open when it caught your timer running while you were away. macOS 27 quietly stopped allowing that, so the alert was staged but never shown &mdash; a timer left running through lunch produced no signal at all. Idle now arrives as a system notification, like every other Yield nudge, telling you which project is running and how long you've been idle. Open Yield and the usual choices are waiting: discard the idle time, keep it, or stop the timer.</li>
+          <li><strong>Prospective projects now say why they're pink.</strong> A project booked in Forecast with no linked Harvest project can't be tracked against &mdash; it shows its booked hours, sits at zero logged, and offers no timer button. That state had a pink status line and nothing else, which reads like a bug. It now carries an icon explaining that the project isn't linked to Harvest, and that a project admin can link it from Forecast. If your hours seem to be vanishing on a booked project, this is usually why: they're landing on a separate unbooked row further down the list.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.6.1/Yield-1.6.1.zip"
+        sparkle:edSignature="JiOlh1BR/wkKLClo12qgybAHNQfxp4YO7/Lhe9MFbwBbck7TengTGsX7Abh71eFPDFuse3aMnHJBJ2l+IAbNAQ=="
+        length="3023227"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.6.0</title>
       <sparkle:version>62</sparkle:version>
       <sparkle:shortVersionString>1.6.0</sparkle:shortVersionString>
