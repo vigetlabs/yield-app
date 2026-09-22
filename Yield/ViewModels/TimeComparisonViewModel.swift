@@ -1317,8 +1317,19 @@ final class TimeComparisonViewModel {
                     hoursAtIdleStart: hoursAtIdleStart
                 )
 
-                // Open the menu bar popup so the user sees the idle alert inline
-                openMenuBarPanel()
+                // Nudge via a system notification. The inline alert is
+                // already staged in `idleAlertState` and renders as soon
+                // as the panel opens — this is just what gets the user's
+                // attention while it's closed.
+                //
+                // This used to call `openMenuBarPanel()`, which clicked
+                // the NSStatusItem button to force the panel open. As of
+                // macOS 27 that no longer works: the click lands (the
+                // button highlights) but SwiftUI never creates the panel
+                // window, so the nudge was silently lost. Notifications
+                // are how every other nudge in the app reaches the user
+                // and don't depend on private status-item behavior.
+                sendIdleNotification(projectName: name, idleSeconds: idleSeconds)
             }
         } else {
             // User is active again — reset so we can notify next time
@@ -1328,10 +1339,38 @@ final class TimeComparisonViewModel {
         }
     }
 
-    /// Programmatically open the MenuBarExtra panel by clicking its NSStatusItem button.
+    /// Idle nudge. Mirrors the other notification senders: no actions,
+    /// just enough detail to decide whether to open Yield — the inline
+    /// alert there carries the actual choices (discard the idle time,
+    /// keep it, stop the timer).
     @MainActor
-    private func openMenuBarPanel() {
-        MenuBarStatusItem.button?.performClick(nil)
+    private func sendIdleNotification(projectName: String, idleSeconds: TimeInterval) {
+        // No-op under XCTest so unit tests can drive `checkIdleTime`
+        // without scheduling real user-visible notifications.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Still tracking \(projectName)?"
+        content.body = "No activity for \(Self.formatIdleDuration(idleSeconds)). Open Yield to discard the idle time or keep it."
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: "idle-alert",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Whole minutes under an hour ("25 minutes"), hours plus minutes
+    /// above it ("1h 10m") — the idle check fires every 60s, so seconds
+    /// would be false precision.
+    /// Internal (vs. private) so XCTest can pin the wording.
+    static func formatIdleDuration(_ seconds: TimeInterval) -> String {
+        let totalMinutes = max(1, Int((seconds / 60.0).rounded()))
+        if totalMinutes < 60 {
+            return "\(totalMinutes) minute\(totalMinutes == 1 ? "" : "s")"
+        }
+        let (h, m) = (totalMinutes / 60, totalMinutes % 60)
+        return m == 0 ? "\(h)h" : "\(h)h \(m)m"
     }
 
     // MARK: - Idle Alert Actions

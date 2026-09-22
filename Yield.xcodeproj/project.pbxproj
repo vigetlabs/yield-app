@@ -59,6 +59,7 @@
 		99ED0D0543AAE1B074741BC6 /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */; };
 		9C4DF783011FD3DDA1DD5FE7 /* GoogleCalendarServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFFBABFB27E0104E4DF4161C /* GoogleCalendarServiceTests.swift */; };
 		A0D5FB56C0B51BFF22538E58 /* CollectionHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */; };
+		A0DA50C919D02559257C0B25 /* IdleNotificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3CFFD1FB55BE15CB327CFCE /* IdleNotificationTests.swift */; };
 		A128C420B393CA51F5510DBC /* WeekDayBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27EC157B9E485AABFE77ACBF /* WeekDayBarView.swift */; };
 		A138E3ABF888045AB8F58BBC /* GoogleCalendarModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B153EDC6B898354DF10F1A /* GoogleCalendarModels.swift */; };
 		A1E521CB7DA46A9003DD74A7 /* ExternalTimerChangeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7F33AC88AAFCEEE509F265 /* ExternalTimerChangeTests.swift */; };
@@ -155,6 +156,7 @@
 		ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Italic.ttf"; sourceTree = "<group>"; };
 		B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectChartView.swift; sourceTree = "<group>"; };
 		B31168BFC9DC2EF2BDDDE60C /* DayTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTimelineTests.swift; sourceTree = "<group>"; };
+		B3CFFD1FB55BE15CB327CFCE /* IdleNotificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleNotificationTests.swift; sourceTree = "<group>"; };
 		B58E49DBB49B3AA58579E5AB /* YieldTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YieldTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastModels.swift; sourceTree = "<group>"; };
 		BCD907CCE73B8116AE553407 /* MutedMeetingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutedMeetingsCard.swift; sourceTree = "<group>"; };
@@ -280,6 +282,7 @@
 				CB7F33AC88AAFCEEE509F265 /* ExternalTimerChangeTests.swift */,
 				AB29BA0DD89D4E8CAEC35EBC /* GoogleAuthServiceTests.swift */,
 				CFFBABFB27E0104E4DF4161C /* GoogleCalendarServiceTests.swift */,
+				B3CFFD1FB55BE15CB327CFCE /* IdleNotificationTests.swift */,
 				1B3F7C76872263B8A84769C2 /* MeetingHistoryStoreTests.swift */,
 				03E40C87D73A2DEA90E94AAC /* MeetingPromptTests.swift */,
 				C8D171E67D1EF700B24DDAB9 /* OptimisticTimerTests.swift */,
@@ -502,6 +505,7 @@
 				A1E521CB7DA46A9003DD74A7 /* ExternalTimerChangeTests.swift in Sources */,
 				700643A450C5BEDF6101D30B /* GoogleAuthServiceTests.swift in Sources */,
 				9C4DF783011FD3DDA1DD5FE7 /* GoogleCalendarServiceTests.swift in Sources */,
+				A0DA50C919D02559257C0B25 /* IdleNotificationTests.swift in Sources */,
 				6D3714E9FAACD01B8271FB55 /* MeetingHistoryStoreTests.swift in Sources */,
 				6344AEB44E32426364C74255 /* MeetingPromptTests.swift in Sources */,
 				977BD90BD8F50FCFC47E7B4A /* OptimisticTimerTests.swift in Sources */,
