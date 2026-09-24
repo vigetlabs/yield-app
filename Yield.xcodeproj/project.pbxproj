@@ -22,12 +22,14 @@
 		35018499E43BEF99994080EC /* MutedMeetingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD907CCE73B8116AE553407 /* MutedMeetingsCard.swift */; };
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
 		3E722E094D65FE2843178E4D /* HarvestLinkIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ECCA20D51028E2296FAF26B /* HarvestLinkIcon.swift */; };
+		40A22BED7CDA32CBBD4C0F15 /* IdleAlertTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7E6FB600D5F45A1CAD808D6 /* IdleAlertTests.swift */; };
 		427EA4BFD575944A859EF6CF /* DoubleFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD48D786838656DCBEEFF94 /* DoubleFormattersTests.swift */; };
 		428D5AEC2E6086C0999F9F7E /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */; };
 		42DB3888BEBE6DE88987C012 /* LookAheadRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCB0B20EC3D0FF46A1DA250 /* LookAheadRowView.swift */; };
 		43AA55D2394219B22349EECD /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */; };
 		539A827FDCADF80CA5457BFD /* DMSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */; };
 		544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F394448517841A11132011C /* IdleAlertView.swift */; };
+		5ACF94AE21DB645C0F1B57CC /* IdleAlertWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F60EBA6EB0E4C1BCA4D3B3 /* IdleAlertWindow.swift */; };
 		5B4B7C7E70A2D03365410F96 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA30B681B3132D09F66457E /* Sparkle */; };
 		6344AEB44E32426364C74255 /* MeetingPromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E40C87D73A2DEA90E94AAC /* MeetingPromptTests.swift */; };
 		6638A03EC4FE886C43CE7DF0 /* InlineConfirmationRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B350BDB5A8D9DFA6FD5A25 /* InlineConfirmationRow.swift */; };
@@ -59,7 +61,6 @@
 		99ED0D0543AAE1B074741BC6 /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */; };
 		9C4DF783011FD3DDA1DD5FE7 /* GoogleCalendarServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFFBABFB27E0104E4DF4161C /* GoogleCalendarServiceTests.swift */; };
 		A0D5FB56C0B51BFF22538E58 /* CollectionHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */; };
-		A0DA50C919D02559257C0B25 /* IdleNotificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3CFFD1FB55BE15CB327CFCE /* IdleNotificationTests.swift */; };
 		A128C420B393CA51F5510DBC /* WeekDayBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27EC157B9E485AABFE77ACBF /* WeekDayBarView.swift */; };
 		A138E3ABF888045AB8F58BBC /* GoogleCalendarModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B153EDC6B898354DF10F1A /* GoogleCalendarModels.swift */; };
 		A1E521CB7DA46A9003DD74A7 /* ExternalTimerChangeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7F33AC88AAFCEEE509F265 /* ExternalTimerChangeTests.swift */; };
@@ -108,6 +109,7 @@
 		03E40C87D73A2DEA90E94AAC /* MeetingPromptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingPromptTests.swift; sourceTree = "<group>"; };
 		04649DB88A000C743F3433D1 /* JetBrainsMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Medium.ttf"; sourceTree = "<group>"; };
 		0FD374FF50C57C8CDAC6FF39 /* Newsreader-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Newsreader-Italic.ttf"; sourceTree = "<group>"; };
+		11F60EBA6EB0E4C1BCA4D3B3 /* IdleAlertWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertWindow.swift; sourceTree = "<group>"; };
 		12B153EDC6B898354DF10F1A /* GoogleCalendarModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleCalendarModels.swift; sourceTree = "<group>"; };
 		138C505A4936EA5B2A5B16FD /* YieldApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YieldApp.swift; sourceTree = "<group>"; };
 		16243A50D7AFF44FC10CDFBF /* MeetingPromptBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingPromptBarView.swift; sourceTree = "<group>"; };
@@ -156,7 +158,6 @@
 		ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Italic.ttf"; sourceTree = "<group>"; };
 		B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectChartView.swift; sourceTree = "<group>"; };
 		B31168BFC9DC2EF2BDDDE60C /* DayTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTimelineTests.swift; sourceTree = "<group>"; };
-		B3CFFD1FB55BE15CB327CFCE /* IdleNotificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleNotificationTests.swift; sourceTree = "<group>"; };
 		B58E49DBB49B3AA58579E5AB /* YieldTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YieldTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastModels.swift; sourceTree = "<group>"; };
 		BCD907CCE73B8116AE553407 /* MutedMeetingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutedMeetingsCard.swift; sourceTree = "<group>"; };
@@ -170,6 +171,7 @@
 		CA00826B19142EA4BF7E31AE /* ProjectStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStatusTests.swift; sourceTree = "<group>"; };
 		CB7F33AC88AAFCEEE509F265 /* ExternalTimerChangeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalTimerChangeTests.swift; sourceTree = "<group>"; };
 		CFFBABFB27E0104E4DF4161C /* GoogleCalendarServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleCalendarServiceTests.swift; sourceTree = "<group>"; };
+		D7E6FB600D5F45A1CAD808D6 /* IdleAlertTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertTests.swift; sourceTree = "<group>"; };
 		D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOffRowView.swift; sourceTree = "<group>"; };
 		DB799247D52776862953EA20 /* Yield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yield.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
@@ -282,7 +284,7 @@
 				CB7F33AC88AAFCEEE509F265 /* ExternalTimerChangeTests.swift */,
 				AB29BA0DD89D4E8CAEC35EBC /* GoogleAuthServiceTests.swift */,
 				CFFBABFB27E0104E4DF4161C /* GoogleCalendarServiceTests.swift */,
-				B3CFFD1FB55BE15CB327CFCE /* IdleNotificationTests.swift */,
+				D7E6FB600D5F45A1CAD808D6 /* IdleAlertTests.swift */,
 				1B3F7C76872263B8A84769C2 /* MeetingHistoryStoreTests.swift */,
 				03E40C87D73A2DEA90E94AAC /* MeetingPromptTests.swift */,
 				C8D171E67D1EF700B24DDAB9 /* OptimisticTimerTests.swift */,
@@ -341,6 +343,7 @@
 				7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */,
 				6ECCA20D51028E2296FAF26B /* HarvestLinkIcon.swift */,
 				9F394448517841A11132011C /* IdleAlertView.swift */,
+				11F60EBA6EB0E4C1BCA4D3B3 /* IdleAlertWindow.swift */,
 				68B350BDB5A8D9DFA6FD5A25 /* InlineConfirmationRow.swift */,
 				1DCB0B20EC3D0FF46A1DA250 /* LookAheadRowView.swift */,
 				C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */,
@@ -505,7 +508,7 @@
 				A1E521CB7DA46A9003DD74A7 /* ExternalTimerChangeTests.swift in Sources */,
 				700643A450C5BEDF6101D30B /* GoogleAuthServiceTests.swift in Sources */,
 				9C4DF783011FD3DDA1DD5FE7 /* GoogleCalendarServiceTests.swift in Sources */,
-				A0DA50C919D02559257C0B25 /* IdleNotificationTests.swift in Sources */,
+				40A22BED7CDA32CBBD4C0F15 /* IdleAlertTests.swift in Sources */,
 				6D3714E9FAACD01B8271FB55 /* MeetingHistoryStoreTests.swift in Sources */,
 				6344AEB44E32426364C74255 /* MeetingPromptTests.swift in Sources */,
 				977BD90BD8F50FCFC47E7B4A /* OptimisticTimerTests.swift in Sources */,
@@ -545,6 +548,7 @@
 				C4E96F0745CED0E60BA91284 /* HarvestService.swift in Sources */,
 				95E28CA5455CF73C33B3F1F4 /* HarvestStatusService.swift in Sources */,
 				544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */,
+				5ACF94AE21DB645C0F1B57CC /* IdleAlertWindow.swift in Sources */,
 				6638A03EC4FE886C43CE7DF0 /* InlineConfirmationRow.swift in Sources */,
 				DAC3301F5AA18C5088CC521C /* KeychainHelper.swift in Sources */,
 				E06685FE380D69C1A83B581B /* LogStore.swift in Sources */,
