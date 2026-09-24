@@ -69,8 +69,22 @@ final class IdleAlertWindow: NSObject, NSWindowDelegate {
 
         window = panel
         self.viewModel = viewModel
-        panel.makeKeyAndOrderFront(nil)
+
+        // Activate first, then take key. The other order raced:
+        // `activate` is asynchronous, and an activation landing after
+        // makeKeyAndOrderFront could leave the panel visible but not
+        // key — on screen, unfocused, easy to miss. Re-asserting key on
+        // the next runloop pass covers the case where activation is
+        // still in flight when this returns.
         NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.async { [weak panel] in
+            guard let panel, panel.isVisible, !panel.isKeyWindow else { return }
+            panel.makeKeyAndOrderFront(nil)
+        }
+        #if DEBUG
+        LogStore.shared.log("[idle-diag] window shown for \(viewModel.idleAlertState?.projectName ?? "?")", category: .info)
+        #endif
     }
 
     /// Close and tear down. Idempotent.

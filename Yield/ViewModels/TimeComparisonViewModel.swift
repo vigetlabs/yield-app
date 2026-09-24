@@ -437,6 +437,11 @@ final class TimeComparisonViewModel {
         // gets stuck — it blocks the panel, and `checkIdleTime` never
         // re-evaluates while an alert is showing.
         if idleAlertState != nil {
+            #if DEBUG
+            if idleAlertState != nil {
+                LogStore.shared.log("[idle-diag] CLEARED by: external timer change", category: .info)
+            }
+            #endif
             idleAlertState = nil
         }
 
@@ -1205,6 +1210,11 @@ final class TimeComparisonViewModel {
 
         // Tracking + pause + idle state
         pausedState = nil
+        #if DEBUG
+        if idleAlertState != nil {
+            LogStore.shared.log("[idle-diag] CLEARED by: state reset", category: .info)
+        }
+        #endif
         idleAlertState = nil
         pendingIdleMove = nil
         pendingTimerMove = nil
@@ -1280,7 +1290,9 @@ final class TimeComparisonViewModel {
         }
 
         // Don't check if we're already showing the idle alert
-        guard idleAlertState == nil else { return }
+        guard idleAlertState == nil else {
+            return
+        }
 
         let idleMinutes = UserDefaults.standard.integer(forKey: DefaultsKey.idleMinutes)
         let thresholdSeconds = Double(max(idleMinutes, 1)) * 60.0
@@ -1328,6 +1340,9 @@ final class TimeComparisonViewModel {
                 // the user only if they've granted the permission —
                 // which, for the report that prompted this, they
                 // hadn't. Our own window depends on neither.
+                #if DEBUG
+                LogStore.shared.log("[idle-diag] staged alert for \(name)", category: .info)
+                #endif
                 IdleAlertWindow.shared.show(viewModel: self)
             }
         } else {
@@ -1421,6 +1436,11 @@ final class TimeComparisonViewModel {
     /// Keep all the time (including idle) and dismiss
     @MainActor
     func idleDismiss() {
+        #if DEBUG
+        if idleAlertState != nil {
+            LogStore.shared.log("[idle-diag] CLEARED by: idleDismiss (keep all time)", category: .info)
+        }
+        #endif
         idleAlertState = nil
         idleNotificationSent = false
     }
@@ -1439,6 +1459,11 @@ final class TimeComparisonViewModel {
             idleHours: idleHours,
             sourceProjectName: alert.projectName
         )
+        #if DEBUG
+        if idleAlertState != nil {
+            LogStore.shared.log("[idle-diag] CLEARED by: idleStartMove (routing to move form)", category: .info)
+        }
+        #endif
         idleAlertState = nil
         idleNotificationSent = false
     }
