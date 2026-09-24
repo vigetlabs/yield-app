@@ -3,6 +3,22 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.6.2</title>
+      <sparkle:version>64</sparkle:version>
+      <sparkle:shortVersionString>1.6.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>The idle alert is back, in its own window.</strong> On macOS 27 the alert had stopped appearing: Yield used to force its menu open to show you, and the OS quietly stopped allowing that. 1.6.1 tried a notification, which only reaches you if Yield has notification permission. The alert now opens in its own window instead, which needs no permission and shows over full-screen apps and on whichever desktop you're using. Same four choices as before &mdash; discard the idle time, stop the timer, move it to another task, or keep it.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.6.2/Yield-1.6.2.zip"
+        sparkle:edSignature="fzNJ8fYpVj1xEPI36dYaNC1+I6oNr3uB/sNON5N+2j+Dj6p1iDgAgxPsH2pGfCZ97V/IDCE2LySqfp5+wm91Cg=="
+        length="3037620"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.6.1</title>
       <sparkle:version>63</sparkle:version>
       <sparkle:shortVersionString>1.6.1</sparkle:shortVersionString>
