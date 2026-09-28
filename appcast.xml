@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.6.3</title>
+      <sparkle:version>65</sparkle:version>
+      <sparkle:shortVersionString>1.6.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Fixed: the idle alert could stay invisible until you clicked Yield.</strong> 1.6.2 moved the alert into its own window, but macOS won't put an ordinary window on screen while the app it belongs to is in the background &mdash; which is always the case when you've been away from the keyboard. The window was being created and then quietly not shown, so you'd come back to nothing and only see the alert once you clicked the menu bar icon. It now appears on its own, over whatever you're in, without Yield having to come forward first.</li>
+          <li>The alert no longer shows up twice &mdash; once floating and once inside the Yield panel &mdash; if you open Yield while it's up.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.6.3/Yield-1.6.3.zip"
+        sparkle:edSignature="QQLRl/MviJY/+t2n9DGpfJhxBNtY3QW1c1dc6/ramWc1YodxHMf+yVfVkzdd+rOrexXpPSjhYaejUpzQPx4UCg=="
+        length="3038003"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.6.2</title>
       <sparkle:version>64</sparkle:version>
       <sparkle:shortVersionString>1.6.2</sparkle:shortVersionString>
