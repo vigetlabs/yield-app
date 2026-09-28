@@ -34,8 +34,7 @@ final class IdleAlertWindow: NSObject, NSWindowDelegate {
     /// this shouldn't depend on that.
     func show(viewModel: TimeComparisonViewModel) {
         if let window {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            Self.present(window)
             return
         }
 
@@ -43,12 +42,23 @@ final class IdleAlertWindow: NSObject, NSWindowDelegate {
             self?.hide()
         }
 
-        // .nonactivatingPanel is deliberately NOT set: this is an
-        // interruption, and it should take focus the way the panel
-        // opening in your face used to.
+        // `.nonactivatingPanel` is load-bearing. Without it, an
+        // ordinary panel is not put on screen while its application is
+        // inactive — and Yield is inactive by definition when idle
+        // fires, since the user has been away from the keyboard for
+        // minutes. Measured on macOS 27 with the app deliberately in
+        // the background: the same panel with this flag is in the
+        // window server's on-screen list, and without it is absent
+        // until something activates the app. That is the reported
+        // symptom exactly — no alert on returning to the Mac, then the
+        // alert appearing the instant the menu bar icon was clicked.
+        //
+        // The cost is that clicking the window doesn't bring Yield
+        // forward, which doesn't matter: every action here is a button,
+        // and none of them need keyboard focus.
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: YieldDimensions.panelWidth, height: 420),
-            styleMask: [.titled, .closable, .fullSizeContentView, .utilityWindow],
+            styleMask: [.titled, .closable, .fullSizeContentView, .utilityWindow, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -70,26 +80,34 @@ final class IdleAlertWindow: NSObject, NSWindowDelegate {
         window = panel
         self.viewModel = viewModel
 
-        // Activate first, then take key. The other order raced:
-        // `activate` is asynchronous, and an activation landing after
-        // makeKeyAndOrderFront could leave the panel visible but not
-        // key — on screen, unfocused, easy to miss. Re-asserting key on
-        // the next runloop pass covers the case where activation is
-        // still in flight when this returns.
-        NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
-        DispatchQueue.main.async { [weak panel] in
-            guard let panel, panel.isVisible, !panel.isKeyWindow else { return }
-            panel.makeKeyAndOrderFront(nil)
-        }
+        viewModel.setIdleAlertInWindow(true)
+        Self.present(panel)
         #if DEBUG
         LogStore.shared.log("[idle-diag] window shown for \(viewModel.idleAlertState?.projectName ?? "?")", category: .info)
         #endif
     }
 
+    /// Put the panel on screen.
+    ///
+    /// `orderFrontRegardless()` rather than `makeKeyAndOrderFront`: the
+    /// latter won't display a window whose application is inactive,
+    /// which is always the case here. Paired with the panel's
+    /// `.nonactivatingPanel` mask, this shows it without needing the
+    /// app to come forward at all.
+    ///
+    /// `NSApp.activate` is a deliberate non-participant. macOS only
+    /// grants activation to apps with a recent user interaction, so a
+    /// background app that has been quiet for an hour — exactly this
+    /// case — is the one it refuses. Depending on it is what made the
+    /// alert invisible in the first place.
+    private static func present(_ panel: NSPanel) {
+        panel.orderFrontRegardless()
+    }
+
     /// Close and tear down. Idempotent.
     func hide() {
         guard let window else { return }
+        viewModel?.setIdleAlertInWindow(false)
         self.window = nil
         self.viewModel = nil
         window.delegate = nil
@@ -109,6 +127,7 @@ final class IdleAlertWindow: NSObject, NSWindowDelegate {
         } else {
             viewModel?.idleDismiss()
         }
+        viewModel?.setIdleAlertInWindow(false)
         window = nil
         viewModel = nil
         return true

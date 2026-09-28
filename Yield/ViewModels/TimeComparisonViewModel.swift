@@ -295,6 +295,12 @@ final class TimeComparisonViewModel {
     }
 
     private(set) var idleAlertState: IdleAlertState? = nil
+    /// True while `IdleAlertWindow` is presenting the alert in its own
+    /// window. The panel reads this to stay out of the way: both
+    /// surfaces render from `idleAlertState`, so without it you get the
+    /// same alert twice — once floating, once inside the panel — which
+    /// reads as a duplicate rather than one alert in two places.
+    private(set) var idleAlertInWindow: Bool = false
 
     /// In-flight idle-time relocation. Set when the user picks "Move
     /// Time…" on the idle alert; the source entry is left untouched
@@ -1431,6 +1437,12 @@ final class TimeComparisonViewModel {
             errorMessage = "Failed to adjust idle time: \(error.localizedDescription)"
             idleDismiss()
         }
+    }
+
+    /// Set by `IdleAlertWindow` as it opens and closes.
+    @MainActor
+    func setIdleAlertInWindow(_ showing: Bool) {
+        idleAlertInWindow = showing
     }
 
     /// Keep all the time (including idle) and dismiss

@@ -105,7 +105,7 @@ struct MenuBarContentView: View {
             // height at the taller of the two, and the slide-in glides
             // over the fading view instead of below it.
             ZStack(alignment: .top) {
-                if viewModel.idleAlertState != nil {
+                if viewModel.idleAlertState != nil && !viewModel.idleAlertInWindow {
                     IdleAlertView(viewModel: viewModel)
                         .transition(.opacity.animation(.easeInOut(duration: 0.2)))
                 } else if showSettings {
