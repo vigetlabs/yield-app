@@ -3,6 +3,25 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.7.0</title>
+      <sparkle:version>66</sparkle:version>
+      <sparkle:shortVersionString>1.7.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>A second look, as a setting.</strong> Settings &rarr; Preferences has a new <em>Theme</em> picker. <strong>Editorial</strong> is the look you have today and stays the default &mdash; nothing changes unless you choose. <strong>System</strong> is new: system fonts in place of the serif, at a slightly larger size that's easier to read, with macOS's own colors (including your accent color) instead of a custom palette.</li>
+          <li><strong>In the System theme, the list is grouped by client.</strong> One header per client, then its projects by name, so the project name is the first thing on every row and the repeated client labels are gone. Each row leads with its logged hours and a bar, and says what it is when there's nothing to count down: <em>Not linked to a Harvest project</em>, <em>Not booked in Forecast</em>, or how much is left this week.</li>
+          <li><strong>System theme, continued.</strong> The running timer is the panel's hero &mdash; a large elapsed figure, round controls &mdash; and the meeting-start and post-meeting bars match it. Buttons are round throughout. The weekly chart keeps its area shape but takes a palette validated for colorblind separation, and hovering a day shows that day's hours by project.</li>
+          <li><strong>Move time from any of today's entries.</strong> Move Time was a running-timer action; now any of today's entries in a project's drawer can start it &mdash; hover the row for the Move icon, or right-click for <em>Move Time&hellip;</em> It's the same flow as the banner's. Both themes.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.7.0/Yield-1.7.0.zip"
+        sparkle:edSignature="d533RBmBnIMHf+D9ofgZOxhz1GWqdlaatiwbfBlnvkLS0f5ed+8KFY4TzOmqrDt53nHnHyC4B3vjU3NVCH+cDw=="
+        length="3234574"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.6.3</title>
       <sparkle:version>65</sparkle:version>
       <sparkle:shortVersionString>1.6.3</sparkle:shortVersionString>
