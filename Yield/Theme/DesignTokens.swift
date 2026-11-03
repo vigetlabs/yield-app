@@ -109,59 +109,22 @@ enum YieldColors {
         )
     }
 
-    /// The System theme's palette: a half-step cooler and calmer than
-    /// Editorial. Surfaces are slate (#13161D / #F2F4F9), ink is a cool
-    /// off-white / near-black, the accent is teal, and the overlays —
-    /// hairlines, hover surfaces, tracks — are tints of a slate-blue
-    /// rather than pure white or black, so the whole panel carries one
-    /// temperature.
+    /// The System theme's palette. Shared with Editorial for now — the
+    /// cool/slate direction was tried and rejected; a new direction is
+    /// being chosen from rendered candidates. The plumbing stays so the
+    /// choice is a values-only change.
     enum System {
-        /// Overlay tint: slate-blue, light on dark and dark on light.
-        private static func tint(_ alpha: CGFloat) -> Color {
-            dynamicColor(
-                light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: alpha),  // #1E2A40
-                dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: alpha)   // #B8C4DB
-            )
-        }
-
-        static let background = dynamicColor(
-            light: NSColor(red: 0.949, green: 0.957, blue: 0.976, alpha: 1.0),  // #F2F4F9
-            dark:  NSColor(red: 0.075, green: 0.086, blue: 0.114, alpha: 1.0)   // #13161D
-        )
-        /// Teal, a few degrees *cooler* than Editorial's mint rather than
-        /// warmer — an emerald was tried first and tipped the whole panel
-        /// yellow-green next to the amber.
-        static let greenAccent = dynamicColor(
-            light: NSColor(red: 0.043, green: 0.478, blue: 0.447, alpha: 1.0),  // #0B7A72
-            dark:  NSColor(red: 0.133, green: 0.788, blue: 0.737, alpha: 1.0)   // #22C9BC
-        )
-        static let yellowAccent = dynamicColor(
-            light: NSColor(red: 0.561, green: 0.369, blue: 0.0,   alpha: 1.0),  // #8F5E00
-            dark:  NSColor(red: 0.969, green: 0.718, blue: 0.192, alpha: 1.0)   // #F7B731
-        )
-        static let border = tint(0.12)
-        static let buttonBorder = dynamicColor(
-            light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: 0.25),
-            dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: 0.30)
-        )
-        static let textPrimary = dynamicColor(
-            light: NSColor(red: 0.090, green: 0.106, blue: 0.133, alpha: 1.0),  // #171B22
-            dark:  NSColor(red: 0.949, green: 0.957, blue: 0.969, alpha: 1.0)   // #F2F4F7
-        )
-        static let textSecondary = dynamicColor(
-            light: NSColor(red: 0.090, green: 0.106, blue: 0.133, alpha: 0.68),
-            dark:  NSColor(red: 0.949, green: 0.957, blue: 0.969, alpha: 0.68)
-        )
-        static let surfaceDefault = tint(0.05)
-        static let surfaceActive = dynamicColor(
-            light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: 0.08),
-            dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: 0.11)
-        )
-        static let progressTrack = dynamicColor(
-            light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: 0.12),
-            dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: 0.14)
-        )
-        static let onBackground = textPrimary
+        static let background = Editorial.background
+        static let greenAccent = Editorial.greenAccent
+        static let yellowAccent = Editorial.yellowAccent
+        static let border = Editorial.border
+        static let buttonBorder = Editorial.buttonBorder
+        static let textPrimary = Editorial.textPrimary
+        static let textSecondary = Editorial.textSecondary
+        static let surfaceDefault = Editorial.surfaceDefault
+        static let surfaceActive = Editorial.surfaceActive
+        static let progressTrack = Editorial.progressTrack
+        static let onBackground = Editorial.onBackground
     }
 }
 
@@ -297,10 +260,7 @@ enum YieldStatusColors {
     )
     /// Unbooked status line — a 30% overlay; System's carries the slate tint.
     static var unbooked: Color {
-        theme == .editorial
-            ? dynamicColor(light: NSColor.black.withAlphaComponent(0.3), dark: NSColor.white.withAlphaComponent(0.3))
-            : dynamicColor(light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: 0.3),
-                           dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: 0.3))
+        dynamicColor(light: NSColor.black.withAlphaComponent(0.3), dark: NSColor.white.withAlphaComponent(0.3))
     }
     /// Prospective / proposal-stage Forecast projects — booked but not
     /// yet linked to a Harvest project. Shared.
