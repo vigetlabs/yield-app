@@ -24,6 +24,9 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
     /// a past-day entry's project, task, and note. Wired to each
     /// drawer entry's "Continue today" affordance.
     var onCopyEntryToToday: ((TimeEntryInfo) -> Void)? = nil
+    /// Move part of a today entry's time to another task — the drawer's
+    /// counterpart to the banner's Move Time. Today's entries only.
+    var onMoveEntry: ((TimeEntryInfo) -> Void)? = nil
     var isHarvestDown: Bool = false
     var onStartTimerForProject: (() -> Void)? = nil
     /// Quick-start a timer for this project, bypassing the new-timer
@@ -145,6 +148,9 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
                         },
                         onCopyToToday: {
                             onCopyEntryToToday?(entry)
+                        },
+                        onMoveTime: {
+                            onMoveEntry?(entry)
                         }
                     )
                 }
@@ -716,6 +722,8 @@ struct TaskEntryRowView: View {
     /// past weeks), so the affordance is gated on `!isToday &&
     /// !isReadOnly` at the call sites below.
     var onCopyToToday: (() -> Void)? = nil
+    /// Today's entries only: move some of this entry's time elsewhere.
+    var onMoveTime: (() -> Void)? = nil
     @State private var isHovered: Bool = false
     /// Second stage of the past-entry quick-action reveal: true when
     /// the cursor is specifically over the trailing action zone (not
@@ -808,6 +816,42 @@ struct TaskEntryRowView: View {
 
             // Play/stop button (only for today's entries, hidden when read-only)
             if isToday && !isReadOnly {
+                // Move Time reveal, ahead of the play/stop control — the
+                // same zone-before-controls order the banner uses, so
+                // revealing it never shifts the control the cursor is
+                // heading for. Same peek/reveal staging as the past-day
+                // rows' Continue-today zone.
+                ZStack(alignment: .trailing) {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .opacity(isHovered && !isActionZoneHovered ? 1 : 0)
+
+                    Button(action: { onMoveTime?() }) {
+                        Image(systemName: "arrow.turn.up.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(YieldColors.textSecondary)
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isHarvestDown)
+                    .opacity(isActionZoneHovered ? (isHarvestDown ? 0.4 : 1) : 0)
+                    .allowsHitTesting(isActionZoneHovered)
+                    .help("Move Time…")
+                }
+                .frame(width: (isHovered || isActionZoneHovered) ? 22 : 0, alignment: .trailing)
+                .clipped()
+                .padding(.leading, (isHovered || isActionZoneHovered) ? 8 : 0)
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        isActionZoneHovered = hovering
+                    }
+                }
+
                 Button(action: { onToggleTimer?() }) {
                     Image(systemName: entry.isRunning ? "stop.fill" : "play.fill")
                         .font(.system(size: 10))
@@ -897,6 +941,15 @@ struct TaskEntryRowView: View {
                     Label("Edit Timer", systemImage: "pencil")
                 }
                 .disabled(isHarvestDown)
+                // Banner order: Edit, Move, Delete.
+                if isToday {
+                    Button {
+                        onMoveTime?()
+                    } label: {
+                        Label("Move Time…", systemImage: "arrow.turn.up.right")
+                    }
+                    .disabled(isHarvestDown)
+                }
                 Button(role: .destructive) {
                     onDeleteEntry?()
                 } label: {

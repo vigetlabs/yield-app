@@ -1128,7 +1128,7 @@ struct NewTimerFormView: View {
             Image(systemName: "arrow.turn.up.right")
                 .font(.system(size: 11))
                 .foregroundStyle(YieldColors.textSecondary)
-            Text("From \(move.sourceProjectName) / \(move.sourceTaskName) — \(h):\(String(format: "%02d", m)) on the timer")
+            Text("From \(move.sourceProjectName) / \(move.sourceTaskName) — \(h):\(String(format: "%02d", m)) \(move.sourceWasRunning ? "on the timer" : "logged")")
                 .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textSecondary)
                 .lineLimit(1)

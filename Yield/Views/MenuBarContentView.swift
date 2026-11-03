@@ -397,6 +397,13 @@ struct MenuBarContentView: View {
                     )
                 }
             },
+            onMoveEntry: { entry in
+                // Setting `pendingTimerMove` presents the move form,
+                // same as the banner's Move Time.
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    viewModel.startTimerMove(from: entry)
+                }
+            },
             isHarvestDown: viewModel.isHarvestDown,
             onStartTimerForProject: {
                 withAnimation(.easeInOut(duration: 0.2)) {

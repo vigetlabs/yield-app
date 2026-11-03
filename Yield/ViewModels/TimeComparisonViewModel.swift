@@ -1586,6 +1586,24 @@ final class TimeComparisonViewModel {
         }
     }
 
+    /// Begin a move from any of today's entries — the drawer's Move
+    /// Time. Same flow as the banner's: the form presents when
+    /// `pendingTimerMove` is set, and `commitTimerMove` already handles
+    /// a source that isn't running (it just adjusts the hours). A
+    /// running source is restarted after, exactly as from the banner.
+    @MainActor
+    func startTimerMove(from entry: TimeEntryInfo) {
+        let project = projectStatuses.first(where: { $0.harvestProjectId == entry.harvestProjectId })
+        pendingTimerMove = PendingTimerMove(
+            sourceEntryId: entry.id,
+            sourceProjectId: entry.harvestProjectId,
+            sourceTaskId: entry.taskId,
+            sourceProjectName: project?.displayName ?? "",
+            sourceTaskName: entry.taskName,
+            sourceWasRunning: entry.isRunning
+        )
+    }
+
     /// Cancel an in-progress timer move without touching any data.
     @MainActor
     func timerMoveCancel() {

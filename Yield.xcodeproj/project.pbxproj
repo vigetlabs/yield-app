@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		00CF200AE600512B319C3288 /* Newsreader-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0FD374FF50C57C8CDAC6FF39 /* Newsreader-Italic.ttf */; };
+		0304CB3AB70DA7C9665E7908 /* EntryMoveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996FF1C75693575CA25ACE22 /* EntryMoveTests.swift */; };
 		07833C8855FBF86DBEE1761D /* CalendarEventPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE23809963F31EA6370A8FD9 /* CalendarEventPickerView.swift */; };
 		0A4CD72A293DB291F4C6F20D /* ProjectRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */; };
 		12764D69F0D5F8224898949E /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BD4C5582428B3456F726D2 /* DesignTokens.swift */; };
@@ -159,6 +160,7 @@
 		9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
 		94CDCEBAAB1B8D5E04E319D7 /* PreferencesCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesCard.swift; sourceTree = "<group>"; };
 		97071C361541C20FA140647C /* RefreshPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshPipelineTests.swift; sourceTree = "<group>"; };
+		996FF1C75693575CA25ACE22 /* EntryMoveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryMoveTests.swift; sourceTree = "<group>"; };
 		9A155FA79AC05F13F3C0C6F6 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
 		9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionHelpers.swift; sourceTree = "<group>"; };
 		9F394448517841A11132011C /* IdleAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertView.swift; sourceTree = "<group>"; };
@@ -296,6 +298,7 @@
 				4269FF2D4C89CC7CD8668F99 /* DateHelpersTests.swift */,
 				B31168BFC9DC2EF2BDDDE60C /* DayTimelineTests.swift */,
 				FBD48D786838656DCBEEFF94 /* DoubleFormattersTests.swift */,
+				996FF1C75693575CA25ACE22 /* EntryMoveTests.swift */,
 				CB7F33AC88AAFCEEE509F265 /* ExternalTimerChangeTests.swift */,
 				AB29BA0DD89D4E8CAEC35EBC /* GoogleAuthServiceTests.swift */,
 				CFFBABFB27E0104E4DF4161C /* GoogleCalendarServiceTests.swift */,
@@ -526,6 +529,7 @@
 				708A8AAD9C0B82C047AF82C9 /* DateHelpersTests.swift in Sources */,
 				84884C0D54953B86ADA226C8 /* DayTimelineTests.swift in Sources */,
 				427EA4BFD575944A859EF6CF /* DoubleFormattersTests.swift in Sources */,
+				0304CB3AB70DA7C9665E7908 /* EntryMoveTests.swift in Sources */,
 				A1E521CB7DA46A9003DD74A7 /* ExternalTimerChangeTests.swift in Sources */,
 				700643A450C5BEDF6101D30B /* GoogleAuthServiceTests.swift in Sources */,
 				9C4DF783011FD3DDA1DD5FE7 /* GoogleCalendarServiceTests.swift in Sources */,
