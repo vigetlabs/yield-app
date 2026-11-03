@@ -109,9 +109,8 @@ enum YieldColors {
 /// sequence and never cycled; a ninth project folds into `other`.
 ///
 /// Four light-mode slots sit below 3:1 on the light surface, which the
-/// validator flags as needing a relief channel. The chart's direct
-/// labels (day totals on each column cap) and its hover tooltip are
-/// that channel.
+/// validator flags as needing a relief channel. The chart's hover
+/// tooltip, with the day's per-project hours, is that channel.
 enum YieldChartColors {
     private static func hex(_ light: UInt32, _ dark: UInt32) -> Color {
         func ns(_ v: UInt32) -> NSColor {

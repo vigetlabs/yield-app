@@ -90,12 +90,12 @@ struct ProjectChartView: View {
         }
     }
 
-    /// Editorial keeps the chart exactly as it shipped (smoothed stacked
-    /// area); System gets stacked columns — see `WeeklyColumnChart` for
-    /// why the form changed.
+    /// Editorial keeps the chart exactly as it shipped; System gets the
+    /// same stacked area in the validated palette with a hover layer —
+    /// see `WeeklyAreaChart`.
     @ViewBuilder
     var body: some View {
-        if ThemeStore.shared.theme.usesColumnChart {
+        if ThemeStore.shared.theme.usesRefreshedChart {
             systemBody
         } else {
             editorialBody
@@ -149,9 +149,9 @@ struct ProjectChartView: View {
     private static let maxDistinctSeries = YieldChartColors.slots.count
     private static let otherSeriesId = -1
 
-    private func systemSeries(from projects: [ProjectRef]) -> [WeeklyColumnChart.Series] {
+    private func systemSeries(from projects: [ProjectRef]) -> [WeeklyAreaChart.Series] {
         var out = projects.prefix(Self.maxDistinctSeries).enumerated().map { i, p in
-            WeeklyColumnChart.Series(id: p.id, name: p.name, color: YieldChartColors.slots[i])
+            WeeklyAreaChart.Series(id: p.id, name: p.name, color: YieldChartColors.slots[i])
         }
         if projects.count > Self.maxDistinctSeries {
             out.append(.init(id: Self.otherSeriesId, name: "Other", color: YieldChartColors.other))
@@ -176,7 +176,7 @@ struct ProjectChartView: View {
 
     /// Isolation against the System series list (which may include the
     /// folded "Other" id).
-    private func systemActiveIsolation(series: [WeeklyColumnChart.Series]) -> Int? {
+    private func systemActiveIsolation(series: [WeeklyAreaChart.Series]) -> Int? {
         guard let id = isolatedProjectId, series.contains(where: { $0.id == id }) else { return nil }
         return id
     }
@@ -196,7 +196,7 @@ struct ProjectChartView: View {
 
             VStack(alignment: .leading, spacing: 14) {
                 ZStack(alignment: .topTrailing) {
-                    WeeklyColumnChart(
+                    WeeklyAreaChart(
                         points: visible,
                         allPoints: all,
                         series: series,
@@ -234,14 +234,14 @@ struct ProjectChartView: View {
     @MainActor
     private func exportSystemChartAsPNG(
         allPoints: [TimeComparisonViewModel.ChartPoint],
-        series: [WeeklyColumnChart.Series],
+        series: [WeeklyAreaChart.Series],
         days: [String]
     ) {
         let view = VStack(alignment: .leading, spacing: 16) {
             Text(viewModel.weekLabel)
                 .font(YieldFonts.title(16))
                 .foregroundStyle(YieldColors.textPrimary)
-            WeeklyColumnChart(points: allPoints, allPoints: allPoints, series: series,
+            WeeklyAreaChart(points: allPoints, allPoints: allPoints, series: series,
                               days: days, dailyTarget: dailyHoursTarget, interactive: false)
                 .frame(width: 560)
             WeeklyChartLegend(series: series, isolatedId: nil) { _ in }
