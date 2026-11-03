@@ -23,11 +23,11 @@ struct IdleAlertView: View {
                     .foregroundStyle(YieldColors.yellowAccent)
 
                 Text("Idle for \(label)")
-                    .font(YieldFonts.dmSans(16, weight: .semibold))
+                    .font(YieldFonts.label(16, weight: .semibold))
                     .foregroundStyle(YieldColors.textPrimary)
 
                 Text("You've been idle while tracking **\(alert.projectName)**.")
-                    .font(YieldFonts.dmSans(11))
+                    .font(YieldFonts.label(11))
                     .foregroundStyle(YieldColors.textSecondary)
                     .multilineTextAlignment(.center)
             }
@@ -158,11 +158,11 @@ private struct IdleActionButtonView: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
-                        .font(YieldFonts.dmSans(12, weight: .semibold))
+                        .font(YieldFonts.label(12, weight: .semibold))
                         .foregroundStyle(isSecondary ? YieldColors.textSecondary : YieldColors.textPrimary)
 
                     Text(subtitle)
-                        .font(YieldFonts.dmSans(10))
+                        .font(YieldFonts.label(10))
                         .foregroundStyle(YieldColors.textSecondary)
                 }
 

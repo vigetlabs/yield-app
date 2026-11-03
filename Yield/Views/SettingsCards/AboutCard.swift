@@ -14,7 +14,7 @@ struct AboutCard: View {
                     .foregroundStyle(YieldColors.textSecondary)
                     .frame(width: 16)
                 Text("Version")
-                    .font(YieldFonts.dmSans(11))
+                    .font(YieldFonts.label(11))
                     .foregroundStyle(YieldColors.textSecondary)
                 Text(appVersion)
                     .font(YieldFonts.monoXS)
@@ -34,7 +34,7 @@ struct AboutCard: View {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.system(size: 9, weight: .semibold))
                         Text("Check for Updates")
-                            .font(YieldFonts.dmSans(10, weight: .semibold))
+                            .font(YieldFonts.label(10, weight: .semibold))
                     }
                 }
                 .buttonStyle(.greenOutlined)
@@ -57,7 +57,7 @@ struct AboutCard: View {
                         .foregroundStyle(YieldColors.textSecondary)
                         .frame(width: 16)
                     Text("Reveal Logs in Finder")
-                        .font(YieldFonts.dmSans(11))
+                        .font(YieldFonts.label(11))
                         .foregroundStyle(YieldColors.textPrimary)
                     Spacer()
                     Image(systemName: "chevron.right")

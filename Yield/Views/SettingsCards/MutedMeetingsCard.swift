@@ -22,7 +22,7 @@ struct MutedMeetingsCard: View {
 
                 if muted.isEmpty {
                     Text("No muted meetings. Mute one from a meeting prompt's \u{201C}Don't prompt for meetings like this.\u{201D}")
-                        .font(YieldFonts.dmSans(11))
+                        .font(YieldFonts.label(11))
                         .foregroundStyle(YieldColors.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 12)
@@ -60,7 +60,7 @@ struct MutedMeetingsCard: View {
                 .frame(width: 16)
 
             Text(entry.title)
-                .font(YieldFonts.dmSans(11, weight: .medium))
+                .font(YieldFonts.label(11, weight: .medium))
                 .foregroundStyle(YieldColors.textPrimary)
                 .lineLimit(1)
                 .truncationMode(.tail)

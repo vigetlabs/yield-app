@@ -43,7 +43,7 @@ struct MeetingPromptBarView: View {
                             .lineLimit(1)
                             .truncationMode(.tail)
                         Text(statusLine(now: now))
-                            .font(YieldFonts.dmSans(10))
+                            .font(YieldFonts.label(10))
                             .foregroundStyle(YieldColors.textSecondary)
                             .lineLimit(1)
                     }
@@ -83,7 +83,7 @@ struct MeetingPromptBarView: View {
                     }
                 } label: {
                     Text("Don't prompt for meetings like this")
-                        .font(YieldFonts.dmSans(10))
+                        .font(YieldFonts.label(10))
                         .foregroundStyle(YieldColors.textSecondary)
                         .underline()
                 }

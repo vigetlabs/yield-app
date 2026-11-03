@@ -45,6 +45,13 @@ struct PreferencesCard: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
 
+            // Theme (Editorial / System)
+            themeRow
+
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+
             // Menu bar display
             menuBarDisplayRow
 
@@ -71,7 +78,7 @@ struct PreferencesCard: View {
                     .frame(width: 16)
 
                 Text("Idle detection after")
-                    .font(YieldFonts.dmSans(11))
+                    .font(YieldFonts.label(11))
                     .foregroundStyle(idleDetectionEnabled ? YieldColors.textPrimary : YieldColors.textSecondary)
 
                 TextField("", value: $idleMinutes, format: .number)
@@ -91,7 +98,7 @@ struct PreferencesCard: View {
                     }
 
                 Text("min")
-                    .font(YieldFonts.dmSans(10))
+                    .font(YieldFonts.label(10))
                     .foregroundStyle(YieldColors.textSecondary)
 
                 Spacer()
@@ -128,7 +135,7 @@ struct PreferencesCard: View {
                         .font(.system(size: 10))
                         .foregroundStyle(YieldColors.yellowAccent)
                     Text("Notifications are off — over-budget alerts won't fire.")
-                        .font(YieldFonts.dmSans(10))
+                        .font(YieldFonts.label(10))
                         .foregroundStyle(YieldColors.textSecondary)
                         .lineLimit(2)
                     Spacer(minLength: 4)
@@ -136,7 +143,7 @@ struct PreferencesCard: View {
                         NotificationPermission.shared.openSystemSettings()
                     }
                     .buttonStyle(.yieldBordered)
-                    .font(YieldFonts.dmSans(10, weight: .medium))
+                    .font(YieldFonts.label(10, weight: .medium))
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -161,6 +168,19 @@ struct PreferencesCard: View {
             selectedRawValue: appearanceMode,
             title: { $0.label }
         ) { appearanceMode = $0 }
+    }
+
+    /// Reads `ThemeStore.shared.theme` directly rather than through
+    /// `@AppStorage`: the store is the one place the choice is written
+    /// so persistence and the live `@Observable` value can't drift.
+    private var themeRow: some View {
+        enumPickerRow(
+            icon: "textformat",
+            label: "Theme",
+            cases: YieldTheme.allCases,
+            selectedRawValue: ThemeStore.shared.theme.rawValue,
+            title: { $0.label }
+        ) { ThemeStore.shared.select(YieldTheme(rawValue: $0) ?? .default) }
     }
 
     private var menuBarDisplayRow: some View {
@@ -197,7 +217,7 @@ struct PreferencesCard: View {
                 .foregroundStyle(YieldColors.textSecondary)
                 .frame(width: 16)
             Text(label)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textPrimary)
             Spacer()
             DropdownPicker(
@@ -231,7 +251,7 @@ struct PreferencesCard: View {
                 .frame(width: 16)
 
             Text(label)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textPrimary)
 
             Spacer()
@@ -252,7 +272,7 @@ struct PreferencesCard: View {
                 }
 
             Text("hr")
-                .font(YieldFonts.dmSans(10))
+                .font(YieldFonts.label(10))
                 .foregroundStyle(YieldColors.textSecondary)
         }
         .padding(.horizontal, 12)
@@ -266,7 +286,7 @@ struct PreferencesCard: View {
                 .foregroundStyle(YieldColors.textSecondary)
                 .frame(width: 16)
             Text(label)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textPrimary)
             Spacer()
             Toggle("", isOn: isOn)

@@ -45,6 +45,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
             DefaultsKey.idleMinutes: 10,
             DefaultsKey.menuBarLabelMode: MenuBarLabelMode.projectTime.rawValue,
             DefaultsKey.appearanceMode: AppearanceMode.default.rawValue,
+            DefaultsKey.uiTheme: YieldTheme.default.rawValue,
             DefaultsKey.timerChangeHUDEnabled: true,
             DefaultsKey.weeklyHoursTarget: 40,
         ])

@@ -40,7 +40,7 @@ struct ForecastNotesIcon: View {
 
     private var tooltipText: some View {
         Text(notes)
-            .font(YieldFonts.dmSans(13))
+            .font(YieldFonts.label(13))
             .foregroundStyle(YieldColors.textPrimary)
             .lineLimit(nil)
             .lineSpacing(4)

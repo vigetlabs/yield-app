@@ -24,7 +24,7 @@ struct FavoritesCard: View {
                         .controlSize(.small)
                         .tint(YieldColors.textSecondary)
                     Text("Loading…")
-                        .font(YieldFonts.dmSans(11))
+                        .font(YieldFonts.label(11))
                         .foregroundStyle(YieldColors.textSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -32,7 +32,7 @@ struct FavoritesCard: View {
                 .padding(.vertical, 10)
             } else if favorites.isEmpty {
                 Text("No favorites yet. Add one from the new/edit timer screen.")
-                    .font(YieldFonts.dmSans(11))
+                    .font(YieldFonts.label(11))
                     .foregroundStyle(YieldColors.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
@@ -75,12 +75,12 @@ struct FavoritesCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(ProjectStatus.qualifiedName(client: fav.clientName, project: fav.displayName))
-                    .font(YieldFonts.dmSans(11, weight: .medium))
+                    .font(YieldFonts.label(11, weight: .medium))
                     .foregroundStyle(YieldColors.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Text(fav.taskName)
-                    .font(YieldFonts.dmSans(10))
+                    .font(YieldFonts.label(10))
                     .foregroundStyle(YieldColors.textSecondary)
                     .lineLimit(1)
                     .truncationMode(.tail)

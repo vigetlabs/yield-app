@@ -760,8 +760,8 @@ struct NewTimerFormView: View {
     /// bottom in a smaller secondary-color font. The task line is
     /// indented past the star so it aligns with the project text.
     private static func favoriteMenuItemTitle(for fav: ResolvedFavorite) -> NSAttributedString {
-        let titleFont = NSFont(name: "Newsreader-Regular", size: 12) ?? NSFont.systemFont(ofSize: 12)
-        let subtitleFont = NSFont(name: "DMSans-Regular", size: 10) ?? NSFont.systemFont(ofSize: 10)
+        let titleFont = YieldFonts.nsTitle(12)
+        let subtitleFont = YieldFonts.nsLabel(10)
         let result = NSMutableAttributedString()
 
         // Star icon (text attachment so the line height stays tight).
@@ -1107,7 +1107,7 @@ struct NewTimerFormView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(YieldStatusColors.warning)
             Text("You're booked on \(projectName) in Forecast but aren't a member of it in Harvest, so it can't be selected here. Ask a project admin to add you in Harvest, then try again.")
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -1129,7 +1129,7 @@ struct NewTimerFormView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(YieldColors.textSecondary)
             Text("From \(move.sourceProjectName) / \(move.sourceTaskName) — \(h):\(String(format: "%02d", m)) on the timer")
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textSecondary)
                 .lineLimit(1)
         }
@@ -1155,7 +1155,7 @@ struct NewTimerFormView: View {
                 .foregroundStyle(isMoveSelfTarget ? YieldColors.yellowAccent : YieldColors.textSecondary)
                 .padding(.top, 1)
             Text(message)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -1189,7 +1189,7 @@ struct NewTimerFormView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(YieldColors.yellowAccent)
                 Text(message)
-                    .font(YieldFonts.dmSans(11))
+                    .font(YieldFonts.label(11))
                     .foregroundStyle(YieldColors.textPrimary)
                     .lineLimit(2)
             }
@@ -1296,7 +1296,7 @@ private struct TimeInputView: View {
 
     var body: some View {
         TextField("0:00", text: $text)
-            .font(YieldFonts.jetBrainsMono(16, weight: .medium))
+            .font(YieldFonts.mono(16, weight: .medium))
             .foregroundStyle(YieldColors.textPrimary)
             .textFieldStyle(.plain)
             .multilineTextAlignment(.center)

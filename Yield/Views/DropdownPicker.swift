@@ -145,7 +145,7 @@ private struct NativePopUpButton: NSViewRepresentable {
         let popup = NSPopUpButton(frame: .zero, pullsDown: isPullDown)
         popup.bezelStyle = .inline
         popup.isBordered = false
-        popup.font = NSFont(name: "Newsreader-Regular", size: 12) ?? NSFont.systemFont(ofSize: 12)
+        popup.font = YieldFonts.nsTitle(12)
         popup.target = context.coordinator
         popup.action = #selector(Coordinator.itemSelected(_:))
         popup.translatesAutoresizingMaskIntoConstraints = false
@@ -180,6 +180,9 @@ private struct NativePopUpButton: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {
         guard let popup = context.coordinator.popup else { return }
         context.coordinator.onSelect = onSelect
+        // Fonts are themed; a theme change re-runs update, so re-apply
+        // here rather than only at creation.
+        popup.font = YieldFonts.nsTitle(12)
 
         popup.removeAllItems()
         popup.isEnabled = !isDisabled
@@ -189,8 +192,8 @@ private struct NativePopUpButton: NSViewRepresentable {
         // become selectable.
         popup.menu?.autoenablesItems = false
 
-        let menuFont = NSFont(name: "Newsreader-Regular", size: 12) ?? NSFont.systemFont(ofSize: 12)
-        let headerFont = NSFont(name: "DMSans-SemiBold", size: 10) ?? NSFont.boldSystemFont(ofSize: 10)
+        let menuFont = YieldFonts.nsTitle(12)
+        let headerFont = YieldFonts.nsLabel(10, weight: .semibold)
 
         // Add placeholder
         popup.addItem(withTitle: placeholder)

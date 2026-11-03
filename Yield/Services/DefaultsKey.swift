@@ -11,6 +11,9 @@ import Foundation
 enum DefaultsKey {
     // MARK: - Preferences (Settings panel)
     static let appearanceMode = "appearanceMode"
+    /// Selected `YieldTheme` raw value. Read by `ThemeStore` at launch;
+    /// `AppearanceMode` (light/dark) is a separate axis.
+    static let uiTheme = "uiTheme"
     static let menuBarLabelMode = "menuBarLabelMode"
     static let idleDetectionEnabled = "idleDetectionEnabled"
     static let idleMinutes = "idleMinutes"

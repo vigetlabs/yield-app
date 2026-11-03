@@ -100,7 +100,7 @@ struct CalendarEventPickerView: View {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 9, weight: .semibold))
                     Text("Back")
-                        .font(YieldFonts.dmSans(11, weight: .medium))
+                        .font(YieldFonts.label(11, weight: .medium))
                 }
                 .foregroundStyle(YieldColors.textPrimary)
             }
@@ -109,7 +109,7 @@ struct CalendarEventPickerView: View {
             Spacer()
 
             Text("Today's events")
-                .font(YieldFonts.dmSans(13, weight: .semibold))
+                .font(YieldFonts.label(13, weight: .semibold))
                 .foregroundStyle(YieldColors.textPrimary)
 
             Spacer()
@@ -119,7 +119,7 @@ struct CalendarEventPickerView: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 9, weight: .semibold))
                 Text("Back")
-                    .font(YieldFonts.dmSans(11, weight: .medium))
+                    .font(YieldFonts.label(11, weight: .medium))
             }
             .hidden()
         }
@@ -139,7 +139,7 @@ struct CalendarEventPickerView: View {
             ProgressView()
                 .controlSize(.small)
             Text("Loading today's events…")
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .center)
@@ -153,7 +153,7 @@ struct CalendarEventPickerView: View {
                 .font(.system(size: 22, weight: .light))
                 .foregroundStyle(YieldColors.textSecondary)
             Text("No events on your calendar today.")
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textSecondary)
             // Just "Back" — where it lands depends on where the picker
             // was opened from (main view via the header shortcut, or
@@ -162,7 +162,7 @@ struct CalendarEventPickerView: View {
             Button("Back", action: onCancel)
                 .buttonStyle(.plain)
                 .foregroundStyle(YieldColors.greenAccent)
-                .font(YieldFonts.dmSans(11, weight: .medium))
+                .font(YieldFonts.label(11, weight: .medium))
         }
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.vertical, 28)
@@ -176,7 +176,7 @@ struct CalendarEventPickerView: View {
                 .font(.system(size: 22, weight: .light))
                 .foregroundStyle(.red.opacity(0.8))
             Text(message)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textSecondary)
                 .multilineTextAlignment(.center)
             Button("Try again") {
@@ -184,7 +184,7 @@ struct CalendarEventPickerView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(YieldColors.greenAccent)
-            .font(YieldFonts.dmSans(11, weight: .medium))
+            .font(YieldFonts.label(11, weight: .medium))
         }
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.vertical, 28)

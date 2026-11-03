@@ -322,7 +322,7 @@ struct MenuBarContentView: View {
                 ? "No projects found for this day."
                 : "No projects found for this week.")
                 .foregroundStyle(YieldColors.textSecondary)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .padding(16)
         } else {
             ForEach(statuses) { project in
@@ -462,7 +462,7 @@ struct MenuBarContentView: View {
             .padding(24)
         } else if let err = viewModel.otherWeekError {
             Text(err)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .foregroundStyle(.red)
                 .padding(16)
         } else if viewModel.displayedFilteredStatuses.isEmpty {
@@ -470,7 +470,7 @@ struct MenuBarContentView: View {
                 ? "Nothing booked for this week yet."
                 : "No projects found for this week.")
                 .foregroundStyle(YieldColors.textSecondary)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
                 .padding(16)
         } else {
             let weekStart = viewModel.weekSnapshots[viewModel.weekOffset]?.weekStart
@@ -502,7 +502,7 @@ struct MenuBarContentView: View {
             Text("Sign in to connect your Harvest and Forecast accounts.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(YieldColors.textSecondary)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
             Button("Sign in with Harvest") {
                 AppState.shared.oAuthService.startOAuthFlow()
             }
@@ -517,7 +517,7 @@ struct MenuBarContentView: View {
             ProgressView()
             Text("Loading...")
                 .foregroundStyle(YieldColors.textSecondary)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
@@ -541,7 +541,7 @@ struct MenuBarContentView: View {
                 Text(message)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(YieldColors.textSecondary)
-                    .font(YieldFonts.dmSans(11))
+                    .font(YieldFonts.label(11))
             }
         }
         .frame(maxWidth: .infinity)
@@ -677,7 +677,7 @@ struct ServiceErrorRow: View {
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: compact ? 8 : 9))
                             }
-                            .font(YieldFonts.dmSans(compact ? 10 : 11, weight: .medium))
+                            .font(YieldFonts.label(compact ? 10 : 11, weight: .medium))
                             .foregroundStyle(YieldColors.greenAccent)
                         }
                         .buttonStyle(.plain)
@@ -698,7 +698,7 @@ struct ServiceErrorRow: View {
     @ViewBuilder
     private func primaryText(_ s: String) -> some View {
         Text(s)
-            .font(YieldFonts.dmSans(compact ? 10 : 11))
+            .font(YieldFonts.label(compact ? 10 : 11))
             .foregroundStyle(YieldColors.textSecondary)
             .multilineTextAlignment(compact ? .leading : .center)
     }
@@ -706,7 +706,7 @@ struct ServiceErrorRow: View {
     @ViewBuilder
     private func secondaryText(_ s: String) -> some View {
         Text(s)
-            .font(YieldFonts.dmSans(compact ? 9 : 10))
+            .font(YieldFonts.label(compact ? 9 : 10))
             .foregroundStyle(YieldColors.textSecondary.opacity(0.7))
             .multilineTextAlignment(compact ? .leading : .center)
     }

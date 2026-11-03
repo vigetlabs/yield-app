@@ -215,7 +215,7 @@ struct ProjectChartView: View {
                        let idx = Int(exactly: d.rounded()),
                        idx >= 0, idx < days.count {
                         Text(days[idx])
-                            .font(YieldFonts.dmSans(9, weight: .medium))
+                            .font(YieldFonts.label(9, weight: .medium))
                             .foregroundStyle(YieldColors.textSecondary)
                     }
                 }
@@ -228,7 +228,7 @@ struct ProjectChartView: View {
                 AxisValueLabel {
                     if let h = value.as(Double.self) {
                         Text(formatHours(h))
-                            .font(YieldFonts.jetBrainsMono(9))
+                            .font(YieldFonts.mono(9))
                             .foregroundStyle(YieldColors.textSecondary)
                     }
                 }
@@ -241,7 +241,7 @@ struct ProjectChartView: View {
             AxisMarks(position: .trailing, values: [dailyHoursTarget]) { _ in
                 AxisValueLabel {
                     Text(formatHours(dailyHoursTarget))
-                        .font(YieldFonts.dmSans(9, weight: .medium))
+                        .font(YieldFonts.label(9, weight: .medium))
                         .foregroundStyle(YieldColors.textSecondary)
                 }
             }
@@ -272,7 +272,7 @@ struct ProjectChartView: View {
                             .fill(color(for: project.id, in: projects))
                             .frame(width: 7, height: 7)
                         Text(project.name)
-                            .font(YieldFonts.dmSans(10))
+                            .font(YieldFonts.label(10))
                             .foregroundStyle(YieldColors.textPrimary)
                             .lineLimit(1)
                         Spacer(minLength: 0)
@@ -292,7 +292,7 @@ struct ProjectChartView: View {
                 .foregroundStyle(YieldColors.textSecondary)
             Text("No time logged this week yet.")
                 .foregroundStyle(YieldColors.textSecondary)
-                .font(YieldFonts.dmSans(11))
+                .font(YieldFonts.label(11))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
@@ -323,7 +323,7 @@ struct ProjectChartView: View {
         return VStack(alignment: .leading, spacing: 16) {
             // Week title
             Text(viewModel.weekLabel)
-                .font(YieldFonts.newsreader(16))
+                .font(YieldFonts.title(16))
                 .foregroundStyle(YieldColors.textPrimary)
 
             // Chart

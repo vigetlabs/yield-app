@@ -23,7 +23,7 @@ struct WeekDayBarView: View {
                 let cell = VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 3) {
                         Text(day.dayLabel)
-                            .font(YieldFonts.dmSans(9, weight: (day.isToday || isFiltered) ? .semibold : .medium))
+                            .font(YieldFonts.label(9, weight: (day.isToday || isFiltered) ? .semibold : .medium))
                             .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
                         if day.isLocked {
                             Image(systemName: "lock.fill")
@@ -35,7 +35,7 @@ struct WeekDayBarView: View {
 
                     HStack(spacing: 2) {
                         Text(formatDayHours(displayHours))
-                            .font(YieldFonts.jetBrainsMono(10, weight: (day.isToday || isFiltered) ? .medium : .regular))
+                            .font(YieldFonts.mono(10, weight: (day.isToday || isFiltered) ? .medium : .regular))
                             .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
 
                         if day.isToday && isCurrent && isAnyTracking {
@@ -72,11 +72,11 @@ struct WeekDayBarView: View {
             // Week total — doubles as "clear filter" when a day is filtered.
             let totalCell = VStack(alignment: .trailing, spacing: 4) {
                 Text("Week")
-                    .font(YieldFonts.dmSans(9, weight: .semibold))
+                    .font(YieldFonts.label(9, weight: .semibold))
                     .foregroundStyle(YieldColors.textSecondary)
 
                 Text(formatDayHours(weekTotal))
-                    .font(YieldFonts.jetBrainsMono(10, weight: .medium))
+                    .font(YieldFonts.mono(10, weight: .medium))
                     .foregroundStyle(YieldColors.textPrimary)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)

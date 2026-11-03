@@ -22,7 +22,7 @@ struct AccountCard: View {
                         Circle()
                             .fill(YieldColors.greenAccent.opacity(0.15))
                         Text(initials)
-                            .font(YieldFonts.dmSans(11, weight: .semibold))
+                            .font(YieldFonts.label(11, weight: .semibold))
                             .foregroundStyle(YieldColors.greenAccent)
                     }
                     .frame(width: 32, height: 32)
@@ -30,7 +30,7 @@ struct AccountCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         if let name = oAuthService.userName {
                             Text(name)
-                                .font(YieldFonts.dmSans(12, weight: .semibold))
+                                .font(YieldFonts.label(12, weight: .semibold))
                                 .foregroundStyle(YieldColors.textPrimary)
                         }
                         HStack(spacing: 6) {
@@ -86,7 +86,7 @@ struct AccountCard: View {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
                                 .font(.system(size: 10))
                             Text("Sign Out")
-                                .font(YieldFonts.dmSans(11, weight: .medium))
+                                .font(YieldFonts.label(11, weight: .medium))
                             Spacer()
                         }
                         .foregroundStyle(.red.opacity(0.8))
@@ -99,7 +99,7 @@ struct AccountCard: View {
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Connect your Harvest account to compare logged hours against Forecast bookings.")
-                        .font(YieldFonts.dmSans(11))
+                        .font(YieldFonts.label(11))
                         .foregroundStyle(YieldColors.textSecondary)
                         .lineSpacing(2)
 
@@ -115,7 +115,7 @@ struct AccountCard: View {
                                     .font(.system(size: 11))
                             }
                             Text("Sign in with Harvest")
-                                .font(YieldFonts.dmSans(11, weight: .semibold))
+                                .font(YieldFonts.label(11, weight: .semibold))
                         }
                     }
                     .buttonStyle(.greenOutlined)
@@ -123,7 +123,7 @@ struct AccountCard: View {
 
                     if let error = oAuthService.authError {
                         Text(error)
-                            .font(YieldFonts.dmSans(10))
+                            .font(YieldFonts.label(10))
                             .foregroundStyle(.red)
                     }
                 }
@@ -144,7 +144,7 @@ struct AccountCard: View {
 
     private func accountBadge(_ text: String) -> some View {
         Text(text)
-            .font(YieldFonts.dmSans(8, weight: .medium))
+            .font(YieldFonts.label(8, weight: .medium))
             .foregroundStyle(YieldColors.textSecondary)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)

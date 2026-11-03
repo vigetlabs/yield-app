@@ -15,7 +15,7 @@ struct SettingsCardSectionHeader: View {
     var body: some View {
         HStack(spacing: 4) {
             Text(title.uppercased())
-                .font(YieldFonts.dmSans(9, weight: .semibold))
+                .font(YieldFonts.label(9, weight: .semibold))
                 .foregroundStyle(YieldColors.textSecondary)
                 .tracking(0.5)
             if let info {

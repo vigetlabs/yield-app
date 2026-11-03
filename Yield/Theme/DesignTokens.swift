@@ -99,72 +99,66 @@ enum YieldColors {
 
 // MARK: - Fonts
 
+/// Every font resolves through the active theme (`YieldTheme`). Call
+/// sites name a *role* — title, label, mono — never a family, so a
+/// theme can swap families and sizes without touching a view. These
+/// are `static var`s reading an `@Observable` store, which is what
+/// makes a theme change re-render every view that uses one.
 enum YieldFonts {
-    // Newsreader — titles, dates, project names
-    static func newsreader(_ size: CGFloat) -> Font {
-        .custom("Newsreader-Regular", size: size)
+    private static var theme: YieldTheme { ThemeStore.shared.theme }
+
+    /// Titles — week dates, project names, task names, form fields.
+    static func title(_ size: CGFloat) -> Font { theme.title(size) }
+    static func titleItalic(_ size: CGFloat) -> Font { theme.titleItalic(size) }
+
+    /// Labels — client names, descriptions, buttons, settings rows.
+    static func label(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        theme.label(size, weight: weight)
+    }
+    static func labelItalic(_ size: CGFloat) -> Font { theme.labelItalic(size) }
+
+    /// Numbers — times, totals, the timer display.
+    static func mono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        theme.mono(size, weight: weight)
     }
 
-    static func newsreaderItalic(_ size: CGFloat) -> Font {
-        .custom("Newsreader-Italic", size: size)
-    }
-
-    // DM Sans — labels, descriptions
-    static func dmSans(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        switch weight {
-        case .medium:
-            return .custom("DMSans-Medium", size: size)
-        case .semibold:
-            return .custom("DMSans-SemiBold", size: size)
-        default:
-            return .custom("DMSans-Regular", size: size)
-        }
-    }
-
-    static func dmSansItalic(_ size: CGFloat) -> Font {
-        .custom("DMSans-Italic", size: size)
-    }
-
-    // JetBrains Mono — times, numbers
-    static func jetBrainsMono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        switch weight {
-        case .medium:
-            return .custom("JetBrainsMono-Medium", size: size)
-        default:
-            return .custom("JetBrainsMono-Regular", size: size)
-        }
+    /// AppKit equivalents for the NSPopUpButton / NSAttributedString
+    /// sites that can't take a SwiftUI `Font`.
+    static func nsTitle(_ size: CGFloat) -> NSFont { theme.nsTitle(size) }
+    static func nsLabel(_ size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
+        theme.nsLabel(size, weight: weight)
     }
 }
 
 // MARK: - Typography Presets
 
 extension YieldFonts {
-    /// 14px Newsreader — week dates, project names
-    static let titleMedium = newsreader(14)
+    /// Week dates, project names.
+    static var titleMedium: Font { theme.titleMedium }
 
-    /// 12px Newsreader — task names, form fields
-    static let titleSmall = newsreader(12)
+    /// Task names, form fields.
+    static var titleSmall: Font { theme.titleSmall }
 
-    /// 9px DM Sans Medium uppercase — client names, field labels
-    static let labelProject = dmSans(9, weight: .medium)
+    /// Uppercase client names, field labels.
+    static var labelProject: Font { theme.labelProject }
 
-    /// 9px DM Sans — remaining time labels
-    static let labelTimeRemaining = dmSans(9)
+    /// Remaining time labels.
+    static var labelTimeRemaining: Font { theme.labelTimeRemaining }
 
-    /// 9px DM Sans Italic — notes, descriptions
-    static let labelNote = dmSansItalic(9)
+    /// Notes, descriptions.
+    static var labelNote: Font { theme.labelNote }
 
-    /// 10px DM Sans SemiBold — button labels
-    static let labelButton = dmSans(10, weight: .semibold)
+    /// Button labels.
+    static var labelButton: Font { theme.labelButton }
 
-    /// 11px JetBrains Mono — project time totals
-    static let monoSmall = jetBrainsMono(11)
+    /// Project time totals.
+    static var monoSmall: Font { theme.monoSmall }
 
-    /// 10px JetBrains Mono — task time values
-    static let monoXS = jetBrainsMono(10)
+    /// Task time values.
+    static var monoXS: Font { theme.monoXS }
 
-    /// 12px JetBrains Mono Medium — timer display
-    static let monoMedium = jetBrainsMono(12, weight: .medium)
+    /// Timer display.
+    static var monoMedium: Font { theme.monoMedium }
 }
 
 // MARK: - Corner Radii
@@ -198,11 +192,13 @@ enum YieldStatusColors {
 }
 
 enum YieldRadius {
-    static let panel: CGFloat = 14
-    static let card: CGFloat = 8
-    static let button: CGFloat = 4
-    static let dropdown: CGFloat = 6
-    static let progressBar: CGFloat = 4
+    private static var theme: YieldTheme { ThemeStore.shared.theme }
+
+    static var panel: CGFloat { theme.panelRadius }
+    static var card: CGFloat { theme.cardRadius }
+    static var button: CGFloat { theme.buttonRadius }
+    static var dropdown: CGFloat { theme.dropdownRadius }
+    static var progressBar: CGFloat { theme.progressBarRadius }
 }
 
 // MARK: - Dimensions
@@ -212,20 +208,22 @@ enum YieldDimensions {
     static let progressBarWidth: CGFloat = 104
     static let progressBarHeight: CGFloat = 4
     static let timerButtonSize: CGFloat = 24
+    private static var theme: YieldTheme { ThemeStore.shared.theme }
+
     /// Standard control height for inline form inputs — pickers,
-    /// favorite-list buttons. Matches the dropdown's intrinsic 32pt
-    /// hit target.
-    static let controlHeight: CGFloat = 32
+    /// favorite-list buttons. Matches the dropdown's intrinsic hit
+    /// target. Themed: larger type needs a taller control.
+    static var controlHeight: CGFloat { theme.controlHeight }
     /// Notes field + time-input field tracked together so they read
     /// as a paired row in the new/edit timer form.
-    static let inputFieldHeight: CGFloat = 52
+    static var inputFieldHeight: CGFloat { theme.inputFieldHeight }
     /// Settings row dropdown width — same value used for every
     /// `enumPickerRow` so all rows align.
     static let settingsRowControlWidth: CGFloat = 160
     /// Project row heights — taller when the row carries a progress
     /// bar (forecasted), shorter when it doesn't.
-    static let projectRowForecastedHeight: CGFloat = 74
-    static let projectRowDefaultHeight: CGFloat = 56
+    static var projectRowForecastedHeight: CGFloat { theme.projectRowForecastedHeight }
+    static var projectRowDefaultHeight: CGFloat { theme.projectRowDefaultHeight }
 }
 
 // MARK: - View modifiers

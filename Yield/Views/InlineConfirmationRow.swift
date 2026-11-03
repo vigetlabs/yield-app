@@ -28,7 +28,7 @@ struct InlineConfirmationRow: View {
         HStack(spacing: 8) {
             if let message {
                 Text(message)
-                    .font(YieldFonts.dmSans(11))
+                    .font(YieldFonts.label(11))
                     .foregroundStyle(YieldColors.textSecondary)
             }
 

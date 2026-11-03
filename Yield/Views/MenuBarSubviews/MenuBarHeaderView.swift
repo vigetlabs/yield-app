@@ -147,8 +147,8 @@ struct MenuBarHeaderView: View {
         case .recent, .forecasted:
             Text(tab == .recent ? "All" : "Booked")
                 .font(isSelected
-                    ? YieldFonts.dmSans(10, weight: .semibold)
-                    : YieldFonts.dmSans(10, weight: .medium))
+                    ? YieldFonts.label(10, weight: .semibold)
+                    : YieldFonts.label(10, weight: .medium))
                 .foregroundStyle(isSelected
                     ? YieldColors.textPrimary
                     : YieldColors.textSecondary)

@@ -31,7 +31,7 @@ struct SettingsView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 9, weight: .semibold))
                         Text("Back")
-                            .font(YieldFonts.dmSans(11, weight: .medium))
+                            .font(YieldFonts.label(11, weight: .medium))
                     }
                     .foregroundStyle(YieldColors.textPrimary)
                 }
@@ -40,7 +40,7 @@ struct SettingsView: View {
                 Spacer()
 
                 Text("Settings")
-                    .font(YieldFonts.dmSans(13, weight: .semibold))
+                    .font(YieldFonts.label(13, weight: .semibold))
                     .foregroundStyle(YieldColors.textPrimary)
 
                 Spacer()
@@ -50,7 +50,7 @@ struct SettingsView: View {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 9, weight: .semibold))
                     Text("Back")
-                        .font(YieldFonts.dmSans(11, weight: .medium))
+                        .font(YieldFonts.label(11, weight: .medium))
                 }
                 .hidden()
             }

@@ -37,11 +37,11 @@ struct GoogleCalendarCard: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Google Calendar")
-                            .font(YieldFonts.dmSans(12, weight: .semibold))
+                            .font(YieldFonts.label(12, weight: .semibold))
                             .foregroundStyle(YieldColors.textPrimary)
                         if let email = googleAuth.userEmail {
                             Text(email)
-                                .font(YieldFonts.dmSans(11))
+                                .font(YieldFonts.label(11))
                                 .foregroundStyle(YieldColors.textSecondary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
@@ -65,7 +65,7 @@ struct GoogleCalendarCard: View {
                         .foregroundStyle(YieldColors.textSecondary)
                         .frame(width: 16)
                     Text("Meeting timer prompts")
-                        .font(YieldFonts.dmSans(11, weight: .medium))
+                        .font(YieldFonts.label(11, weight: .medium))
                         .foregroundStyle(YieldColors.textPrimary)
                         .help("When a calendar event starts, Yield offers to start a timer for it — including moving the minutes since the event began off the running timer.")
                     Spacer()
@@ -91,7 +91,7 @@ struct GoogleCalendarCard: View {
                         .foregroundStyle(YieldColors.textSecondary)
                         .frame(width: 16)
                     Text("Post-meeting reminders")
-                        .font(YieldFonts.dmSans(11, weight: .medium))
+                        .font(YieldFonts.label(11, weight: .medium))
                         .foregroundStyle(YieldColors.textPrimary)
                         .help("When a timer you started from a calendar event keeps running past the event's end, Yield offers to move the extra time to another timer.")
                     Spacer()
@@ -125,7 +125,7 @@ struct GoogleCalendarCard: View {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
                                 .font(.system(size: 10))
                             Text("Disconnect")
-                                .font(YieldFonts.dmSans(11, weight: .medium))
+                                .font(YieldFonts.label(11, weight: .medium))
                             Spacer()
                         }
                         .foregroundStyle(.red.opacity(0.8))
@@ -138,7 +138,7 @@ struct GoogleCalendarCard: View {
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Pull events from your Google Calendar into time entries — pick an event from today and the duration and title fill the form for you.")
-                        .font(YieldFonts.dmSans(11))
+                        .font(YieldFonts.label(11))
                         .foregroundStyle(YieldColors.textSecondary)
                         .lineSpacing(2)
 
@@ -154,7 +154,7 @@ struct GoogleCalendarCard: View {
                                     .font(.system(size: 11))
                             }
                             Text("Connect Google Calendar")
-                                .font(YieldFonts.dmSans(11, weight: .semibold))
+                                .font(YieldFonts.label(11, weight: .semibold))
                         }
                     }
                     .buttonStyle(.greenOutlined)
@@ -162,7 +162,7 @@ struct GoogleCalendarCard: View {
 
                     if let error = googleAuth.authError {
                         Text(error)
-                            .font(YieldFonts.dmSans(10))
+                            .font(YieldFonts.label(10))
                             .foregroundStyle(.red)
                     }
                 }
