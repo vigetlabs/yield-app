@@ -21,11 +21,7 @@ private func dynamicColor(light: NSColor, dark: NSColor) -> Color {
 /// are drawing with.
 ///
 /// Editorial's values are the app's original ones, unchanged. System's
-/// are a deliberate half-step away for visual distinction: cool slate
-/// surfaces instead of neutral near-black, teal a few degrees cooler
-/// than the mint, amber in place of lemon, and overlay tints that carry
-/// the same cool cast. Every text-bearing color was checked against its
-/// surface at WCAG AA (≥ 4.5:1) in both appearances.
+/// are macOS's semantic colors — see `System` below.
 enum YieldColors {
     private static var theme: YieldTheme { ThemeStore.shared.theme }
 
@@ -109,22 +105,29 @@ enum YieldColors {
         )
     }
 
-    /// The System theme's palette. Shared with Editorial for now — the
-    /// cool/slate direction was tried and rejected; a new direction is
-    /// being chosen from rendered candidates. The plumbing stays so the
-    /// choice is a values-only change.
+    /// The System theme's palette: macOS's own semantic colors, nothing
+    /// custom. `labelColor`, `separatorColor`, `windowBackgroundColor`
+    /// and friends are already appearance-aware and Apple-tuned, and
+    /// the accent is `controlAccentColor` — whatever the user chose in
+    /// System Settings — so the panel reads as a native control rather
+    /// than a themed one. Custom-tinted directions (slate, warm, high-
+    /// contrast) were tried and rejected; this is the opposite move.
     enum System {
-        static let background = Editorial.background
-        static let greenAccent = Editorial.greenAccent
-        static let yellowAccent = Editorial.yellowAccent
-        static let border = Editorial.border
-        static let buttonBorder = Editorial.buttonBorder
-        static let textPrimary = Editorial.textPrimary
-        static let textSecondary = Editorial.textSecondary
-        static let surfaceDefault = Editorial.surfaceDefault
-        static let surfaceActive = Editorial.surfaceActive
-        static let progressTrack = Editorial.progressTrack
-        static let onBackground = Editorial.onBackground
+        static let background = Color(nsColor: .windowBackgroundColor)
+        /// The user's accent color. Carries "on track" and the running
+        /// timer, the way selection and progress do elsewhere on macOS.
+        static let greenAccent = Color(nsColor: .controlAccentColor)
+        /// Paused / warning. Orange rather than system yellow, which is
+        /// too light to read as text on the light surface.
+        static let yellowAccent = Color(nsColor: .systemOrange)
+        static let border = Color(nsColor: .separatorColor)
+        static let buttonBorder = Color(nsColor: .tertiaryLabelColor)
+        static let textPrimary = Color(nsColor: .labelColor)
+        static let textSecondary = Color(nsColor: .secondaryLabelColor)
+        static let surfaceDefault = Color(nsColor: .quinaryLabel)
+        static let surfaceActive = Color(nsColor: .quaternaryLabelColor)
+        static let progressTrack = Color(nsColor: .quaternaryLabelColor)
+        static let onBackground = Color(nsColor: .labelColor)
     }
 }
 
@@ -252,26 +255,39 @@ enum YieldStatusColors {
     private static var theme: YieldTheme { ThemeStore.shared.theme }
 
     static var under: Color { YieldColors.greenAccent }
-    /// Over budget. Shared: the coral reads the same against both
-    /// themes' surfaces (light 4.8:1, dark ≥ 5.5:1).
-    static let over = dynamicColor(
-        light: NSColor(red: 0.757, green: 0.243, blue: 0.055, alpha: 1.0),  // #C13E0E
-        dark:  NSColor(red: 0.941, green: 0.365, blue: 0.157, alpha: 1.0)   // #F05D28
-    )
-    /// Unbooked status line — a 30% overlay; System's carries the slate tint.
+
+    /// Over budget.
+    static var over: Color {
+        theme == .editorial ? Editorial.over : Color(nsColor: .systemRed)
+    }
+    /// Unbooked status line.
     static var unbooked: Color {
-        dynamicColor(light: NSColor.black.withAlphaComponent(0.3), dark: NSColor.white.withAlphaComponent(0.3))
+        theme == .editorial ? Editorial.unbooked : Color(nsColor: .tertiaryLabelColor)
     }
     /// Prospective / proposal-stage Forecast projects — booked but not
-    /// yet linked to a Harvest project. Shared.
-    static let prospective = dynamicColor(
-        light: NSColor(red: 0.722, green: 0.153, blue: 0.435, alpha: 1.0),  // #B8276F
-        dark:  NSColor(red: 0.941, green: 0.365, blue: 0.627, alpha: 1.0)   // #F05DA0
-    )
+    /// yet linked to a Harvest project.
+    static var prospective: Color {
+        theme == .editorial ? Editorial.prospective : Color(nsColor: .systemPink)
+    }
     /// Warning amber — booked in Forecast, not a member in Harvest. The
     /// theme's yellow accent, so it matches the bars and the paused
     /// timer.
     static var warning: Color { YieldColors.yellowAccent }
+
+    enum Editorial {
+        static let over = dynamicColor(
+            light: NSColor(red: 0.757, green: 0.243, blue: 0.055, alpha: 1.0),  // #C13E0E — 4.8:1 on light bg
+            dark:  NSColor(red: 0.941, green: 0.365, blue: 0.157, alpha: 1.0)   // #F05D28 — 5.5:1 on dark bg
+        )
+        static let unbooked = dynamicColor(
+            light: NSColor.black.withAlphaComponent(0.3),
+            dark:  NSColor.white.withAlphaComponent(0.3)
+        )
+        static let prospective = dynamicColor(
+            light: NSColor(red: 0.722, green: 0.153, blue: 0.435, alpha: 1.0),  // #B8276F — 5.4:1 on light bg
+            dark:  NSColor(red: 0.941, green: 0.365, blue: 0.627, alpha: 1.0)   // #F05DA0 — 5.0:1 on dark bg
+        )
+    }
 }
 
 enum YieldRadius {
