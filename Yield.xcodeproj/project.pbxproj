@@ -72,6 +72,7 @@
 		B1E1DB795329B77618CC033D /* ProjectStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA00826B19142EA4BF7E31AE /* ProjectStatusTests.swift */; };
 		B2874BEB76A001702546E05A /* DefaultsKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */; };
 		B8CEC9B2F936AE80B59246C7 /* GoogleCalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFDCB269487724682B778744 /* GoogleCalendarService.swift */; };
+		B9948E5088AAC34D4A9ACBEB /* PanelRedesignMockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E47745DC8EA4331B5FC3F537 /* PanelRedesignMockTests.swift */; };
 		BD87BA8B7958E952013CD215 /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */; };
 		BE34E7E66A7767E71442F74D /* MeetingHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DFB807BB9B7D130BE3831DB /* MeetingHistoryStore.swift */; };
 		C0BFE1EB7FE167CA2FBD34B4 /* NewTimerFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9128BE0471E69DB0E0878DA8 /* NewTimerFormView.swift */; };
@@ -183,6 +184,7 @@
 		DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		DE23809963F31EA6370A8FD9 /* CalendarEventPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventPickerView.swift; sourceTree = "<group>"; };
 		E1350494431A405E6124039A /* TimerMoveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerMoveTests.swift; sourceTree = "<group>"; };
+		E47745DC8EA4331B5FC3F537 /* PanelRedesignMockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelRedesignMockTests.swift; sourceTree = "<group>"; };
 		E5CE6E83B352C722A6F67C56 /* AppLocationCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocationCheck.swift; sourceTree = "<group>"; };
 		E6AE4314E6BA70459850E000 /* Yield.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Yield.entitlements; sourceTree = "<group>"; };
 		EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastService.swift; sourceTree = "<group>"; };
@@ -295,6 +297,7 @@
 				1B3F7C76872263B8A84769C2 /* MeetingHistoryStoreTests.swift */,
 				03E40C87D73A2DEA90E94AAC /* MeetingPromptTests.swift */,
 				C8D171E67D1EF700B24DDAB9 /* OptimisticTimerTests.swift */,
+				E47745DC8EA4331B5FC3F537 /* PanelRedesignMockTests.swift */,
 				59709AF7BC438F32217CB8B1 /* PostMeetingReminderTests.swift */,
 				CA00826B19142EA4BF7E31AE /* ProjectStatusTests.swift */,
 				F0026089ABF0FF282F424F51 /* ProjectTaskHistoryStoreTests.swift */,
@@ -521,6 +524,7 @@
 				6D3714E9FAACD01B8271FB55 /* MeetingHistoryStoreTests.swift in Sources */,
 				6344AEB44E32426364C74255 /* MeetingPromptTests.swift in Sources */,
 				977BD90BD8F50FCFC47E7B4A /* OptimisticTimerTests.swift in Sources */,
+				B9948E5088AAC34D4A9ACBEB /* PanelRedesignMockTests.swift in Sources */,
 				75065C2DE7EA109DF5A04911 /* PostMeetingReminderTests.swift in Sources */,
 				B1E1DB795329B77618CC033D /* ProjectStatusTests.swift in Sources */,
 				66D7F234238C6D5934DEE795 /* ProjectTaskHistoryStoreTests.swift in Sources */,
