@@ -27,6 +27,7 @@
 		428D5AEC2E6086C0999F9F7E /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 863C9FEC97046321A538FDF1 /* DMSans-Regular.ttf */; };
 		42DB3888BEBE6DE88987C012 /* LookAheadRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCB0B20EC3D0FF46A1DA250 /* LookAheadRowView.swift */; };
 		43AA55D2394219B22349EECD /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69E57119CDCF09CB6D6A597 /* NetworkMonitor.swift */; };
+		4455E0FC5E2A11BDC1C91B8F /* WeeklyColumnChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99737E30BD08024F377358F1 /* WeeklyColumnChart.swift */; };
 		4EFA6551C826DEBC64693FE4 /* ProjectGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5CD608D340FA8284978F9D8 /* ProjectGrouping.swift */; };
 		539A827FDCADF80CA5457BFD /* DMSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADF77134916FEC24D941CE0E /* DMSans-Italic.ttf */; };
 		544EDB2F52F27F528712F663 /* IdleAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F394448517841A11132011C /* IdleAlertView.swift */; };
@@ -158,6 +159,7 @@
 		9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
 		94CDCEBAAB1B8D5E04E319D7 /* PreferencesCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesCard.swift; sourceTree = "<group>"; };
 		97071C361541C20FA140647C /* RefreshPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshPipelineTests.swift; sourceTree = "<group>"; };
+		99737E30BD08024F377358F1 /* WeeklyColumnChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyColumnChart.swift; sourceTree = "<group>"; };
 		9A155FA79AC05F13F3C0C6F6 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
 		9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionHelpers.swift; sourceTree = "<group>"; };
 		9F394448517841A11132011C /* IdleAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertView.swift; sourceTree = "<group>"; };
@@ -372,6 +374,7 @@
 				81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */,
 				D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */,
 				3B0E8E50D8DEBFD70A32D925 /* TimerBannerView.swift */,
+				99737E30BD08024F377358F1 /* WeeklyColumnChart.swift */,
 				50676616A330947C855CB51B /* MenuBarSubviews */,
 				4A89D59B99368923B381C8E5 /* SettingsCards */,
 			);
@@ -602,6 +605,7 @@
 				1F625C8CFBDABCD6BBAD3BC1 /* TimeOffRowView.swift in Sources */,
 				1777566CD97D2CB223E29E5D /* TimerBannerView.swift in Sources */,
 				A128C420B393CA51F5510DBC /* WeekDayBarView.swift in Sources */,
+				4455E0FC5E2A11BDC1C91B8F /* WeeklyColumnChart.swift in Sources */,
 				1581C711C6C01278186D9AD1 /* YieldApp.swift in Sources */,
 				7E6180F06F7AE91E39C7261E /* YieldButtonStyles.swift in Sources */,
 				84A8A52C390AEC30CA5A02E8 /* YieldTheme.swift in Sources */,

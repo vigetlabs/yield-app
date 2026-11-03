@@ -87,13 +87,16 @@ final class ThemeTests: XCTestCase {
 @MainActor
 final class ThemeSnapshotTests: XCTestCase {
 
-    /// Renders, in this order: Editorial rows, System rows, then the
-    /// System grouped list. One method, not three, because order is
-    /// load-bearing: rendering the System theme first in a process
-    /// shifts Editorial's text antialiasing by 1/255 on a few hundred
-    /// glyph-edge pixels (measured — same code, same harness, only the
-    /// order differed). Editorial goes first so `rows-editorial-*.png`
-    /// stays a valid pixel-identity check against the pre-fork render.
+    /// Renders, in this order: Editorial rows and chart, System rows,
+    /// the System grouped list, the System chart. One method, not
+    /// several, because order is load-bearing: rendering the System
+    /// theme anywhere earlier in the process shifts Editorial's text
+    /// antialiasing by 1/255 on a few hundred glyph-edge pixels
+    /// (measured — same code, same harness, only the order differed;
+    /// it recurred once already when a separate chart test class
+    /// happened to sort first). Everything Editorial renders before
+    /// anything System does, so `*-editorial-*.png` stay valid
+    /// pixel-identity checks against the pre-fork renders.
     func test_renderThemes() throws {
         guard let dir = ProcessInfo.processInfo.environment["YIELD_SNAPSHOT_DIR"] else {
             throw XCTSkip("Set YIELD_SNAPSHOT_DIR to write theme snapshots")
@@ -106,14 +109,27 @@ final class ThemeSnapshotTests: XCTestCase {
 
         let appearances: [(NSAppearance.Name, ColorScheme, String)] = [(.darkAqua, .dark, "dark"), (.aqua, .light, "light")]
 
-        // 1 + 2: the three sample rows, Editorial first.
-        for theme in [YieldTheme.editorial, .system] {
-            ThemeStore.shared.select(theme)
-            for (appearance, scheme, suffix) in appearances {
-                NSApp.appearance = NSAppearance(named: appearance)
-                try Self.write(Self.sampleList().environment(\.colorScheme, scheme),
-                               to: outDir.appendingPathComponent("rows-\(theme.rawValue)-\(suffix).png"))
-            }
+        let chartVM = Self.makeChartViewModel()
+
+        // 1: everything Editorial — rows, then chart.
+        ThemeStore.shared.select(.editorial)
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.sampleList().environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("rows-editorial-\(suffix).png"))
+        }
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.chart(chartVM).environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("chart-editorial-\(suffix).png"))
+        }
+
+        // 2: System rows.
+        ThemeStore.shared.select(.system)
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.sampleList().environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("rows-system-\(suffix).png"))
         }
 
         // 3: the System list as the panel composes it — section
@@ -135,6 +151,52 @@ final class ThemeSnapshotTests: XCTestCase {
             .environment(\.colorScheme, scheme)
             try Self.write(list, to: outDir.appendingPathComponent("grouped-system-\(suffix).png"))
         }
+
+        // 4: the System chart.
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.chart(chartVM).environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("chart-system-\(suffix).png"))
+        }
+    }
+
+    /// Pixel-identity probes for the Editorial surfaces. Each renders
+    /// exactly one surface and nothing else, because the *first* render
+    /// in a process rasterizes text slightly differently from later ones
+    /// (1/255 on glyph edges, measured) — so a byte comparison against a
+    /// cold-rendered baseline is only valid from a cold render. Run one
+    /// at a time with `-only-testing` and `YIELD_IDENTITY_SURFACE` set
+    /// to `rows` or `chart`; they skip otherwise.
+    func test_identityProbe_editorialRows() throws {
+        try Self.identityProbe(surface: "rows") { Self.sampleList() }
+    }
+
+    func test_identityProbe_editorialChart() throws {
+        let vm = Self.makeChartViewModel()
+        try Self.identityProbe(surface: "chart") { Self.chart(vm) }
+    }
+
+    private static func identityProbe<V: View>(surface: String, _ view: () -> V) throws {
+        let env = ProcessInfo.processInfo.environment
+        guard let dir = env["YIELD_SNAPSHOT_DIR"], env["YIELD_IDENTITY_SURFACE"] == surface else {
+            throw XCTSkip("Set YIELD_SNAPSHOT_DIR and YIELD_IDENTITY_SURFACE=\(surface)")
+        }
+        let outDir = URL(fileURLWithPath: dir, isDirectory: true)
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        let original = ThemeStore.shared.theme
+        defer { ThemeStore.shared.select(original); NSApp.appearance = nil }
+        ThemeStore.shared.select(.editorial)
+        for (appearance, scheme, suffix) in [(NSAppearance.Name.darkAqua, ColorScheme.dark, "dark"), (.aqua, .light, "light")] {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try write(view().environment(\.colorScheme, scheme),
+                      to: outDir.appendingPathComponent("\(surface)-editorial-\(suffix).png"))
+        }
+    }
+
+    private static func chart(_ vm: TimeComparisonViewModel) -> some View {
+        ProjectChartView(viewModel: vm)
+            .frame(width: YieldDimensions.panelWidth)
+            .background(YieldColors.background)
     }
 
     @MainActor
@@ -149,6 +211,55 @@ final class ThemeSnapshotTests: XCTestCase {
     }
 
     // MARK: - Fixtures
+
+    /// Five projects with time spread across Mon–Fri of the current
+    /// week — enough series to exercise the categorical palette, with
+    /// one heavy day so the target rule and the peak both show.
+    static func makeChartViewModel() -> TimeComparisonViewModel {
+        let vm = TimeComparisonViewModel()
+        let monday = DateHelpers.currentWeekBounds().start
+        let cal = Calendar.current
+        func day(_ offset: Int) -> String {
+            DateHelpers.dateFormatter.string(from: cal.date(byAdding: .day, value: offset, to: monday)!)
+        }
+
+        // (harvest project id, name, client, [hours Mon..Fri])
+        let projects: [(Int, String, String, [Double])] = [
+            (1, "Development Extension", "GEICO [GCO]",     [2.0, 3.5, 1.0, 4.0, 2.5]),
+            (2, "Loyalty App",           "Alaska Airlines", [3.0, 2.0, 4.5, 1.5, 3.0]),
+            (3, "Professional Development", "Viget Labs",   [0.0, 1.0, 0.5, 0.0, 1.5]),
+            (4, "Viget.com Redesign 2025–26", "Viget Internal", [2.5, 1.5, 2.0, 3.0, 0.5]),
+            (5, "Brand Refresh",         "Acme Co",         [0.5, 0.0, 1.0, 0.5, 1.0]),
+        ]
+
+        var entries: [HarvestTimeEntry] = []
+        var nextId = 1
+        for (pid, name, client, hours) in projects {
+            for (offset, h) in hours.enumerated() where h > 0 {
+                entries.append(HarvestTimeEntry(
+                    id: nextId, hours: h, spentDate: day(offset), isRunning: false,
+                    updatedAt: "2026-11-03T00:00:00Z", notes: nil, isLocked: nil, approvalStatus: nil,
+                    timerStartedAt: nil,
+                    project: HarvestProjectRef(id: pid, name: name, code: nil),
+                    client: HarvestClientRef(id: pid, name: client),
+                    task: nil,
+                    taskAssignment: HarvestTaskAssignmentRef(id: 900 + pid, task: HarvestTaskRef(id: 100, name: "Dev"))
+                ))
+                nextId += 1
+            }
+        }
+
+        vm.applyRefreshedData(
+            entries: entries,
+            bookedByForecastProject: [:],
+            projectMap: [:],
+            clientMap: [:],
+            timeOffBlock: nil,
+            notesByForecastProject: [:]
+        )
+        return vm
+    }
+
 
     /// Three clients, five projects, every row state: tracking, on
     /// track, prospective, unbooked, over.

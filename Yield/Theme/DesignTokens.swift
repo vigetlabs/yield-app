@@ -97,6 +97,46 @@ enum YieldColors {
     )
 }
 
+// MARK: - Chart colors
+
+/// Categorical palette for the weekly chart's series (System theme).
+///
+/// Eight hues in a fixed order, each stepped separately for the light
+/// and dark surfaces. The order is load-bearing: it was validated for
+/// colorblind separation and a normal-vision floor on *adjacent* pairs
+/// — which is what stacked segments are — against Yield's own surfaces
+/// (#F5F5F6 light, #151617 dark). Slots are assigned to projects in
+/// sequence and never cycled; a ninth project folds into `other`.
+///
+/// Four light-mode slots sit below 3:1 on the light surface, which the
+/// validator flags as needing a relief channel. The chart's direct
+/// labels (day totals on each column cap) and its hover tooltip are
+/// that channel.
+enum YieldChartColors {
+    private static func hex(_ light: UInt32, _ dark: UInt32) -> Color {
+        func ns(_ v: UInt32) -> NSColor {
+            NSColor(red: CGFloat((v >> 16) & 0xFF) / 255,
+                    green: CGFloat((v >> 8) & 0xFF) / 255,
+                    blue: CGFloat(v & 0xFF) / 255, alpha: 1)
+        }
+        return dynamicColor(light: ns(light), dark: ns(dark))
+    }
+
+    static let slots: [Color] = [
+        hex(0x2A78D6, 0x3987E5),  // blue
+        hex(0xEB6834, 0xD95926),  // orange
+        hex(0x1BAF7A, 0x199E70),  // aqua
+        hex(0xEDA100, 0xC98500),  // yellow
+        hex(0xE87BA4, 0xD55181),  // magenta
+        hex(0x008300, 0x008300),  // green
+        hex(0x6250D6, 0x9085E9),  // violet
+        hex(0xE34948, 0xE66767),  // red
+    ]
+
+    /// Projects past the eighth are merged into one neutral series.
+    static let other = hex(0x9A9A9A, 0x6E6E6E)
+}
+
 // MARK: - Fonts
 
 /// Every font resolves through the active theme (`YieldTheme`). Call

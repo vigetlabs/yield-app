@@ -90,7 +90,20 @@ struct ProjectChartView: View {
         }
     }
 
+    /// Editorial keeps the chart exactly as it shipped (smoothed stacked
+    /// area); System gets stacked columns — see `WeeklyColumnChart` for
+    /// why the form changed.
+    @ViewBuilder
     var body: some View {
+        if ThemeStore.shared.theme.usesColumnChart {
+            systemBody
+        } else {
+            editorialBody
+        }
+    }
+
+    @ViewBuilder
+    private var editorialBody: some View {
         let allPoints = viewModel.chartSeries
         let projects = projectList(from: allPoints)
         let isolated = activeIsolation(projects: projects)
@@ -125,6 +138,136 @@ struct ProjectChartView: View {
                 legend(projects: projects, isolatedId: isolated)
             }
             .padding(16)
+        }
+    }
+
+    // MARK: - System theme (stacked columns)
+
+    /// Up to eight projects take the validated palette slots in name
+    /// order; any beyond that fold into a single neutral "Other" series
+    /// so no hue is ever generated or cycled.
+    private static let maxDistinctSeries = YieldChartColors.slots.count
+    private static let otherSeriesId = -1
+
+    private func systemSeries(from projects: [ProjectRef]) -> [WeeklyColumnChart.Series] {
+        var out = projects.prefix(Self.maxDistinctSeries).enumerated().map { i, p in
+            WeeklyColumnChart.Series(id: p.id, name: p.name, color: YieldChartColors.slots[i])
+        }
+        if projects.count > Self.maxDistinctSeries {
+            out.append(.init(id: Self.otherSeriesId, name: "Other", color: YieldChartColors.other))
+        }
+        return out
+    }
+
+    /// Re-keys points for folded projects onto the "Other" series.
+    private func systemPoints(
+        _ points: [TimeComparisonViewModel.ChartPoint],
+        projects: [ProjectRef]
+    ) -> [TimeComparisonViewModel.ChartPoint] {
+        let folded = Set(projects.dropFirst(Self.maxDistinctSeries).map(\.id))
+        guard !folded.isEmpty else { return points }
+        return points.map { p in
+            folded.contains(p.projectId)
+                ? TimeComparisonViewModel.ChartPoint(id: p.id, projectId: Self.otherSeriesId, projectName: "Other",
+                                                     date: p.date, dayLabel: p.dayLabel, hours: p.hours)
+                : p
+        }
+    }
+
+    /// Isolation against the System series list (which may include the
+    /// folded "Other" id).
+    private func systemActiveIsolation(series: [WeeklyColumnChart.Series]) -> Int? {
+        guard let id = isolatedProjectId, series.contains(where: { $0.id == id }) else { return nil }
+        return id
+    }
+
+    @ViewBuilder
+    private var systemBody: some View {
+        let allPoints = viewModel.chartSeries
+        if allPoints.isEmpty {
+            emptyState
+        } else {
+            let projects = projectList(from: allPoints)
+            let series = systemSeries(from: projects)
+            let all = systemPoints(allPoints, projects: projects)
+            let isolated = systemActiveIsolation(series: series)
+            let visible = visiblePoints(allPoints: all, isolatedId: isolated)
+            let days = viewModel.chartDays
+
+            VStack(alignment: .leading, spacing: 14) {
+                ZStack(alignment: .topTrailing) {
+                    WeeklyColumnChart(
+                        points: visible,
+                        allPoints: all,
+                        series: series,
+                        days: days,
+                        dailyTarget: dailyHoursTarget
+                    )
+                    // Keyed on isolation so Swift Charts animates the
+                    // non-isolated segments collapsing rather than
+                    // re-mounting the marks.
+                    .animation(.easeInOut(duration: 0.25), value: isolatedProjectId)
+
+                    Button {
+                        exportSystemChartAsPNG(allPoints: all, series: series, days: days)
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(YieldColors.textSecondary)
+                            .frame(width: 20, height: 20)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Save chart as PNG")
+                }
+
+                WeeklyChartLegend(series: series, isolatedId: isolated) { id in
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isolatedProjectId = isolatedProjectId == id ? nil : id
+                    }
+                }
+            }
+            .padding(16)
+        }
+    }
+
+    @MainActor
+    private func exportSystemChartAsPNG(
+        allPoints: [TimeComparisonViewModel.ChartPoint],
+        series: [WeeklyColumnChart.Series],
+        days: [String]
+    ) {
+        let view = VStack(alignment: .leading, spacing: 16) {
+            Text(viewModel.weekLabel)
+                .font(YieldFonts.title(16))
+                .foregroundStyle(YieldColors.textPrimary)
+            WeeklyColumnChart(points: allPoints, allPoints: allPoints, series: series,
+                              days: days, dailyTarget: dailyHoursTarget, interactive: false)
+                .frame(width: 560)
+            WeeklyChartLegend(series: series, isolatedId: nil) { _ in }
+        }
+        .padding(24)
+        .background(YieldColors.background)
+        savePNG(of: view)
+    }
+
+    /// Shared save flow for either theme's export view.
+    @MainActor
+    private func savePNG<V: View>(of view: V) {
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2.0
+        guard let cgImage = renderer.cgImage else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png]
+        panel.nameFieldStringValue = "yield-chart-\(DateHelpers.weekDateStrings().start).png"
+        panel.canCreateDirectories = true
+        panel.begin { result in
+            guard result == .OK, let url = panel.url else { return }
+            guard let destination = CGImageDestinationCreateWithURL(
+                url as CFURL, "public.png" as CFString, 1, nil
+            ) else { return }
+            CGImageDestinationAddImage(destination, cgImage, nil)
+            CGImageDestinationFinalize(destination)
         }
     }
 

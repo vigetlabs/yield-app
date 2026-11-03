@@ -47,6 +47,12 @@ enum YieldTheme: String, CaseIterable {
     /// pixel-identical to the app as it shipped, by decision.
     var usesGroupedLayout: Bool { self == .system }
 
+    /// Whether the weekly chart is stacked columns per weekday (System)
+    /// rather than the original smoothed stacked area (Editorial). Same
+    /// fork discipline as `usesGroupedLayout`: Editorial keeps the chart
+    /// exactly as it shipped.
+    var usesColumnChart: Bool { self == .system }
+
     // MARK: - Size scale
 
     /// Multiplier applied to sizes passed to the family functions
