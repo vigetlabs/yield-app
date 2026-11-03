@@ -420,7 +420,7 @@ struct TimerBannerView: View {
                         Image(systemName: isActive ? "pause.fill" : "play.fill")
                     }
                     .buttonStyle(TimerControlButtonStyle(
-                        foregroundColor: accentColor, size: 28, filled: true
+                        foregroundColor: accentColor, size: 28
                     ))
                     .disabledWhenHarvestDown(viewModel.isHarvestDown)
 
@@ -431,7 +431,7 @@ struct TimerBannerView: View {
                     }
                     .buttonStyle(TimerControlButtonStyle(
                         foregroundColor: YieldColors.textSecondary,
-                        destructiveOnHover: true, size: 28, filled: true
+                        destructiveOnHover: true, size: 28
                     ))
                     .disabledWhenHarvestDown(viewModel.isHarvestDown)
                 }

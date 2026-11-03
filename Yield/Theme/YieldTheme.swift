@@ -284,6 +284,18 @@ enum YieldTheme: String, CaseIterable {
     var buttonHeight: CGFloat            { self == .editorial ? 22 : 26 }
     var buttonHorizontalPadding: CGFloat { self == .editorial ? 11 : 12 }
     var buttonRestingOpacity: Double     { self == .editorial ? 0.8 : 1.0 }
+    /// Corner radius for buttons and header chips specifically — not
+    /// the general `buttonRadius`, which other small controls share.
+    /// System's is half the button height, so text buttons and
+    /// segmented controls are capsules and icon buttons are circles:
+    /// one round language, everywhere a control has chrome.
+    var pillRadius: CGFloat              { self == .editorial ? 4 : 13 }
+    /// Header icon chips (week chevrons, calendar). Editorial's are a
+    /// 24×22 rectangle; System's are square so the clip makes a circle.
+    var headerIconWidth: CGFloat         { self == .editorial ? 24 : 26 }
+    /// Whether icon controls (play / pause / stop) are filled circles
+    /// rather than bordered squares.
+    var usesCircularControls: Bool       { self == .system }
 
     // MARK: - Dimensions
 

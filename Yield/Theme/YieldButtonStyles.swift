@@ -13,7 +13,7 @@ struct GreenFilledButtonStyle: ButtonStyle {
             .padding(.vertical, 4)
             .frame(height: YieldDimensions.buttonHeight)
             .background(YieldColors.greenAccent)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
             .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
@@ -34,9 +34,9 @@ struct GreenOutlinedButtonStyle: ButtonStyle {
             .padding(.vertical, 4)
             .frame(height: YieldDimensions.buttonHeight)
             .background(isHovered ? YieldColors.greenSubtle : YieldColors.greenFaint)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
             .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.button)
+                RoundedRectangle(cornerRadius: YieldRadius.pill)
                     .strokeBorder(isHovered ? YieldColors.greenBorderActive : YieldColors.greenBorder, lineWidth: 1)
             )
             .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
@@ -59,9 +59,9 @@ struct RedOutlinedButtonStyle: ButtonStyle {
             .padding(.vertical, 4)
             .frame(height: YieldDimensions.buttonHeight)
             .background(YieldStatusColors.over.opacity(isHovered ? 0.15 : 0.04))
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
             .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.button)
+                RoundedRectangle(cornerRadius: YieldRadius.pill)
                     .strokeBorder(YieldStatusColors.over.opacity(isHovered ? 0.3 : 0.15), lineWidth: 1)
             )
             .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
@@ -84,9 +84,9 @@ struct BorderedButtonStyle: ButtonStyle {
             .padding(.vertical, 4)
             .frame(height: YieldDimensions.buttonHeight)
             .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
             .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.button)
+                RoundedRectangle(cornerRadius: YieldRadius.pill)
                     .strokeBorder(YieldColors.buttonBorder, lineWidth: 1)
             )
             .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
@@ -110,8 +110,9 @@ struct TimerControlButtonStyle: ButtonStyle {
     /// passes 28 for its hero controls.
     var size: CGFloat = YieldDimensions.timerButtonSize
     /// Filled circle (a tint of the foreground color, no border) rather
-    /// than the bordered square — the System banner's control style.
-    var filled: Bool = false
+    /// than the bordered square. Follows the theme, so every play /
+    /// pause / stop control in the app changes together.
+    var filled: Bool = ThemeStore.shared.theme.usesCircularControls
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
@@ -136,9 +137,9 @@ struct TimerControlButtonStyle: ButtonStyle {
             .frame(width: size, height: size)
             .contentShape(Rectangle())
             .background(isHovered ? YieldColors.surfaceActive : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
             .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.button)
+                RoundedRectangle(cornerRadius: YieldRadius.pill)
                     .strokeBorder(resolvedBorder, lineWidth: 1)
             )
             .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)

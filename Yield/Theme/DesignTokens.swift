@@ -251,6 +251,8 @@ enum YieldRadius {
     static var button: CGFloat { theme.buttonRadius }
     static var dropdown: CGFloat { theme.dropdownRadius }
     static var progressBar: CGFloat { theme.progressBarRadius }
+    /// Buttons and header chips. See `YieldTheme.pillRadius`.
+    static var pill: CGFloat { theme.pillRadius }
 }
 
 // MARK: - Dimensions
@@ -270,6 +272,7 @@ enum YieldDimensions {
     /// Not a dimension, but it travels with the two above: the opacity
     /// a text button rests at before hover.
     static var buttonRestingOpacity: Double { theme.buttonRestingOpacity }
+    static var headerIconWidth: CGFloat { theme.headerIconWidth }
     /// Standard control height for inline form inputs — pickers,
     /// favorite-list buttons. Matches the dropdown's intrinsic hit
     /// target. Themed: larger type needs a taller control.

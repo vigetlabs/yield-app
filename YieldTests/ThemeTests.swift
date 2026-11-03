@@ -134,6 +134,11 @@ final class ThemeSnapshotTests: XCTestCase {
             try Self.write(Self.banner(bannerVM).environment(\.colorScheme, scheme),
                            to: outDir.appendingPathComponent("banner-editorial-\(suffix).png"))
         }
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.header(bannerVM).environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("header-editorial-\(suffix).png"))
+        }
 
         // 2: System rows.
         ThemeStore.shared.select(.system)
@@ -179,6 +184,11 @@ final class ThemeSnapshotTests: XCTestCase {
             try Self.write(Self.banner(bannerVM).environment(\.colorScheme, scheme),
                            to: outDir.appendingPathComponent("banner-system-\(suffix).png"))
         }
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.header(bannerVM).environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("header-system-\(suffix).png"))
+        }
     }
 
     /// Pixel-identity probes for the Editorial surfaces. Each renders
@@ -209,6 +219,11 @@ final class ThemeSnapshotTests: XCTestCase {
     func test_identityProbe_editorialBanner() throws {
         let vm = Self.makeBannerViewModel()
         try Self.identityProbe(surface: "banner") { Self.banner(vm) }
+    }
+
+    func test_identityProbe_editorialHeader() throws {
+        let vm = Self.makeBannerViewModel()
+        try Self.identityProbe(surface: "header") { Self.header(vm) }
     }
 
     private static func identityProbe<V: View>(surface: String, _ view: () -> V) throws {
@@ -248,6 +263,14 @@ final class ThemeSnapshotTests: XCTestCase {
         }
         .frame(width: YieldDimensions.panelWidth)
         .background(YieldColors.background)
+    }
+
+    /// The panel header: week nav, title, tabs, + Timer. Rendered on
+    /// the current week so the tab toggle and the timer button show.
+    private static func header(_ vm: TimeComparisonViewModel) -> some View {
+        MenuBarHeaderView(viewModel: vm, onToggleNewTimerForm: {})
+            .frame(width: YieldDimensions.panelWidth)
+            .background(YieldColors.background)
     }
 
     /// The timer banner with a running timer: task, client — project,

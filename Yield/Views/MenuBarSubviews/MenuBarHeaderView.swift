@@ -89,7 +89,7 @@ struct MenuBarHeaderView: View {
             // 2px on @2x which read as a visible gap rather than a seam.
             Rectangle()
                 .fill(YieldColors.background)
-                .frame(width: 0.5, height: 22)
+                .frame(width: 0.5, height: YieldDimensions.buttonHeight)
 
             HeaderIconButton(systemImage: "chevron.right", help: "Next week") {
                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -97,7 +97,7 @@ struct MenuBarHeaderView: View {
                 }
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
     }
 
     /// "This Week" pill — matches the nav chevrons' outlined, transparent-bg
@@ -131,14 +131,14 @@ struct MenuBarHeaderView: View {
                 } label: {
                     tabLabel(tab, isSelected: isSelected)
                         .padding(.horizontal, 9)
-                        .frame(height: 22)
+                        .frame(height: YieldDimensions.buttonHeight)
                         .background(isSelected ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
                 }
                 .buttonStyle(.plain)
                 .help(tabHelp(tab))
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
     }
 
     @ViewBuilder
@@ -182,7 +182,7 @@ struct MenuBarHeaderView: View {
                 onOpenCalendarTimerForm?()
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
         .disabledWhenHarvestDown(viewModel.isHarvestDown)
     }
 
@@ -220,7 +220,7 @@ struct HeaderIconButton: View {
             Image(systemName: systemImage)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(YieldColors.textSecondary)
-                .frame(width: 24, height: 22)
+                .frame(width: YieldDimensions.headerIconWidth, height: YieldDimensions.buttonHeight)
                 .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
                 .contentShape(Rectangle())
         }
@@ -244,13 +244,13 @@ struct HeaderTextButton: View {
             Text(title)
                 .font(YieldFonts.labelButton)
                 .foregroundStyle(YieldColors.textPrimary)
-                .padding(.horizontal, 11)
-                .frame(height: 22)
+                .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
+                .frame(height: YieldDimensions.buttonHeight)
                 .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
         }
