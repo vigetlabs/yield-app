@@ -22,7 +22,7 @@ private func dynamicColor(light: NSColor, dark: NSColor) -> Color {
 ///
 /// Editorial's values are the app's original ones, unchanged. System's
 /// are a deliberate half-step away for visual distinction: cool slate
-/// surfaces instead of neutral near-black, an emerald a touch less neon
+/// surfaces instead of neutral near-black, teal a few degrees cooler
 /// than the mint, amber in place of lemon, and overlay tints that carry
 /// the same cool cast. Every text-bearing color was checked against its
 /// surface at WCAG AA (≥ 4.5:1) in both appearances.
@@ -110,10 +110,11 @@ enum YieldColors {
     }
 
     /// The System theme's palette: a half-step cooler and calmer than
-    /// Editorial. Surfaces are slate (#14171C / #F3F5F8), ink is a cool
-    /// off-white / near-black, and the overlays — hairlines, hover
-    /// surfaces, tracks — are tints of a slate-blue rather than pure
-    /// white or black, so the whole panel carries one temperature.
+    /// Editorial. Surfaces are slate (#13161D / #F2F4F9), ink is a cool
+    /// off-white / near-black, the accent is teal, and the overlays —
+    /// hairlines, hover surfaces, tracks — are tints of a slate-blue
+    /// rather than pure white or black, so the whole panel carries one
+    /// temperature.
     enum System {
         /// Overlay tint: slate-blue, light on dark and dark on light.
         private static func tint(_ alpha: CGFloat) -> Color {
@@ -124,12 +125,15 @@ enum YieldColors {
         }
 
         static let background = dynamicColor(
-            light: NSColor(red: 0.953, green: 0.961, blue: 0.973, alpha: 1.0),  // #F3F5F8
-            dark:  NSColor(red: 0.078, green: 0.090, blue: 0.110, alpha: 1.0)   // #14171C
+            light: NSColor(red: 0.949, green: 0.957, blue: 0.976, alpha: 1.0),  // #F2F4F9
+            dark:  NSColor(red: 0.075, green: 0.086, blue: 0.114, alpha: 1.0)   // #13161D
         )
+        /// Teal, a few degrees *cooler* than Editorial's mint rather than
+        /// warmer — an emerald was tried first and tipped the whole panel
+        /// yellow-green next to the amber.
         static let greenAccent = dynamicColor(
-            light: NSColor(red: 0.059, green: 0.498, blue: 0.298, alpha: 1.0),  // #0F7F4C
-            dark:  NSColor(red: 0.247, green: 0.827, blue: 0.478, alpha: 1.0)   // #3FD37A
+            light: NSColor(red: 0.043, green: 0.478, blue: 0.447, alpha: 1.0),  // #0B7A72
+            dark:  NSColor(red: 0.133, green: 0.788, blue: 0.737, alpha: 1.0)   // #22C9BC
         )
         static let yellowAccent = dynamicColor(
             light: NSColor(red: 0.561, green: 0.369, blue: 0.0,   alpha: 1.0),  // #8F5E00
