@@ -334,11 +334,6 @@ struct MenuBarContentView: View {
                         projectRow(GroupedRowLayout.self, for: project)
                     }
                 }
-                WeekSummaryBand(
-                    logged: viewModel.totalLogged,
-                    booked: viewModel.totalBooked,
-                    unbooked: viewModel.totalUnbookedLogged
-                )
             } else {
                 ForEach(statuses) { project in
                     projectRow(EditorialRowLayout.self, for: project)

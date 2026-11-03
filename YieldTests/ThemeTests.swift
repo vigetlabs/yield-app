@@ -117,10 +117,9 @@ final class ThemeSnapshotTests: XCTestCase {
         }
 
         // 3: the System list as the panel composes it — section
-        // headers, grouped rows, week summary band — all real views.
+        // headers over grouped rows — all real views.
         ThemeStore.shared.select(.system)
         let statuses = Self.groupedFixtures.sorted(by: TimeComparisonViewModel.projectSortOrder)
-        let booked = statuses.filter { $0.bookedHours > 0 }
         for (appearance, scheme, suffix) in appearances {
             NSApp.appearance = NSAppearance(named: appearance)
             let list = VStack(spacing: 0) {
@@ -130,11 +129,6 @@ final class ThemeSnapshotTests: XCTestCase {
                         ProjectRowView<GroupedRowLayout>(project: project, effectiveLoggedHours: project.loggedHours, visibleEntries: [])
                     }
                 }
-                WeekSummaryBand(
-                    logged: booked.reduce(0) { $0 + $1.loggedHours },
-                    booked: booked.reduce(0) { $0 + $1.bookedHours },
-                    unbooked: statuses.filter { $0.bookedHours == 0 }.reduce(0) { $0 + $1.loggedHours }
-                )
             }
             .frame(width: YieldDimensions.panelWidth)
             .background(YieldColors.background)

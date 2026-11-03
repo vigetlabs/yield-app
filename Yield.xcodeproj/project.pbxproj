@@ -74,7 +74,6 @@
 		B19C1849A64EE8776998BC97 /* MutedMeetingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23935EFBFE85FB320514FF58 /* MutedMeetingsStore.swift */; };
 		B1E1DB795329B77618CC033D /* ProjectStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA00826B19142EA4BF7E31AE /* ProjectStatusTests.swift */; };
 		B2874BEB76A001702546E05A /* DefaultsKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */; };
-		B4BE4E98294204F26B15FA7E /* WeekSummaryBand.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE1CBFEF6603311671E457BD /* WeekSummaryBand.swift */; };
 		B71012FAAED84E56ACFAB933 /* ProjectRowLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D22672A7301A079700936409 /* ProjectRowLayouts.swift */; };
 		B8CEC9B2F936AE80B59246C7 /* GoogleCalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFDCB269487724682B778744 /* GoogleCalendarService.swift */; };
 		BD87BA8B7958E952013CD215 /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9493B44FE9179F9B4F024BA2 /* FavoritesStore.swift */; };
@@ -171,7 +170,6 @@
 		B58E49DBB49B3AA58579E5AB /* YieldTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YieldTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastModels.swift; sourceTree = "<group>"; };
 		BCD907CCE73B8116AE553407 /* MutedMeetingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutedMeetingsCard.swift; sourceTree = "<group>"; };
-		BE1CBFEF6603311671E457BD /* WeekSummaryBand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekSummaryBand.swift; sourceTree = "<group>"; };
 		C0220853F65E73B3AC15AAD0 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		C0FD7AEC1C89E1F04B5509F7 /* JetBrainsMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Regular.ttf"; sourceTree = "<group>"; };
 		C28B33F4048310D0D6B01D7C /* YieldButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YieldButtonStyles.swift; sourceTree = "<group>"; };
@@ -374,7 +372,6 @@
 				81C466BF14AFBAC4E43C6854 /* StatusIndicator.swift */,
 				D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */,
 				3B0E8E50D8DEBFD70A32D925 /* TimerBannerView.swift */,
-				BE1CBFEF6603311671E457BD /* WeekSummaryBand.swift */,
 				50676616A330947C855CB51B /* MenuBarSubviews */,
 				4A89D59B99368923B381C8E5 /* SettingsCards */,
 			);
@@ -605,7 +602,6 @@
 				1F625C8CFBDABCD6BBAD3BC1 /* TimeOffRowView.swift in Sources */,
 				1777566CD97D2CB223E29E5D /* TimerBannerView.swift in Sources */,
 				A128C420B393CA51F5510DBC /* WeekDayBarView.swift in Sources */,
-				B4BE4E98294204F26B15FA7E /* WeekSummaryBand.swift in Sources */,
 				1581C711C6C01278186D9AD1 /* YieldApp.swift in Sources */,
 				7E6180F06F7AE91E39C7261E /* YieldButtonStyles.swift in Sources */,
 				84A8A52C390AEC30CA5A02E8 /* YieldTheme.swift in Sources */,
