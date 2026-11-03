@@ -219,9 +219,14 @@ enum GroupedRowLayout: ProjectRowLayout {
         case .unassigned:
             return ("Not a member of the Harvest project", YieldStatusColors.warning)
         case .linked:
+            // Over budget is a signal and keeps its color. On track is
+            // the normal case on every booked row, so it reads in
+            // secondary ink — the bar fill and the stripe already carry
+            // the accent, and a column of accent-colored 10pt text was
+            // too much.
             let remaining = ctx.project.bookedHours - ctx.effectiveLoggedHours
             return (RowFormat.remainingLabel(remaining),
-                    remaining < 0 ? YieldStatusColors.over : YieldColors.greenAccent)
+                    remaining < 0 ? YieldStatusColors.over : YieldColors.textSecondary)
         }
     }
 
