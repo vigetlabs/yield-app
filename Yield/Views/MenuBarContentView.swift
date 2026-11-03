@@ -325,59 +325,102 @@ struct MenuBarContentView: View {
                 .font(YieldFonts.label(11))
                 .padding(16)
         } else {
-            ForEach(statuses) { project in
-                ProjectRowView(
-                    project: project,
-                    effectiveLoggedHours: viewModel.effectiveLoggedHours(for: project),
-                    visibleEntries: viewModel.visibleEntries(for: project),
-                    dayFilteredHours: viewModel.dayFilteredHours(for: project),
-                    selectedDay: viewModel.dayFilter,
-                    onToggleEntryTimer: { entryId, isRunning in
-                        Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: isRunning) }
-                    },
-                    onEditEntry: { entry in
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            editingEntry = entry
-                        }
-                    },
-                    onDeleteEntry: { entry in
-                        Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
-                    },
-                    onCopyEntryToToday: { entry in
-                        // Copy project + task + note onto a fresh today
-                        // timer. Omitting `hours` makes Harvest auto-start
-                        // it running — the "quick start" behavior. Mirrors
-                        // the favorite quick-start path; no dedup against an
-                        // existing today entry, matching that flow.
-                        Task {
-                            await viewModel.startNewTimer(
-                                projectId: entry.harvestProjectId,
-                                taskId: entry.taskId,
-                                notes: entry.notes
-                            )
-                        }
-                    },
-                    isHarvestDown: viewModel.isHarvestDown,
-                    onStartTimerForProject: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            preselectedProjectId = project.harvestProjectId
-                            showNewTimerForm = true
-                        }
-                    },
-                    onQuickStartFavorite: { projectId, taskId in
-                        // Mark the favorite used before the await so the
-                        // next auto-select picks the right one — same
-                        // ordering NewTimerFormView uses.
-                        FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
-                        Task { await viewModel.startNewTimer(projectId: projectId, taskId: taskId) }
-                    },
-                    onResumeToday: { entryId in
-                        Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false) }
-                    },
-                    weekHasWeekendActivity: viewModel.displayedWeekHasWeekendActivity
+            if ThemeStore.shared.theme.usesGroupedLayout {
+                // Grouped layout: one section header per client, then
+                // its projects. Grouping preserves the view model's order.
+                ForEach(ProjectGrouping.grouped(statuses)) { group in
+                    ClientSectionHeader(client: group.client)
+                    ForEach(group.projects) { project in
+                        projectRow(GroupedRowLayout.self, for: project)
+                    }
+                }
+                WeekSummaryBand(
+                    logged: viewModel.totalLogged,
+                    booked: viewModel.totalBooked,
+                    unbooked: viewModel.totalUnbookedLogged
                 )
+            } else {
+                ForEach(statuses) { project in
+                    projectRow(EditorialRowLayout.self, for: project)
+                }
             }
         }
+    }
+
+    /// A past week's row: read-only, no actions.
+    private func pastWeekRow<Layout: ProjectRowLayout>(
+        _ layout: Layout.Type,
+        for project: ProjectStatus,
+        weekStart: Date?
+    ) -> ProjectRowView<Layout> {
+        ProjectRowView<Layout>(
+            project: project,
+            effectiveLoggedHours: project.loggedHours,
+            visibleEntries: project.timeEntries,
+            isHarvestDown: viewModel.isHarvestDown,
+            isReadOnly: true,
+            weekStart: weekStart,
+            weekHasWeekendActivity: viewModel.displayedWeekHasWeekendActivity
+        )
+    }
+
+    /// One row of the current-week list. Extracted so the grouped and
+    /// flat layouts share one construction — these closures are the
+    /// row's entire action surface.
+    private func projectRow<Layout: ProjectRowLayout>(
+        _ layout: Layout.Type,
+        for project: ProjectStatus
+    ) -> ProjectRowView<Layout> {
+        ProjectRowView<Layout>(
+            project: project,
+            effectiveLoggedHours: viewModel.effectiveLoggedHours(for: project),
+            visibleEntries: viewModel.visibleEntries(for: project),
+            dayFilteredHours: viewModel.dayFilteredHours(for: project),
+            selectedDay: viewModel.dayFilter,
+            onToggleEntryTimer: { entryId, isRunning in
+                Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: isRunning) }
+            },
+            onEditEntry: { entry in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    editingEntry = entry
+                }
+            },
+            onDeleteEntry: { entry in
+                Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
+            },
+            onCopyEntryToToday: { entry in
+                // Copy project + task + note onto a fresh today
+                // timer. Omitting `hours` makes Harvest auto-start
+                // it running — the "quick start" behavior. Mirrors
+                // the favorite quick-start path; no dedup against an
+                // existing today entry, matching that flow.
+                Task {
+                    await viewModel.startNewTimer(
+                        projectId: entry.harvestProjectId,
+                        taskId: entry.taskId,
+                        notes: entry.notes
+                    )
+                }
+            },
+            isHarvestDown: viewModel.isHarvestDown,
+            onStartTimerForProject: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    preselectedProjectId = project.harvestProjectId
+                    showNewTimerForm = true
+                }
+            },
+            onQuickStartFavorite: { projectId, taskId in
+                // Mark the favorite used before the await so the
+                // next auto-select picks the right one — same
+                // ordering NewTimerFormView uses.
+                FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
+                Task { await viewModel.startNewTimer(projectId: projectId, taskId: taskId) }
+            },
+            onResumeToday: { entryId in
+                Task { await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false) }
+            },
+            weekHasWeekendActivity: viewModel.displayedWeekHasWeekendActivity
+        )
     }
 
     /// Timer banner area. `TimerBannerView` is always rendered and
@@ -474,19 +517,20 @@ struct MenuBarContentView: View {
                 .padding(16)
         } else {
             let weekStart = viewModel.weekSnapshots[viewModel.weekOffset]?.weekStart
-            ForEach(viewModel.displayedFilteredStatuses) { project in
-                if viewModel.weekOffset > 0 {
+            if viewModel.weekOffset > 0 {
+                ForEach(viewModel.displayedFilteredStatuses) { project in
                     LookAheadRowView(project: project)
-                } else {
-                    ProjectRowView(
-                        project: project,
-                        effectiveLoggedHours: project.loggedHours,
-                        visibleEntries: project.timeEntries,
-                        isHarvestDown: viewModel.isHarvestDown,
-                        isReadOnly: true,
-                        weekStart: weekStart,
-                        weekHasWeekendActivity: viewModel.displayedWeekHasWeekendActivity
-                    )
+                }
+            } else if ThemeStore.shared.theme.usesGroupedLayout {
+                ForEach(ProjectGrouping.grouped(viewModel.displayedFilteredStatuses)) { group in
+                    ClientSectionHeader(client: group.client)
+                    ForEach(group.projects) { project in
+                        pastWeekRow(GroupedRowLayout.self, for: project, weekStart: weekStart)
+                    }
+                }
+            } else {
+                ForEach(viewModel.displayedFilteredStatuses) { project in
+                    pastWeekRow(EditorialRowLayout.self, for: project, weekStart: weekStart)
                 }
             }
         }

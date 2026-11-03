@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ProjectRowView: View {
+struct ProjectRowView<Layout: ProjectRowLayout>: View {
     let project: ProjectStatus
     var effectiveLoggedHours: Double
     /// Entries to render in the drawer + day-by-day bar. The parent
@@ -184,6 +184,11 @@ struct ProjectRowView: View {
 
     // MARK: - Project Header
 
+    /// The header: status stripe, then the layout's two columns with
+    /// the hover-action zone wrapped around the time column. `Layout`
+    /// is a type parameter chosen by the parent (see `ProjectRowLayout`).
+    /// Everything below the header — drawer, hover actions, menus,
+    /// gestures — is shared by both layouts.
     private var projectHeader: some View {
         HStack(alignment: .center, spacing: 0) {
             // Left colored line
@@ -195,56 +200,7 @@ struct ProjectRowView: View {
                     ForecastNotesIcon(notes: notes)
                 }
 
-                // Left: client, name, remaining
-                VStack(alignment: .leading, spacing: 6) {
-                    // Client name
-                    if let clientName = project.clientName {
-                        Text(clientName.uppercased())
-                            .font(YieldFonts.labelProject)
-                            .foregroundStyle(YieldColors.textSecondary)
-                            .lineLimit(1)
-                    }
-
-                    // Project name + chevron. `displayName` adds the
-                    // "[code]" prefix when the Forecast project has
-                    // a code set.
-                    HStack(spacing: 10) {
-                        Text(project.displayName)
-                            .font(YieldFonts.titleMedium)
-                            .foregroundStyle(YieldColors.textPrimary)
-                            .lineLimit(1)
-
-                        // Booked in Forecast, but the Harvest side
-                        // can't take time — either the user isn't a
-                        // member of the project, or the project was
-                        // never linked to Harvest at all. Booked hours
-                        // still show in full; this just names the gap
-                        // (self-hides when the link is healthy).
-                        HarvestLinkIcon(
-                            state: project.harvestLinkState,
-                            projectName: project.displayName
-                        )
-
-                        if hasEntries {
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(YieldColors.textPrimary)
-                                .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                                .animation(.easeInOut(duration: 0.15), value: isExpanded)
-                        }
-                    }
-
-                    // Remaining / over label (forecasted only)
-                    if project.isForecasted {
-                        let remaining = project.bookedHours - effectiveLoggedHours
-                        if remaining != 0 {
-                            Text(formatRemainingLabel(remaining))
-                                .font(YieldFonts.labelTimeRemaining)
-                                .foregroundStyle(remaining < 0 ? YieldStatusColors.over : YieldColors.greenAccent)
-                                .tracking(0.18)
-                        }
-                    }
-                }
+                Layout.leftColumn(headerContext)
 
                 Spacer(minLength: 8)
 
@@ -256,74 +212,77 @@ struct ProjectRowView: View {
                 // icons reveal fully and the progress bar reflows. No
                 // popover (popovers inside MenuBarExtra panels cause
                 // window resize jumps).
-                // spacing 0 (not the HStack default 8) so the zero-width
-                // resting action slot doesn't reserve a phantom 8pt gap —
-                // that would inset the progress bar 8pt from the panel edge
-                // and misalign it with the expanded segmented bar below.
-                // The gap before the actions is re-added only when they have
-                // width (see the ZStack's conditional leading padding).
-                HStack(spacing: 0) {
-                    VStack(alignment: .trailing, spacing: 8) {
-                        timeLabel
-
-                        if project.isForecasted {
-                            ProgressBarView(
-                                logged: effectiveLoggedHours,
-                                booked: project.bookedHours,
-                                dayLogged: dayFilteredHours
-                            )
-                        }
-                    }
-
-                    if hasOverflowActions {
-                        // Cross-faded reveal:
-                        //   - Row hover → ellipsis "peek" icon (single
-                        //     22pt affordance hinting that actions
-                        //     exist).
-                        //   - Zone hover → icon fades out, action bar
-                        //     fades in with its trailing-aligned slide.
-                        // Both children share the ZStack's trailing
-                        // edge so the visual swap happens in place.
-                        ZStack(alignment: .trailing) {
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(YieldColors.textSecondary)
-                                .frame(width: 22, height: 22)
-                                .opacity(showPeekIcon ? 1 : 0)
-
-                            quickActionsBar
-                                .fixedSize()
-                                .opacity(isActionZoneHovered ? 1 : 0)
-                        }
-                        .frame(width: rightZoneWidth, alignment: .trailing)
-                        .clipped()
-                        // 8pt gap before the actions, but only while they're
-                        // actually revealed — keeps the progress bar flush to
-                        // the panel edge when the zone is collapsed.
-                        .padding(.leading, rightZoneWidth > 0 ? 8 : 0)
-                    }
-                }
-                // Expand the hit area to the full row height so the
-                // cursor doesn't drift out of the hover zone when it
-                // strays above or below the icons. The visible content
-                // stays centered (HStack default), only the hit-test
-                // frame grows. `.contentShape` applied after the frame
-                // uses the taller bounds; it also collapses any
-                // transparent gaps between the time VStack and the
-                // action bar so hover doesn't flip false/true as the
-                // cursor crosses invisible HStack-spacing.
-                .frame(maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .onHover { hovering in
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        isActionZoneHovered = hovering
-                    }
+                rightZone {
+                    Layout.timeColumn(headerContext)
                 }
             }
             .padding(.leading, 16)
             .padding(.trailing, 16)
         }
         .frame(height: project.isForecasted ? YieldDimensions.projectRowForecastedHeight : YieldDimensions.projectRowDefaultHeight)
+    }
+
+    private var headerContext: ProjectRowHeaderContext {
+        ProjectRowHeaderContext(
+            project: project,
+            effectiveLoggedHours: effectiveLoggedHours,
+            dayFilteredHours: dayFilteredHours,
+            hasEntries: hasEntries,
+            isExpanded: isExpanded
+        )
+    }
+
+    /// Right-side zone: the time column plus the hover-revealed quick
+    /// actions. Shared by both header layouts so the two-stage reveal
+    /// (row hover peeks, zone hover reveals) is one implementation.
+    private func rightZone<Column: View>(@ViewBuilder column: () -> Column) -> some View {
+        HStack(spacing: 0) {
+            column()
+
+            if hasOverflowActions {
+                // Cross-faded reveal:
+                //   - Row hover → ellipsis "peek" icon (single
+                //     22pt affordance hinting that actions
+                //     exist).
+                //   - Zone hover → icon fades out, action bar
+                //     fades in with its trailing-aligned slide.
+                // Both children share the ZStack's trailing
+                // edge so the visual swap happens in place.
+                ZStack(alignment: .trailing) {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .opacity(showPeekIcon ? 1 : 0)
+
+                    quickActionsBar
+                        .fixedSize()
+                        .opacity(isActionZoneHovered ? 1 : 0)
+                }
+                .frame(width: rightZoneWidth, alignment: .trailing)
+                .clipped()
+                // 8pt gap before the actions, but only while they're
+                // actually revealed — keeps the progress bar flush to
+                // the panel edge when the zone is collapsed.
+                .padding(.leading, rightZoneWidth > 0 ? 8 : 0)
+            }
+        }
+        // Expand the hit area to the full row height so the
+        // cursor doesn't drift out of the hover zone when it
+        // strays above or below the icons. The visible content
+        // stays centered (HStack default), only the hit-test
+        // frame grows. `.contentShape` applied after the frame
+        // uses the taller bounds; it also collapses any
+        // transparent gaps between the time VStack and the
+        // action bar so hover doesn't flip false/true as the
+        // cursor crosses invisible HStack-spacing.
+        .frame(maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isActionZoneHovered = hovering
+            }
+        }
     }
 
     // MARK: - Hover Quick-Action Buttons
@@ -484,53 +443,6 @@ struct ProjectRowView: View {
         case .unassigned:  return YieldStatusColors.warning
         case .linked:      return YieldColors.onBackground.opacity(0.7)
         }
-    }
-
-    // MARK: - Time Label
-
-    private var timeLabel: some View {
-        Group {
-            if let dayHours = dayFilteredHours {
-                // Day filter active: show "day total / week-so-far" so the
-                // filtered day's contribution is framed against the week.
-                HStack(spacing: 0) {
-                    Text(formatHoursMinutes(dayHours) + " / ")
-                        .foregroundStyle(YieldColors.textPrimary)
-                    Text(formatHoursMinutes(effectiveLoggedHours))
-                        .foregroundStyle(YieldColors.textSecondary)
-                }
-                .font(YieldFonts.monoSmall)
-            } else if project.isForecasted {
-                HStack(spacing: 0) {
-                    Text(formatHoursMinutes(effectiveLoggedHours) + " / ")
-                        .foregroundStyle(YieldColors.textPrimary)
-                    Text(formatHoursOnly(project.bookedHours))
-                        .foregroundStyle(YieldColors.textSecondary)
-                }
-                .font(YieldFonts.monoSmall)
-            } else {
-                Text(formatHoursMinutes(effectiveLoggedHours))
-                    .font(YieldFonts.monoSmall)
-                    .foregroundStyle(YieldColors.textPrimary)
-            }
-        }
-        .fixedSize()
-    }
-
-    // MARK: - Formatting
-
-    private func formatHoursMinutes(_ hours: Double) -> String {
-        formatHM(hours)
-    }
-
-    private func formatHoursOnly(_ hours: Double) -> String {
-        let h = Int(hours)
-        return "\(h)h"
-    }
-
-    private func formatRemainingLabel(_ remaining: Double) -> String {
-        let suffix = remaining < 0 ? "over this week" : "remaining this week"
-        return "\(Swift.abs(remaining).formattedHoursMinutes) \(suffix)"
     }
 }
 

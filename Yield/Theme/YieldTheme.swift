@@ -39,6 +39,14 @@ enum YieldTheme: String, CaseIterable {
         }
     }
 
+    /// Whether the panel uses the grouped list layout: client section
+    /// headers over rows whose header is name + subtitle on the left
+    /// and figure + bar on the right, instead of the per-row client
+    /// label. This is a *layout* fork, not a typographic one — it's
+    /// gated here rather than derived from fonts so Editorial stays
+    /// pixel-identical to the app as it shipped, by decision.
+    var usesGroupedLayout: Bool { self == .system }
+
     // MARK: - Size scale
 
     /// Multiplier applied to sizes passed to the family functions
@@ -103,7 +111,7 @@ enum YieldTheme: String, CaseIterable {
             default:      return .custom("JetBrainsMono-Regular", size: size)
             }
         case .system:
-            return .system(size: scaled(size), weight: weight, design: .monospaced)
+            return .system(size: scaled(size), weight: weight).monospacedDigit()
         }
     }
 
@@ -191,7 +199,7 @@ enum YieldTheme: String, CaseIterable {
     var monoSmall: Font {
         switch self {
         case .editorial: return mono(11)
-        case .system:    return .system(size: 12, design: .monospaced)
+        case .system:    return .system(size: 12).monospacedDigit()
         }
     }
 
@@ -199,7 +207,7 @@ enum YieldTheme: String, CaseIterable {
     var monoXS: Font {
         switch self {
         case .editorial: return mono(10)
-        case .system:    return .system(size: 11, design: .monospaced)
+        case .system:    return .system(size: 11).monospacedDigit()
         }
     }
 
@@ -207,7 +215,41 @@ enum YieldTheme: String, CaseIterable {
     var monoMedium: Font {
         switch self {
         case .editorial: return mono(12, weight: .medium)
-        case .system:    return .system(size: 13, weight: .medium, design: .monospaced)
+        case .system:    return .system(size: 13, weight: .medium).monospacedDigit()
+        }
+    }
+
+    // MARK: - Grouped-layout presets
+
+    /// The row's headline number — logged hours.
+    var figureLarge: Font {
+        switch self {
+        case .editorial: return mono(11)
+        case .system:    return .system(size: 16, weight: .medium).monospacedDigit()
+        }
+    }
+
+    /// "/ 18h" beside the figure.
+    var figureDenominator: Font {
+        switch self {
+        case .editorial: return mono(11)
+        case .system:    return .system(size: 12).monospacedDigit()
+        }
+    }
+
+    /// The line under the project name: remaining / over / not linked.
+    var rowSubtitle: Font {
+        switch self {
+        case .editorial: return label(9)
+        case .system:    return .system(size: 10)
+        }
+    }
+
+    /// Client name above a group of rows.
+    var sectionHeader: Font {
+        switch self {
+        case .editorial: return label(9, weight: .medium)
+        case .system:    return .system(size: 11, weight: .semibold)
         }
     }
 
@@ -221,12 +263,12 @@ enum YieldTheme: String, CaseIterable {
 
     // MARK: - Dimensions
 
-    // The System theme's larger type needs more vertical room or the
-    // two-line project header (client label over name) crowds the
-    // remaining-time line beneath it.
+    // System rows use the grouped layout: two lines on each side, so a
+    // booked and an unbooked row are the same height.
 
-    var projectRowForecastedHeight: CGFloat { self == .editorial ? 74 : 80 }
+    var projectRowForecastedHeight: CGFloat { self == .editorial ? 74 : 60 }
     var projectRowDefaultHeight: CGFloat    { self == .editorial ? 56 : 60 }
+    var progressBarWidth: CGFloat           { self == .editorial ? 104 : 140 }
     var controlHeight: CGFloat              { self == .editorial ? 32 : 34 }
     var inputFieldHeight: CGFloat           { self == .editorial ? 52 : 56 }
 }

@@ -159,6 +159,17 @@ extension YieldFonts {
 
     /// Timer display.
     static var monoMedium: Font { theme.monoMedium }
+
+    // Grouped-layout presets (System theme's list).
+
+    /// The row's headline number.
+    static var figureLarge: Font { theme.figureLarge }
+    /// "/ 18h" beside it.
+    static var figureDenominator: Font { theme.figureDenominator }
+    /// Remaining / over / not-linked line under the name.
+    static var rowSubtitle: Font { theme.rowSubtitle }
+    /// Client name above a group of rows.
+    static var sectionHeader: Font { theme.sectionHeader }
 }
 
 // MARK: - Corner Radii
@@ -204,12 +215,14 @@ enum YieldRadius {
 // MARK: - Dimensions
 
 enum YieldDimensions {
-    static let panelWidth: CGFloat = 540
-    static let progressBarWidth: CGFloat = 104
-    static let progressBarHeight: CGFloat = 4
-    static let timerButtonSize: CGFloat = 24
     private static var theme: YieldTheme { ThemeStore.shared.theme }
 
+    static let panelWidth: CGFloat = 540
+    /// Themed: the grouped layout carries the figure above the bar, so
+    /// the bar is wider there.
+    static var progressBarWidth: CGFloat { theme.progressBarWidth }
+    static let progressBarHeight: CGFloat = 4
+    static let timerButtonSize: CGFloat = 24
     /// Standard control height for inline form inputs — pickers,
     /// favorite-list buttons. Matches the dropdown's intrinsic hit
     /// target. Themed: larger type needs a taller control.
