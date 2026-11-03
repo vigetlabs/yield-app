@@ -63,7 +63,7 @@ enum YieldTheme: String, CaseIterable {
     private var scale: CGFloat {
         switch self {
         case .editorial: return 1.0
-        case .system:    return 1.1
+        case .system:    return 1.05
         }
     }
 
@@ -158,7 +158,7 @@ enum YieldTheme: String, CaseIterable {
     var titleMedium: Font {
         switch self {
         case .editorial: return title(14)
-        case .system:    return .system(size: 15, weight: .medium)
+        case .system:    return .system(size: 14.5, weight: .medium)
         }
     }
 
@@ -166,7 +166,7 @@ enum YieldTheme: String, CaseIterable {
     var titleSmall: Font {
         switch self {
         case .editorial: return title(12)
-        case .system:    return .system(size: 13, weight: .medium)
+        case .system:    return .system(size: 12.5, weight: .medium)
         }
     }
 
@@ -198,7 +198,7 @@ enum YieldTheme: String, CaseIterable {
     var labelButton: Font {
         switch self {
         case .editorial: return label(10, weight: .semibold)
-        case .system:    return .system(size: 11, weight: .semibold)
+        case .system:    return .system(size: 10.5, weight: .semibold)
         }
     }
 
@@ -206,7 +206,7 @@ enum YieldTheme: String, CaseIterable {
     var monoSmall: Font {
         switch self {
         case .editorial: return mono(11)
-        case .system:    return .system(size: 12).monospacedDigit()
+        case .system:    return .system(size: 11.5).monospacedDigit()
         }
     }
 
@@ -214,7 +214,7 @@ enum YieldTheme: String, CaseIterable {
     var monoXS: Font {
         switch self {
         case .editorial: return mono(10)
-        case .system:    return .system(size: 11).monospacedDigit()
+        case .system:    return .system(size: 10.5).monospacedDigit()
         }
     }
 
@@ -222,7 +222,7 @@ enum YieldTheme: String, CaseIterable {
     var monoMedium: Font {
         switch self {
         case .editorial: return mono(12, weight: .medium)
-        case .system:    return .system(size: 13, weight: .medium).monospacedDigit()
+        case .system:    return .system(size: 12.5, weight: .medium).monospacedDigit()
         }
     }
 
@@ -232,7 +232,7 @@ enum YieldTheme: String, CaseIterable {
     var figureLarge: Font {
         switch self {
         case .editorial: return mono(11)
-        case .system:    return .system(size: 16, weight: .medium).monospacedDigit()
+        case .system:    return .system(size: 15, weight: .medium).monospacedDigit()
         }
     }
 
@@ -240,7 +240,7 @@ enum YieldTheme: String, CaseIterable {
     var figureDenominator: Font {
         switch self {
         case .editorial: return mono(11)
-        case .system:    return .system(size: 12).monospacedDigit()
+        case .system:    return .system(size: 11.5).monospacedDigit()
         }
     }
 
@@ -256,7 +256,7 @@ enum YieldTheme: String, CaseIterable {
     var sectionHeader: Font {
         switch self {
         case .editorial: return label(9, weight: .medium)
-        case .system:    return .system(size: 11, weight: .semibold)
+        case .system:    return .system(size: 10.5, weight: .semibold)
         }
     }
 
@@ -268,13 +268,22 @@ enum YieldTheme: String, CaseIterable {
     var dropdownRadius: CGFloat    { self == .editorial ? 6 : 8 }
     var progressBarRadius: CGFloat { 4 }
 
+    // MARK: - Buttons
+
+    // Text buttons (+ Timer, Start Timer, Cancel, Delete…). System's are
+    // a touch taller and rest at full opacity; Editorial's rest at 80%
+    // and brighten on hover, as they always have.
+    var buttonHeight: CGFloat            { self == .editorial ? 22 : 26 }
+    var buttonHorizontalPadding: CGFloat { self == .editorial ? 11 : 12 }
+    var buttonRestingOpacity: Double     { self == .editorial ? 0.8 : 1.0 }
+
     // MARK: - Dimensions
 
     // System rows use the grouped layout: two lines on each side, so a
     // booked and an unbooked row are the same height.
 
-    var projectRowForecastedHeight: CGFloat { self == .editorial ? 74 : 60 }
-    var projectRowDefaultHeight: CGFloat    { self == .editorial ? 56 : 60 }
+    var projectRowForecastedHeight: CGFloat { self == .editorial ? 74 : 58 }
+    var projectRowDefaultHeight: CGFloat    { self == .editorial ? 56 : 58 }
     var progressBarWidth: CGFloat           { self == .editorial ? 104 : 140 }
     var controlHeight: CGFloat              { self == .editorial ? 32 : 34 }
     var inputFieldHeight: CGFloat           { self == .editorial ? 52 : 56 }

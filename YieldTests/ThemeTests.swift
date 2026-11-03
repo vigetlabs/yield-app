@@ -123,6 +123,11 @@ final class ThemeSnapshotTests: XCTestCase {
             try Self.write(Self.chart(chartVM).environment(\.colorScheme, scheme),
                            to: outDir.appendingPathComponent("chart-editorial-\(suffix).png"))
         }
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.bars(chartVM).environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("bars-editorial-\(suffix).png"))
+        }
 
         // 2: System rows.
         ThemeStore.shared.select(.system)
@@ -152,11 +157,16 @@ final class ThemeSnapshotTests: XCTestCase {
             try Self.write(list, to: outDir.appendingPathComponent("grouped-system-\(suffix).png"))
         }
 
-        // 4: the System chart.
+        // 4: the System chart, then the System calendar bars.
         for (appearance, scheme, suffix) in appearances {
             NSApp.appearance = NSAppearance(named: appearance)
             try Self.write(Self.chart(chartVM).environment(\.colorScheme, scheme),
                            to: outDir.appendingPathComponent("chart-system-\(suffix).png"))
+        }
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.bars(chartVM).environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("bars-system-\(suffix).png"))
         }
     }
 
@@ -176,6 +186,11 @@ final class ThemeSnapshotTests: XCTestCase {
         try Self.identityProbe(surface: "chart") { Self.chart(vm) }
     }
 
+    func test_identityProbe_editorialBars() throws {
+        let vm = Self.makeChartViewModel()
+        try Self.identityProbe(surface: "bars") { Self.bars(vm) }
+    }
+
     private static func identityProbe<V: View>(surface: String, _ view: () -> V) throws {
         let env = ProcessInfo.processInfo.environment
         guard let dir = env["YIELD_SNAPSHOT_DIR"], env["YIELD_IDENTITY_SURFACE"] == surface else {
@@ -191,6 +206,28 @@ final class ThemeSnapshotTests: XCTestCase {
             try write(view().environment(\.colorScheme, scheme),
                       to: outDir.appendingPathComponent("\(surface)-editorial-\(suffix).png"))
         }
+    }
+
+    /// The two calendar bars that sit above the timer banner: a meeting
+    /// that started six minutes ago, and a meeting timer running twelve
+    /// minutes past its end.
+    private static func bars(_ vm: TimeComparisonViewModel) -> some View {
+        let now = Date()
+        let event = CalendarEvent(
+            id: "evt-prompt", summary: "Design review — BOATUS",
+            start: now.addingTimeInterval(-6 * 60), end: now.addingTimeInterval(24 * 60)
+        )
+        let reminder = TimeComparisonViewModel.CalendarSourcedTimer(
+            eventId: "evt-reminder", eventTitle: "Weekly planning",
+            eventStart: now.addingTimeInterval(-50 * 60), eventEnd: now.addingTimeInterval(-12 * 60),
+            projectId: 1, taskId: 100
+        )
+        return VStack(spacing: 0) {
+            MeetingPromptBarView(viewModel: vm, event: event, onStartTimer: {})
+            PostMeetingReminderBarView(viewModel: vm, reminder: reminder, onMoveTime: {})
+        }
+        .frame(width: YieldDimensions.panelWidth)
+        .background(YieldColors.background)
     }
 
     private static func chart(_ vm: TimeComparisonViewModel) -> some View {

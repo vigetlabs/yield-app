@@ -31,9 +31,20 @@ struct PostMeetingReminderBarView: View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let now = timeline.date
             HStack(spacing: 10) {
-                Image(systemName: "calendar.badge.exclamationmark")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(YieldColors.yellowAccent)
+                if ThemeStore.shared.theme.usesGroupedLayout {
+                    // System: the glyph sits in a tinted disc so the bar
+                    // reads as a band with a leading mark, like the rows.
+                    Image(systemName: "calendar.badge.exclamationmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(YieldColors.yellowAccent)
+                        .frame(width: 24, height: 24)
+                        .background(YieldColors.yellowAccent.opacity(0.14))
+                        .clipShape(Circle())
+                } else {
+                    Image(systemName: "calendar.badge.exclamationmark")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(YieldColors.yellowAccent)
+                }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(reminder.eventTitle)
@@ -74,8 +85,16 @@ struct PostMeetingReminderBarView: View {
                 .help("Dismiss")
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.vertical, ThemeStore.shared.theme.usesGroupedLayout ? 12 : 10)
             .background(YieldColors.yellowFaint)
+        }
+        .overlay(alignment: .top) {
+            // System: bands are hairlined on both edges.
+            if ThemeStore.shared.theme.usesGroupedLayout {
+                Rectangle()
+                    .fill(YieldColors.border)
+                    .frame(height: 1)
+            }
         }
         .overlay(alignment: .bottom) {
             Rectangle()

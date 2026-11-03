@@ -262,6 +262,12 @@ enum YieldDimensions {
     static var progressBarWidth: CGFloat { theme.progressBarWidth }
     static let progressBarHeight: CGFloat = 4
     static let timerButtonSize: CGFloat = 24
+    /// Text-button metrics — themed; see `YieldTheme`.
+    static var buttonHeight: CGFloat { theme.buttonHeight }
+    static var buttonHorizontalPadding: CGFloat { theme.buttonHorizontalPadding }
+    /// Not a dimension, but it travels with the two above: the opacity
+    /// a text button rests at before hover.
+    static var buttonRestingOpacity: Double { theme.buttonRestingOpacity }
     /// Standard control height for inline form inputs — pickers,
     /// favorite-list buttons. Matches the dropdown's intrinsic hit
     /// target. Themed: larger type needs a taller control.

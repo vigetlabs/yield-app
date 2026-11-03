@@ -9,12 +9,12 @@ struct GreenFilledButtonStyle: ButtonStyle {
         configuration.label
             .font(YieldFonts.labelButton)
             .foregroundStyle(YieldColors.background)
-            .padding(.horizontal, 11)
+            .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
             .padding(.vertical, 4)
-            .frame(height: 22)
+            .frame(height: YieldDimensions.buttonHeight)
             .background(YieldColors.greenAccent)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
-            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)
+            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
             }
@@ -30,16 +30,16 @@ struct GreenOutlinedButtonStyle: ButtonStyle {
         configuration.label
             .font(YieldFonts.labelButton)
             .foregroundStyle(YieldColors.greenAccent)
-            .padding(.horizontal, 11)
+            .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
             .padding(.vertical, 4)
-            .frame(height: 22)
+            .frame(height: YieldDimensions.buttonHeight)
             .background(isHovered ? YieldColors.greenSubtle : YieldColors.greenFaint)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
             .overlay(
                 RoundedRectangle(cornerRadius: YieldRadius.button)
                     .strokeBorder(isHovered ? YieldColors.greenBorderActive : YieldColors.greenBorder, lineWidth: 1)
             )
-            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)
+            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
             }
@@ -55,16 +55,16 @@ struct RedOutlinedButtonStyle: ButtonStyle {
         configuration.label
             .font(YieldFonts.labelButton)
             .foregroundStyle(YieldStatusColors.over)
-            .padding(.horizontal, 11)
+            .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
             .padding(.vertical, 4)
-            .frame(height: 22)
+            .frame(height: YieldDimensions.buttonHeight)
             .background(YieldStatusColors.over.opacity(isHovered ? 0.15 : 0.04))
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
             .overlay(
                 RoundedRectangle(cornerRadius: YieldRadius.button)
                     .strokeBorder(YieldStatusColors.over.opacity(isHovered ? 0.3 : 0.15), lineWidth: 1)
             )
-            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)
+            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
             }
@@ -80,16 +80,16 @@ struct BorderedButtonStyle: ButtonStyle {
         configuration.label
             .font(YieldFonts.labelButton)
             .foregroundStyle(YieldColors.textPrimary)
-            .padding(.horizontal, 11)
+            .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
             .padding(.vertical, 4)
-            .frame(height: 22)
+            .frame(height: YieldDimensions.buttonHeight)
             .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
             .overlay(
                 RoundedRectangle(cornerRadius: YieldRadius.button)
                     .strokeBorder(YieldColors.buttonBorder, lineWidth: 1)
             )
-            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)
+            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
             }
