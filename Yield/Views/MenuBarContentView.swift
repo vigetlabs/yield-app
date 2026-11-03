@@ -325,7 +325,7 @@ struct MenuBarContentView: View {
                 .font(YieldFonts.label(11))
                 .padding(16)
         } else {
-            if ThemeStore.shared.theme.usesGroupedLayout {
+            if ThemeStore.shared.theme.usesRefreshedLayout {
                 // Grouped layout: one section header per client, then
                 // its projects. Grouping preserves the view model's order.
                 ForEach(ProjectGrouping.grouped(statuses)) { group in
@@ -516,7 +516,7 @@ struct MenuBarContentView: View {
                 ForEach(viewModel.displayedFilteredStatuses) { project in
                     LookAheadRowView(project: project)
                 }
-            } else if ThemeStore.shared.theme.usesGroupedLayout {
+            } else if ThemeStore.shared.theme.usesRefreshedLayout {
                 ForEach(ProjectGrouping.grouped(viewModel.displayedFilteredStatuses)) { group in
                     ClientSectionHeader(client: group.client)
                     ForEach(group.projects) { project in

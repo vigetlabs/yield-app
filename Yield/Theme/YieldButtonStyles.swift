@@ -106,15 +106,34 @@ struct TimerControlButtonStyle: ButtonStyle {
     /// gets a "you're about to terminate" signal mid-hover. Mirrors the
     /// active-hover state in the Figma design.
     var destructiveOnHover: Bool = false
+    /// Hit/visual size. Defaults to the shared 24pt; the System banner
+    /// passes 28 for its hero controls.
+    var size: CGFloat = YieldDimensions.timerButtonSize
+    /// Filled circle (a tint of the foreground color, no border) rather
+    /// than the bordered square — the System banner's control style.
+    var filled: Bool = false
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
         let resolvedForeground = (destructiveOnHover && isHovered) ? YieldStatusColors.over : foregroundColor
         let resolvedBorder = (destructiveOnHover && isHovered) ? YieldStatusColors.over : borderColor
-        return configuration.label
+        if filled {
+            return AnyView(configuration.label
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(resolvedForeground)
+                .frame(width: size, height: size)
+                .contentShape(Circle())
+                .background(resolvedForeground.opacity(isHovered ? 0.28 : 0.16))
+                .clipShape(Circle())
+                .opacity(configuration.isPressed ? 0.6 : 1.0)
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                })
+        }
+        return AnyView(configuration.label
             .font(.system(size: 10))
             .foregroundStyle(resolvedForeground)
-            .frame(width: YieldDimensions.timerButtonSize, height: YieldDimensions.timerButtonSize)
+            .frame(width: size, height: size)
             .contentShape(Rectangle())
             .background(isHovered ? YieldColors.surfaceActive : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
@@ -125,7 +144,7 @@ struct TimerControlButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : 0.8)
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
-            }
+            })
     }
 }
 

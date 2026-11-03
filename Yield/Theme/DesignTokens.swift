@@ -209,6 +209,8 @@ extension YieldFonts {
     static var rowSubtitle: Font { theme.rowSubtitle }
     /// Client name above a group of rows.
     static var sectionHeader: Font { theme.sectionHeader }
+    /// The timer banner's elapsed figure.
+    static var heroFigure: Font { theme.heroFigure }
 }
 
 // MARK: - Corner Radii

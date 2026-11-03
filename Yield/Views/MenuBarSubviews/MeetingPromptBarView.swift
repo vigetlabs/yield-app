@@ -32,7 +32,7 @@ struct MeetingPromptBarView: View {
             let now = timeline.date
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 10) {
-                    if ThemeStore.shared.theme.usesGroupedLayout {
+                    if ThemeStore.shared.theme.usesRefreshedLayout {
                         // System: the glyph sits in a tinted disc so the bar
                         // reads as a band with a leading mark, like the rows.
                         Image(systemName: "calendar.badge.clock")
@@ -99,15 +99,15 @@ struct MeetingPromptBarView: View {
                         .underline()
                 }
                 .buttonStyle(.plain)
-                .padding(.leading, ThemeStore.shared.theme.usesGroupedLayout ? 34 : 23)
+                .padding(.leading, ThemeStore.shared.theme.usesRefreshedLayout ? 34 : 23)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, ThemeStore.shared.theme.usesGroupedLayout ? 12 : 10)
+            .padding(.vertical, ThemeStore.shared.theme.usesRefreshedLayout ? 12 : 10)
             .background(YieldColors.yellowFaint)
         }
         .overlay(alignment: .top) {
             // System: bands are hairlined on both edges.
-            if ThemeStore.shared.theme.usesGroupedLayout {
+            if ThemeStore.shared.theme.usesRefreshedLayout {
                 Rectangle()
                     .fill(YieldColors.border)
                     .frame(height: 1)

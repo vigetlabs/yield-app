@@ -31,7 +31,7 @@ struct PostMeetingReminderBarView: View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let now = timeline.date
             HStack(spacing: 10) {
-                if ThemeStore.shared.theme.usesGroupedLayout {
+                if ThemeStore.shared.theme.usesRefreshedLayout {
                     // System: the glyph sits in a tinted disc so the bar
                     // reads as a band with a leading mark, like the rows.
                     Image(systemName: "calendar.badge.exclamationmark")
@@ -85,12 +85,12 @@ struct PostMeetingReminderBarView: View {
                 .help("Dismiss")
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, ThemeStore.shared.theme.usesGroupedLayout ? 12 : 10)
+            .padding(.vertical, ThemeStore.shared.theme.usesRefreshedLayout ? 12 : 10)
             .background(YieldColors.yellowFaint)
         }
         .overlay(alignment: .top) {
             // System: bands are hairlined on both edges.
-            if ThemeStore.shared.theme.usesGroupedLayout {
+            if ThemeStore.shared.theme.usesRefreshedLayout {
                 Rectangle()
                     .fill(YieldColors.border)
                     .frame(height: 1)

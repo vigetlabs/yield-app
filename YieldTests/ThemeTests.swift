@@ -58,8 +58,8 @@ final class ThemeTests: XCTestCase {
 
     /// The layout fork is gated on one flag; pin which theme owns it.
     func test_onlySystemUsesGroupedLayout() {
-        XCTAssertFalse(YieldTheme.editorial.usesGroupedLayout)
-        XCTAssertTrue(YieldTheme.system.usesGroupedLayout)
+        XCTAssertFalse(YieldTheme.editorial.usesRefreshedLayout)
+        XCTAssertTrue(YieldTheme.system.usesRefreshedLayout)
     }
 
     /// The System theme's whole point is dropping the serif; make sure
@@ -128,6 +128,12 @@ final class ThemeSnapshotTests: XCTestCase {
             try Self.write(Self.bars(chartVM).environment(\.colorScheme, scheme),
                            to: outDir.appendingPathComponent("bars-editorial-\(suffix).png"))
         }
+        let bannerVM = Self.makeBannerViewModel()
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.banner(bannerVM).environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("banner-editorial-\(suffix).png"))
+        }
 
         // 2: System rows.
         ThemeStore.shared.select(.system)
@@ -168,6 +174,11 @@ final class ThemeSnapshotTests: XCTestCase {
             try Self.write(Self.bars(chartVM).environment(\.colorScheme, scheme),
                            to: outDir.appendingPathComponent("bars-system-\(suffix).png"))
         }
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.banner(bannerVM).environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("banner-system-\(suffix).png"))
+        }
     }
 
     /// Pixel-identity probes for the Editorial surfaces. Each renders
@@ -186,9 +197,18 @@ final class ThemeSnapshotTests: XCTestCase {
         try Self.identityProbe(surface: "chart") { Self.chart(vm) }
     }
 
+    /// Clock-dependent: the bars print the event's wall-clock times, so
+    /// this only compares byte-for-byte against a baseline rendered in
+    /// the same minute. A diff confined to the status-line rows is the
+    /// clock, not a layout change.
     func test_identityProbe_editorialBars() throws {
         let vm = Self.makeChartViewModel()
         try Self.identityProbe(surface: "bars") { Self.bars(vm) }
+    }
+
+    func test_identityProbe_editorialBanner() throws {
+        let vm = Self.makeBannerViewModel()
+        try Self.identityProbe(surface: "banner") { Self.banner(vm) }
     }
 
     private static func identityProbe<V: View>(surface: String, _ view: () -> V) throws {
@@ -228,6 +248,32 @@ final class ThemeSnapshotTests: XCTestCase {
         }
         .frame(width: YieldDimensions.panelWidth)
         .background(YieldColors.background)
+    }
+
+    /// The timer banner with a running timer: task, client — project,
+    /// a note, and 1h10m on the clock.
+    private static func banner(_ vm: TimeComparisonViewModel) -> some View {
+        TimerBannerView(viewModel: vm)
+            .frame(width: YieldDimensions.panelWidth)
+            .background(YieldColors.background)
+    }
+
+    /// A view model with one timer running on today's entry.
+    static func makeBannerViewModel() -> TimeComparisonViewModel {
+        let vm = TimeComparisonViewModel()
+        let startedAt = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-70 * 60))
+        let entry = HarvestTimeEntry(
+            id: 1, hours: 1.17, spentDate: DateHelpers.dateFormatter.string(from: Date()), isRunning: true,
+            updatedAt: startedAt, notes: "Homepage hero + nav", isLocked: nil, approvalStatus: nil,
+            timerStartedAt: startedAt,
+            project: HarvestProjectRef(id: 1, name: "BOATUS.com Website Redesign", code: nil),
+            client: HarvestClientRef(id: 1, name: "GEICO [GCO]"),
+            task: nil,
+            taskAssignment: HarvestTaskAssignmentRef(id: 901, task: HarvestTaskRef(id: 100, name: "FED"))
+        )
+        vm.applyRefreshedData(entries: [entry], bookedByForecastProject: [:], projectMap: [:],
+                              clientMap: [:], timeOffBlock: nil, notesByForecastProject: [:])
+        return vm
     }
 
     private static func chart(_ vm: TimeComparisonViewModel) -> some View {
@@ -331,7 +377,7 @@ final class ThemeSnapshotTests: XCTestCase {
         ]
         return VStack(spacing: 0) {
             // The layout switch sits above the rows, as in the panel.
-            if ThemeStore.shared.theme.usesGroupedLayout {
+            if ThemeStore.shared.theme.usesRefreshedLayout {
                 ForEach(statuses) { project in
                     ProjectRowView<GroupedRowLayout>(project: project, effectiveLoggedHours: project.loggedHours, visibleEntries: [])
                 }

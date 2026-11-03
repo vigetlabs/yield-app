@@ -39,18 +39,18 @@ enum YieldTheme: String, CaseIterable {
         }
     }
 
-    /// Whether the panel uses the grouped list layout: client section
-    /// headers over rows whose header is name + subtitle on the left
-    /// and figure + bar on the right, instead of the per-row client
-    /// label. This is a *layout* fork, not a typographic one — it's
-    /// gated here rather than derived from fonts so Editorial stays
-    /// pixel-identical to the app as it shipped, by decision.
-    var usesGroupedLayout: Bool { self == .system }
+    /// Whether the panel uses the refreshed layout: the grouped list
+    /// with client section headers and name + figure rows, the band-
+    /// style calendar bars and timer banner, taller buttons. This is a
+    /// *layout* fork, not a typographic one — it's gated here rather
+    /// than derived from fonts so Editorial stays pixel-identical to the
+    /// app as it shipped, by decision.
+    var usesRefreshedLayout: Bool { self == .system }
 
     /// Whether the weekly chart uses the refreshed styling — validated
     /// series palette, hover breakdown, square legend swatches (System).
     /// Same form as Editorial's stacked area; same fork discipline as
-    /// `usesGroupedLayout`: Editorial keeps the chart exactly as it
+    /// `usesRefreshedLayout`: Editorial keeps the chart exactly as it
     /// shipped.
     var usesRefreshedChart: Bool { self == .system }
 
@@ -257,6 +257,14 @@ enum YieldTheme: String, CaseIterable {
         switch self {
         case .editorial: return label(9, weight: .medium)
         case .system:    return .system(size: 10.5, weight: .semibold)
+        }
+    }
+
+    /// The timer banner's elapsed figure — the panel's hero number.
+    var heroFigure: Font {
+        switch self {
+        case .editorial: return monoMedium
+        case .system:    return .system(size: 22, weight: .medium).monospacedDigit()
         }
     }
 

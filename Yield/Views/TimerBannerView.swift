@@ -25,6 +25,10 @@ struct TimerBannerView: View {
 
     private let emptyHeight: CGFloat = 16
 
+    /// System theme: the hero layout below. Editorial keeps the banner
+    /// exactly as it shipped.
+    private var refreshed: Bool { ThemeStore.shared.theme.usesRefreshedLayout }
+
     /// Whether a timer is set (active or paused). The view is always
     /// rendered; this drives the slot's expanded vs. strip height and
     /// whether the timer content fades in.
@@ -164,11 +168,16 @@ struct TimerBannerView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            LinearGradient(
-                colors: [gradientColor, Color.clear],
-                startPoint: .leading,
-                endPoint: UnitPoint(x: 0.7, y: 0.5)
-            )
+            if refreshed {
+                // System: a flat wash, like the calendar bars above it.
+                Rectangle().fill(accentColor.opacity(0.07))
+            } else {
+                LinearGradient(
+                    colors: [gradientColor, Color.clear],
+                    startPoint: .leading,
+                    endPoint: UnitPoint(x: 0.7, y: 0.5)
+                )
+            }
 
             timerContent
                 .opacity(hasTimer ? 1 : 0)
@@ -189,6 +198,13 @@ struct TimerBannerView: View {
         // around a smooth banner.
         .frame(height: hasTimer ? contentHeight : emptyHeight, alignment: .top)
         .clipped()
+        .overlay(alignment: .top) {
+            if refreshed && hasTimer {
+                Rectangle()
+                    .fill(YieldColors.border)
+                    .frame(height: 1)
+            }
+        }
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(YieldColors.border)
@@ -237,6 +253,9 @@ struct TimerBannerView: View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let totalSeconds = computeTotalSeconds(at: timeline.date)
 
+            if refreshed {
+                heroContent(totalSeconds: totalSeconds)
+            } else {
             HStack(spacing: 10) {
                 // Left: dot + project/task info
                 HStack(spacing: 8) {
@@ -331,6 +350,7 @@ struct TimerBannerView: View {
                 }
             }
             .padding(16)
+            }
         }
         .contentShape(Rectangle())
         .onHover { hovering in
@@ -338,6 +358,88 @@ struct TimerBannerView: View {
                 isHovered = hovering
             }
         }
+    }
+
+    // MARK: - Hero layout (System theme)
+
+    /// The banner as the panel's hero: task name as the title, client
+    /// and project beneath it in mixed case, notes on a third line; the
+    /// elapsed figure large in the accent color; circular controls. The
+    /// reveal zone, context menu, dot pulse and colon blink are the
+    /// shared ones.
+    private func heroContent(totalSeconds: Int) -> some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(accentColor)
+                    .frame(width: 7, height: 7)
+                    .scaleEffect(dotPulse ? 1.25 : 1.0)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 5) {
+                        Text(taskName)
+                            .font(YieldFonts.titleMedium)
+                            .foregroundStyle(YieldColors.textPrimary)
+                            .lineLimit(1)
+
+                        if !timerStartedTooltip.isEmpty {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 10))
+                                .foregroundStyle(YieldColors.textSecondary)
+                                .help(timerStartedTooltip)
+                        }
+                    }
+
+                    Text(contextLabel)
+                        .font(YieldFonts.label(10))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .lineLimit(1)
+
+                    detailLine
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Same trailing cluster as Editorial: figure, reveal zone,
+            // then the controls that never move.
+            HStack(spacing: 0) {
+                timerDisplay(totalSeconds: totalSeconds, font: YieldFonts.heroFigure)
+
+                actionRevealZone
+
+                HStack(spacing: 8) {
+                    Button {
+                        Task {
+                            if isActive {
+                                await viewModel.pauseTimer()
+                            } else {
+                                await viewModel.resumeTimer()
+                            }
+                        }
+                    } label: {
+                        Image(systemName: isActive ? "pause.fill" : "play.fill")
+                    }
+                    .buttonStyle(TimerControlButtonStyle(
+                        foregroundColor: accentColor, size: 28, filled: true
+                    ))
+                    .disabledWhenHarvestDown(viewModel.isHarvestDown)
+
+                    Button {
+                        Task { await viewModel.stopBannerTimer() }
+                    } label: {
+                        Image(systemName: "stop.fill")
+                    }
+                    .buttonStyle(TimerControlButtonStyle(
+                        foregroundColor: YieldColors.textSecondary,
+                        destructiveOnHover: true, size: 28, filled: true
+                    ))
+                    .disabledWhenHarvestDown(viewModel.isHarvestDown)
+                }
+                .padding(.leading, 12)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 
     // MARK: - Overflow Action Reveal
@@ -447,7 +549,7 @@ struct TimerBannerView: View {
     /// the macOS menu-bar clock's "Flash the time separators" behavior:
     /// 1s visible, 1s hidden, hard on/off (no fade).
     @ViewBuilder
-    private func timerDisplay(totalSeconds: Int) -> some View {
+    private func timerDisplay(totalSeconds: Int, font: Font = YieldFonts.monoMedium) -> some View {
         // Round seconds to the nearest minute so the banner agrees with
         // the project drawer / row totals (which all round Harvest's
         // 0.01h-precision values to the nearest minute via formatHM).
@@ -462,7 +564,7 @@ struct TimerBannerView: View {
                 .opacity(isActive && !colonOn ? 0.0 : 1.0)
             Text(String(format: "%02d", m))
         }
-        .font(YieldFonts.monoMedium)
+        .font(font)
         .foregroundStyle(accentColor)
         .monospacedDigit()
         // Only spin a per-second blink loop when we actually need one
