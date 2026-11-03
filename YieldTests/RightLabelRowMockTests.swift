@@ -116,6 +116,10 @@ enum RightLabelRowLayout: ProjectRowLayout {
                 .font(YieldFonts.rowSubtitle)
                 .foregroundStyle(label.color)
                 .lineLimit(1)
+                // Claim the label's own width: the column is otherwise
+                // sized by the bar, and the hover-action zone squeezes
+                // it differently per row, truncating some labels.
+                .fixedSize()
         }
     }
 }
