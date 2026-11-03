@@ -15,86 +15,150 @@ private func dynamicColor(light: NSColor, dark: NSColor) -> Color {
 
 // MARK: - Colors
 
+/// The palette, resolved through the active theme like every other
+/// token. Each theme is a complete set below; the public names pick
+/// from whichever is active, so views never know which palette they
+/// are drawing with.
+///
+/// Editorial's values are the app's original ones, unchanged. System's
+/// are a deliberate half-step away for visual distinction: cool slate
+/// surfaces instead of neutral near-black, an emerald a touch less neon
+/// than the mint, amber in place of lemon, and overlay tints that carry
+/// the same cool cast. Every text-bearing color was checked against its
+/// surface at WCAG AA (≥ 4.5:1) in both appearances.
 enum YieldColors {
-    /// Panel background. Dark mode is the original `#1A1B1C`; light mode
-    /// is a slightly cool off-white that mirrors that brightness without
-    /// the harshness of pure white.
-    static let background = dynamicColor(
-        light: NSColor(red: 0.961, green: 0.961, blue: 0.965, alpha: 1.0),  // #F5F5F6
-        dark:  NSColor(red: 0.082, green: 0.086, blue: 0.090, alpha: 1.0)   // #151617 — one step darker so surfaceActive slots read distinctly
-    )
+    private static var theme: YieldTheme { ThemeStore.shared.theme }
 
-    // Brand accents flip between a bright dark-mode value and a darker
-    // light-mode value tuned for WCAG AA (≥ 4.5:1) against the panel
-    // background. The opacity-derived variants below inherit from these
-    // dynamic accents, so e.g. `greenFaint` becomes a soft pale-green
-    // wash in light mode and the original 4% white-tinted glow in dark.
-    static let greenAccent = dynamicColor(
-        light: NSColor(red: 0.043, green: 0.439, blue: 0.282, alpha: 1.0),  // #0B7048 — 5.6:1 on light bg
-        dark:  NSColor(red: 0.082, green: 0.855, blue: 0.576, alpha: 1.0)   // #15DA93 — 9.95:1 on dark bg
-    )
-    static let greenDim = greenAccent.opacity(0.3)
-    static let greenSubtle = greenAccent.opacity(0.15)
-    static let greenFaint = greenAccent.opacity(0.04)
+    static var background: Color      { theme == .editorial ? Editorial.background : System.background }
+    static var greenAccent: Color     { theme == .editorial ? Editorial.greenAccent : System.greenAccent }
+    static var greenDim: Color        { greenAccent.opacity(0.3) }
+    static var greenSubtle: Color     { greenAccent.opacity(0.15) }
+    static var greenFaint: Color      { greenAccent.opacity(0.04) }
+    static var yellowAccent: Color    { theme == .editorial ? Editorial.yellowAccent : System.yellowAccent }
+    static var yellowDim: Color       { yellowAccent.opacity(0.3) }
+    static var yellowFaint: Color     { yellowAccent.opacity(0.1) }
+    static var border: Color          { theme == .editorial ? Editorial.border : System.border }
+    static var buttonBorder: Color    { theme == .editorial ? Editorial.buttonBorder : System.buttonBorder }
+    static var greenBorder: Color     { greenAccent.opacity(0.15) }
+    static var greenBorderActive: Color { greenAccent.opacity(0.3) }
+    static var textPrimary: Color     { theme == .editorial ? Editorial.textPrimary : System.textPrimary }
+    static var textSecondary: Color   { theme == .editorial ? Editorial.textSecondary : System.textSecondary }
+    static var surfaceDefault: Color  { theme == .editorial ? Editorial.surfaceDefault : System.surfaceDefault }
+    static var surfaceActive: Color   { theme == .editorial ? Editorial.surfaceActive : System.surfaceActive }
+    static var progressTrack: Color   { theme == .editorial ? Editorial.progressTrack : System.progressTrack }
+    static var onBackground: Color    { theme == .editorial ? Editorial.onBackground : System.onBackground }
 
-    static let yellowAccent = dynamicColor(
-        light: NSColor(red: 0.580, green: 0.380, blue: 0.0,   alpha: 1.0),  // #946100 — 4.9:1 on light bg
-        dark:  NSColor(red: 1.0,   green: 0.831, blue: 0.286, alpha: 1.0)   // #FFD449 — 12.7:1 on dark bg
-    )
-    static let yellowDim = yellowAccent.opacity(0.3)
-    static let yellowFaint = yellowAccent.opacity(0.1)
+    /// The original palette. Dark mode is the original `#1A1B1C`-era
+    /// scheme on `#151617`; light mode is a slightly cool off-white that
+    /// mirrors that brightness without the harshness of pure white.
+    /// Brand accents flip between a bright dark-mode value and a darker
+    /// light-mode value tuned for WCAG AA against the panel background.
+    enum Editorial {
+        static let background = dynamicColor(
+            light: NSColor(red: 0.961, green: 0.961, blue: 0.965, alpha: 1.0),  // #F5F5F6
+            dark:  NSColor(red: 0.082, green: 0.086, blue: 0.090, alpha: 1.0)   // #151617
+        )
+        static let greenAccent = dynamicColor(
+            light: NSColor(red: 0.043, green: 0.439, blue: 0.282, alpha: 1.0),  // #0B7048 — 5.6:1
+            dark:  NSColor(red: 0.082, green: 0.855, blue: 0.576, alpha: 1.0)   // #15DA93 — 9.95:1
+        )
+        static let yellowAccent = dynamicColor(
+            light: NSColor(red: 0.580, green: 0.380, blue: 0.0,   alpha: 1.0),  // #946100 — 4.9:1
+            dark:  NSColor(red: 1.0,   green: 0.831, blue: 0.286, alpha: 1.0)   // #FFD449 — 12.7:1
+        )
+        /// Hairlines and dividers — invert the alpha overlay color between
+        /// modes so the same opacity values continue to work.
+        static let border = dynamicColor(
+            light: NSColor.black.withAlphaComponent(0.1),
+            dark:  NSColor.white.withAlphaComponent(0.1)
+        )
+        static let buttonBorder = dynamicColor(
+            light: NSColor.black.withAlphaComponent(0.25),
+            dark:  NSColor.white.withAlphaComponent(0.3)
+        )
+        static let textPrimary = dynamicColor(
+            light: NSColor(red: 0.102, green: 0.106, blue: 0.110, alpha: 1.0),  // mirror of dark bg
+            dark:  .white
+        )
+        static let textSecondary = dynamicColor(
+            light: NSColor(red: 0.102, green: 0.106, blue: 0.110, alpha: 0.7),
+            dark:  NSColor.white.withAlphaComponent(0.7)
+        )
+        /// Hover / pressed surfaces over the panel background. Light mode
+        /// uses lighter overlays (0.04 / 0.06) since dark-on-light at 0.10
+        /// reads heavier than white-on-dark at 0.10.
+        static let surfaceDefault = dynamicColor(
+            light: NSColor.black.withAlphaComponent(0.04),
+            dark:  NSColor.white.withAlphaComponent(0.04)
+        )
+        static let surfaceActive = dynamicColor(
+            light: NSColor.black.withAlphaComponent(0.06),
+            dark:  NSColor.white.withAlphaComponent(0.1)
+        )
+        /// Unfilled track behind progress bars and the day-segment slots.
+        /// Stronger than `surfaceActive` so an empty track reads as
+        /// distinct from the panel background.
+        static let progressTrack = dynamicColor(
+            light: NSColor.black.withAlphaComponent(0.10),
+            dark:  NSColor.white.withAlphaComponent(0.13)
+        )
+        /// Generic foreground that always contrasts the panel background.
+        static let onBackground = dynamicColor(
+            light: NSColor(red: 0.102, green: 0.106, blue: 0.110, alpha: 1.0),
+            dark:  .white
+        )
+    }
 
-    /// Hairlines and dividers — invert the alpha overlay color between
-    /// modes so the same opacity values continue to work.
-    static let border = dynamicColor(
-        light: NSColor.black.withAlphaComponent(0.1),
-        dark:  NSColor.white.withAlphaComponent(0.1)
-    )
-    static let buttonBorder = dynamicColor(
-        light: NSColor.black.withAlphaComponent(0.25),
-        dark:  NSColor.white.withAlphaComponent(0.3)
-    )
-    static let greenBorder = greenAccent.opacity(0.15)
-    static let greenBorderActive = greenAccent.opacity(0.3)
+    /// The System theme's palette: a half-step cooler and calmer than
+    /// Editorial. Surfaces are slate (#14171C / #F3F5F8), ink is a cool
+    /// off-white / near-black, and the overlays — hairlines, hover
+    /// surfaces, tracks — are tints of a slate-blue rather than pure
+    /// white or black, so the whole panel carries one temperature.
+    enum System {
+        /// Overlay tint: slate-blue, light on dark and dark on light.
+        private static func tint(_ alpha: CGFloat) -> Color {
+            dynamicColor(
+                light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: alpha),  // #1E2A40
+                dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: alpha)   // #B8C4DB
+            )
+        }
 
-    static let textPrimary = dynamicColor(
-        light: NSColor(red: 0.102, green: 0.106, blue: 0.110, alpha: 1.0),  // mirror of dark bg
-        dark:  .white
-    )
-    static let textSecondary = dynamicColor(
-        light: NSColor(red: 0.102, green: 0.106, blue: 0.110, alpha: 0.7),
-        dark:  NSColor.white.withAlphaComponent(0.7)
-    )
-
-    /// Hover / pressed surfaces over the panel background. Light mode
-    /// uses lighter overlays (0.04 / 0.06) since dark-on-light at 0.10
-    /// reads heavier than white-on-dark at 0.10.
-    static let surfaceDefault = dynamicColor(
-        light: NSColor.black.withAlphaComponent(0.04),
-        dark:  NSColor.white.withAlphaComponent(0.04)
-    )
-    static let surfaceActive = dynamicColor(
-        light: NSColor.black.withAlphaComponent(0.06),
-        dark:  NSColor.white.withAlphaComponent(0.1)
-    )
-
-    /// Unfilled track behind progress bars and the day-segment slots.
-    /// Stronger than `surfaceActive` so an empty track/slot reads as
-    /// clearly distinct from the panel background — kept separate from
-    /// `surfaceActive` so tuning it doesn't darken every hover surface.
-    static let progressTrack = dynamicColor(
-        light: NSColor.black.withAlphaComponent(0.10),
-        dark:  NSColor.white.withAlphaComponent(0.13)
-    )
-
-    /// Generic foreground that should always contrast the panel
-    /// background — `Color.white` in dark mode, dark gray in light. Use
-    /// for status lines, dot fills, and any place a literal white was
-    /// previously hard-coded against the dark bg.
-    static let onBackground = dynamicColor(
-        light: NSColor(red: 0.102, green: 0.106, blue: 0.110, alpha: 1.0),
-        dark:  .white
-    )
+        static let background = dynamicColor(
+            light: NSColor(red: 0.953, green: 0.961, blue: 0.973, alpha: 1.0),  // #F3F5F8
+            dark:  NSColor(red: 0.078, green: 0.090, blue: 0.110, alpha: 1.0)   // #14171C
+        )
+        static let greenAccent = dynamicColor(
+            light: NSColor(red: 0.059, green: 0.498, blue: 0.298, alpha: 1.0),  // #0F7F4C
+            dark:  NSColor(red: 0.247, green: 0.827, blue: 0.478, alpha: 1.0)   // #3FD37A
+        )
+        static let yellowAccent = dynamicColor(
+            light: NSColor(red: 0.561, green: 0.369, blue: 0.0,   alpha: 1.0),  // #8F5E00
+            dark:  NSColor(red: 0.969, green: 0.718, blue: 0.192, alpha: 1.0)   // #F7B731
+        )
+        static let border = tint(0.12)
+        static let buttonBorder = dynamicColor(
+            light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: 0.25),
+            dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: 0.30)
+        )
+        static let textPrimary = dynamicColor(
+            light: NSColor(red: 0.090, green: 0.106, blue: 0.133, alpha: 1.0),  // #171B22
+            dark:  NSColor(red: 0.949, green: 0.957, blue: 0.969, alpha: 1.0)   // #F2F4F7
+        )
+        static let textSecondary = dynamicColor(
+            light: NSColor(red: 0.090, green: 0.106, blue: 0.133, alpha: 0.68),
+            dark:  NSColor(red: 0.949, green: 0.957, blue: 0.969, alpha: 0.68)
+        )
+        static let surfaceDefault = tint(0.05)
+        static let surfaceActive = dynamicColor(
+            light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: 0.08),
+            dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: 0.11)
+        )
+        static let progressTrack = dynamicColor(
+            light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: 0.12),
+            dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: 0.14)
+        )
+        static let onBackground = textPrimary
+    }
 }
 
 // MARK: - Chart colors
@@ -218,29 +282,32 @@ extension YieldFonts {
 // MARK: - Status Colors
 
 enum YieldStatusColors {
-    static let under = YieldColors.greenAccent
+    private static var theme: YieldTheme { ThemeStore.shared.theme }
+
+    static var under: Color { YieldColors.greenAccent }
+    /// Over budget. Shared: the coral reads the same against both
+    /// themes' surfaces (light 4.8:1, dark ≥ 5.5:1).
     static let over = dynamicColor(
-        light: NSColor(red: 0.757, green: 0.243, blue: 0.055, alpha: 1.0),  // #C13E0E — 4.8:1 on light bg
-        dark:  NSColor(red: 0.941, green: 0.365, blue: 0.157, alpha: 1.0)   // #F05D28 — 5.5:1 on dark bg
+        light: NSColor(red: 0.757, green: 0.243, blue: 0.055, alpha: 1.0),  // #C13E0E
+        dark:  NSColor(red: 0.941, green: 0.365, blue: 0.157, alpha: 1.0)   // #F05D28
     )
-    static let unbooked = dynamicColor(
-        light: NSColor.black.withAlphaComponent(0.3),
-        dark:  NSColor.white.withAlphaComponent(0.3)
-    )
+    /// Unbooked status line — a 30% overlay; System's carries the slate tint.
+    static var unbooked: Color {
+        theme == .editorial
+            ? dynamicColor(light: NSColor.black.withAlphaComponent(0.3), dark: NSColor.white.withAlphaComponent(0.3))
+            : dynamicColor(light: NSColor(red: 0.118, green: 0.165, blue: 0.251, alpha: 0.3),
+                           dark:  NSColor(red: 0.722, green: 0.769, blue: 0.859, alpha: 0.3))
+    }
     /// Prospective / proposal-stage Forecast projects — booked but not
-    /// yet linked to a Harvest project. Used as the 2px status line.
+    /// yet linked to a Harvest project. Shared.
     static let prospective = dynamicColor(
-        light: NSColor(red: 0.722, green: 0.153, blue: 0.435, alpha: 1.0),  // #B8276F — 5.4:1 on light bg
-        dark:  NSColor(red: 0.941, green: 0.365, blue: 0.627, alpha: 1.0)   // #F05DA0 — 5.0:1 on dark bg
+        light: NSColor(red: 0.722, green: 0.153, blue: 0.435, alpha: 1.0),  // #B8276F
+        dark:  NSColor(red: 0.941, green: 0.365, blue: 0.627, alpha: 1.0)   // #F05DA0
     )
-    /// Warning amber — a real, actionable problem that isn't an error:
-    /// a project booked in Forecast the user isn't a member of in
-    /// Harvest. Status line + the row's unassigned badge. WCAG-checked
-    /// against both backgrounds.
-    static let warning = dynamicColor(
-        light: NSColor(red: 0.580, green: 0.380, blue: 0.0,   alpha: 1.0),  // #946100 — 4.6:1 on light bg
-        dark:  NSColor(red: 1.0,   green: 0.831, blue: 0.286, alpha: 1.0)   // #FFD449 — 11.9:1 on dark bg
-    )
+    /// Warning amber — booked in Forecast, not a member in Harvest. The
+    /// theme's yellow accent, so it matches the bars and the paused
+    /// timer.
+    static var warning: Color { YieldColors.yellowAccent }
 }
 
 enum YieldRadius {
