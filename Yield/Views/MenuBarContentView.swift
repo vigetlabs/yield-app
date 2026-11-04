@@ -462,15 +462,18 @@ struct MenuBarContentView: View {
         Task {
             let handled = await viewModel.startTimerForMeetingPrompt()
             guard !handled else { return }
-            let elapsed = viewModel.meetingPromptElapsedHours()
+            // Same rule as the bar's label (`meetingPromptMoveHours`):
+            // move mode only when there's a running timer with at
+            // least a minute worth moving; otherwise a plain start.
+            let moveHours = viewModel.meetingPromptMoveHours()
             withAnimation(.easeInOut(duration: 0.2)) {
                 // The prompt is NOT dismissed here — the form covers
                 // the panel, so the bar just waits underneath. Backing
                 // out returns to it; a form commit finalizes it via
                 // `finalizeMeetingPromptAction`.
                 formMeetingEvent = event
-                if viewModel.trackingEntry != nil, elapsed > 0 {
-                    formTimerMovePrefillHours = elapsed
+                if let moveHours {
+                    formTimerMovePrefillHours = moveHours
                     viewModel.startTimerMove()
                 } else {
                     showNewTimerForm = true

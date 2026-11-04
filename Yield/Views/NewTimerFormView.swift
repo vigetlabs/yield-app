@@ -294,8 +294,12 @@ struct NewTimerFormView: View {
             if let meetingEvent, notes.isEmpty, !meetingEvent.summary.isEmpty {
                 notes = meetingEvent.summary
             }
-            if isTimerMove, let prefill = timerMovePrefillHours {
-                (timeHours, timeMinutes) = prefill.roundedHM
+            if let move = timerMove, let prefill = timerMovePrefillHours {
+                // Clamp to what the source actually holds — a prefill
+                // above the ceiling would leave both commit buttons
+                // disabled with nothing on screen saying why.
+                let clamped = min(prefill, viewModel.timerMoveAvailableHours(move))
+                (timeHours, timeMinutes) = clamped.roundedHM
             }
 
             await loadProjects()

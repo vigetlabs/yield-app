@@ -134,11 +134,11 @@ struct MeetingPromptBarView: View {
     }
 
     /// The primary action's label carries the move offer when there's
-    /// a running timer to move from and the meeting already started:
-    /// "Start & move 0:06". Otherwise a plain "Start Timer".
+    /// a running timer with at least a minute worth moving: "Start &
+    /// move 0:06". Otherwise a plain "Start Timer". The view model owns
+    /// the rule so the label and what the button does can't disagree.
     private func startLabel(now: Date) -> String {
-        let elapsed = max(0, now.timeIntervalSince(event.start) / 3600)
-        guard viewModel.trackingEntry != nil, elapsed * 60 >= 1 else { return "Start Timer" }
-        return "Start & move \(elapsed.formattedColon)"
+        guard let hours = viewModel.meetingPromptMoveHours(now: now) else { return "Start Timer" }
+        return "Start & move \(hours.formattedColon)"
     }
 }

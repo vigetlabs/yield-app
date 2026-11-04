@@ -213,6 +213,51 @@ final class MeetingPromptTests: XCTestCase {
         XCTAssertFalse(vm.meetingPromptEligible(
             event(id: "evt-2", startOffsetMinutes: -5), now: now))
     }
+    // MARK: - meetingPromptMoveHours (the one rule behind label + routing)
+
+    private func runningEntry(hours: Double) -> TimeEntryInfo {
+        TimeEntryInfo(
+            id: 9, harvestProjectId: 500, taskId: 100, taskName: "Task", hours: hours,
+            date: DateHelpers.dateFormatter.string(from: now), isRunning: true, notes: nil, timerStartedAt: nil
+        )
+    }
+
+    func test_moveHours_noRunningTimer_isNil() {
+        let vm = makeVM()
+        vm._setStateForTesting(activeMeetingPrompt: event(startOffsetMinutes: -10))
+        XCTAssertNil(vm.meetingPromptMoveHours(now: now))
+    }
+
+    /// The first minute: the bar says "Start Timer", so the routing
+    /// must not open the move form with 0:00 prefilled.
+    func test_moveHours_underOneMinute_isNil() {
+        let vm = trackingVM(entry: runningEntry(hours: 1.0))
+        vm._setStateForTesting(activeMeetingPrompt: event(startOffsetMinutes: -0.5))
+        XCTAssertNil(vm.meetingPromptMoveHours(now: now))
+    }
+
+    func test_moveHours_timerHoldsEnough_isElapsed() {
+        let vm = trackingVM(entry: runningEntry(hours: 1.0))
+        vm._setStateForTesting(activeMeetingPrompt: event(startOffsetMinutes: -10))
+        XCTAssertEqual(vm.meetingPromptMoveHours(now: now)!, 10.0 / 60, accuracy: 0.0001)
+    }
+
+    /// Timer started after the meeting did: the amount is clamped to
+    /// what the timer holds, never "time since the meeting began".
+    func test_moveHours_timerHoldsLess_isClampedToTimer() {
+        let vm = trackingVM(entry: runningEntry(hours: 3.0 / 60))
+        vm._setStateForTesting(activeMeetingPrompt: event(startOffsetMinutes: -10))
+        XCTAssertEqual(vm.meetingPromptMoveHours(now: now)!, 3.0 / 60, accuracy: 0.0001)
+    }
+
+    /// A timer with under a minute on it has nothing worth moving,
+    /// however long the meeting has been going.
+    func test_moveHours_timerUnderOneMinute_isNil() {
+        let vm = trackingVM(entry: runningEntry(hours: 0.3 / 60))
+        vm._setStateForTesting(activeMeetingPrompt: event(startOffsetMinutes: -10))
+        XCTAssertNil(vm.meetingPromptMoveHours(now: now))
+    }
+
 }
 
 /// The mute store's own contract.

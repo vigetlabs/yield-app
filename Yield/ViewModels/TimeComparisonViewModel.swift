@@ -1889,6 +1889,31 @@ final class TimeComparisonViewModel {
         return max(0, now.timeIntervalSince(event.start) / 3600)
     }
 
+    /// The amount a meeting-prompt start should move off the running
+    /// timer, or nil when the prompt should just start a timer. This is
+    /// the single rule behind the bar's label, the panel's routing and
+    /// the remembered-meeting instant path — they used to each decide
+    /// separately, and disagreed: the label switched to "Start & move"
+    /// at one minute while the routing switched at one second, so for
+    /// the first minute "Start Timer" opened the move form with 0:00
+    /// prefilled and both commit buttons disabled.
+    ///
+    /// Three conditions, all required: a timer is running; the meeting
+    /// has been going at least a minute; and the amount, clamped to
+    /// what that timer actually holds, is itself at least a minute. The
+    /// clamp matters when the timer started after the meeting did —
+    /// moving "time since the meeting began" would exceed the timer and
+    /// the form's ceiling would silently disable the commit.
+    func meetingPromptMoveHours(now: Date = Date()) -> Double? {
+        guard let entry = trackingEntry else { return nil }
+        let elapsed = meetingPromptElapsedHours(now: now)
+        guard elapsed * 60 >= 1 else { return nil }
+        let available = entry.hours + elapsedOffset
+        let amount = min(elapsed, available)
+        guard amount * 60 >= 1 else { return nil }
+        return amount
+    }
+
     /// Dismiss the current prompt (the bar's ×) — that event stays
     /// quiet for the rest of the session.
     @MainActor
@@ -1933,7 +1958,7 @@ final class TimeComparisonViewModel {
         guard let event = activeMeetingPrompt,
               let memory = meetingHistoryStore.lookup(title: event.summary) else { return false }
 
-        let elapsed = meetingPromptElapsedHours()
+        let moveHours = meetingPromptMoveHours()
         meetingHistoryStore.record(notes: event.summary, projectId: memory.projectId, taskId: memory.taskId)
         // Full dismissal (not just clearing): this instant path *is*
         // the commit — it must not resurface for this event, even if
@@ -1944,7 +1969,7 @@ final class TimeComparisonViewModel {
         // Built directly (not via `startTimerMove()` → `pendingTimerMove`)
         // — that state's non-nil presents the timer-move form, which
         // this path must never flash.
-        if let project = trackingProject, let entry = trackingEntry, elapsed > 0 {
+        if let moveHours, let project = trackingProject, let entry = trackingEntry {
             let move = PendingTimerMove(
                 sourceEntryId: entry.id,
                 sourceProjectId: project.harvestProjectId,
@@ -1957,7 +1982,7 @@ final class TimeComparisonViewModel {
                 move,
                 projectId: memory.projectId,
                 taskId: memory.taskId,
-                hoursToMove: elapsed,
+                hoursToMove: moveHours,
                 notes: event.summary,
                 switchTimer: true
             )
