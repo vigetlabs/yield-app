@@ -3,6 +3,22 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.7.1</title>
+      <sparkle:version>67</sparkle:version>
+      <sparkle:shortVersionString>1.7.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Fixed: the meeting bar's Start Timer could open the move form with its buttons disabled.</strong> If you clicked within the first minute of a meeting while another timer was running, the button said <em>Start Timer</em> but opened the Move Time form with 0:00 to move &mdash; and nothing to commit. Later on, if your timer had started after the meeting did, the form prefilled more than the timer held and quietly disabled both buttons. One rule now decides: <em>Start Timer</em> starts a timer; <em>Start &amp; move</em> appears only when there's a running timer with at least a minute worth moving, and never offers more than it holds.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.7.1/Yield-1.7.1.zip"
+        sparkle:edSignature="A9QVXCcJ7NpYEmJIH3h+qDCFaS11IDCZMecpIyILTLLrFkZ9q1rRXYL/nutgOZl++6sN9Xq5tnjP+VmfqNtTBQ=="
+        length="3234418"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.7.0</title>
       <sparkle:version>66</sparkle:version>
       <sparkle:shortVersionString>1.7.0</sparkle:shortVersionString>
