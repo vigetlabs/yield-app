@@ -342,21 +342,37 @@ final class TimeComparisonViewModel {
     // Tracks the running entry across refreshes so we can notify when
     // the timer changes from outside Yield (e.g. the Harvest browser
     // extension started a new timer). User-initiated mutations call
-    // `markUserTimerMutation()` first so the change *they* cause isn't
-    // announced — only changes we didn't make ourselves notify.
+    // `markUserTimerMutation(expecting:via:)` first so the change *they*
+    // cause isn't announced — only changes we didn't make ourselves notify.
     //
-    // The marker is a deadline, not a one-shot flag. A one-shot flag
-    // was consumed by whichever detection pass ran next — and refreshes
-    // also arrive from the 60s tick and from the panel opening, so one
-    // could land in the gap between the user's action and that action's
-    // own refresh, carrying the *old* server state. It passed as "no
-    // change", cleared the flag, and the next refresh announced the
-    // user's own switch as external. Now a pass that sees no change
-    // leaves the marker alone; it's consumed only when it suppresses an
-    // actual change, and it expires so a failed mutation can't leave it
-    // armed against a genuine external change later.
+    // The marker records what the running timer *should* become, so a
+    // refresh is judged by content, not timing. A pass that shows the
+    // expected final state is the user's action landing: consumed,
+    // quiet. A pass that shows an acceptable intermediate state (a
+    // two-step switch passes through "nothing running") is left alone.
+    // A pass that shows anything else is announced immediately — the
+    // marker never silences a change the user didn't ask for, so a
+    // genuine external switch stays reactive even seconds after the
+    // user's own. The deadline only retires a stale expectation (a
+    // failed mutation) so it can't match a coincidental switch later.
+    //
+    // (Earlier designs: a one-shot flag, consumed by whichever pass ran
+    // next — a stale in-flight refresh ate it and the user's own switch
+    // was announced; then a time window — fixed that, but silenced any
+    // change for 90s. This is the one that does neither.)
+    struct UserTimerMutation {
+        /// Running-entry ids a refresh may show while the action lands,
+        /// including `final`. `nil` means "nothing running".
+        var acceptable: Set<Int?>
+        /// The state that means the action has fully landed.
+        var final: Int?
+        /// `true` suppresses the next change whatever it is — for the
+        /// test hook, and for call sites that can't know the outcome.
+        var matchesAnything = false
+        let until: Date
+    }
     private var hasSeenInitialTrackingState = false
-    private var userTimerMutationUntil: Date? = nil
+    private var userTimerMutation: UserTimerMutation? = nil
     private static let userTimerMutationGrace: TimeInterval = 90
     /// Count of changes detected as external. Test-visible: the
     /// notification itself is suppressed under XCTest.
@@ -371,8 +387,16 @@ final class TimeComparisonViewModel {
     /// timer (start / stop / pause / resume / delete-running-entry / idle
     /// actions). The next refresh's change-detection sees the resulting
     /// transition as expected and skips the HUD.
-    private func markUserTimerMutation() {
-        userTimerMutationUntil = Date().addingTimeInterval(Self.userTimerMutationGrace)
+    /// Record the running-entry state a user action should produce.
+    /// `expecting` is the final running entry (nil: nothing running);
+    /// `via` lists intermediate states a multi-step action may pass
+    /// through on the server before it's done.
+    private func markUserTimerMutation(expecting final: Int?, via intermediate: Set<Int?> = []) {
+        userTimerMutation = UserTimerMutation(
+            acceptable: intermediate.union([final]),
+            final: final,
+            until: Date().addingTimeInterval(Self.userTimerMutationGrace)
+        )
     }
 
     // MARK: - Optimistic timer mutations
@@ -450,12 +474,17 @@ final class TimeComparisonViewModel {
         // No change: nothing to announce, and the user-mutation marker
         // is left in place for the refresh that does carry the change.
         if currentId == lastTrackingEntryId { return }
-        // A change inside the user-mutation window is the user's own
-        // action landing; consume the marker and stay quiet. Past the
-        // window it's treated as external.
-        if let until = userTimerMutationUntil {
-            userTimerMutationUntil = nil
-            if Date() < until { return }
+        if let m = userTimerMutation {
+            if Date() >= m.until {
+                userTimerMutation = nil                       // stale; fall through as external
+            } else if m.matchesAnything || currentId == m.final {
+                userTimerMutation = nil                       // the user's action has landed
+                return
+            } else if m.acceptable.contains(currentId) {
+                return                                        // mid-flight; keep waiting
+            }
+            // Anything else is not what the user asked for: announce
+            // it now and keep waiting for the user's own change.
         }
         externalTimerChangeCount += 1
 
@@ -1264,7 +1293,7 @@ final class TimeComparisonViewModel {
 
         // External-change detection state
         hasSeenInitialTrackingState = false
-        userTimerMutationUntil = nil
+        userTimerMutation = nil
         lastTrackingEntryId = nil
         lastTrackingClientName = nil
         lastTrackingProjectName = nil
@@ -1407,7 +1436,7 @@ final class TimeComparisonViewModel {
               let (harvestService, _) = makeServices() else { return }
 
         do {
-            markUserTimerMutation()
+            markUserTimerMutation(expecting: alert.entryId, via: [nil])
             await refresh()
 
             guard isEntryStillRunning(alert.entryId) else {
@@ -1415,7 +1444,7 @@ final class TimeComparisonViewModel {
                 return
             }
 
-            markUserTimerMutation()
+            markUserTimerMutation(expecting: alert.entryId, via: [nil])
             _ = try await harvestService.stopTimer(entryId: alert.entryId)
             do {
                 _ = try await harvestService.updateTimeEntry(entryId: alert.entryId, hours: alert.adjustedHours, notes: nil)
@@ -1442,7 +1471,7 @@ final class TimeComparisonViewModel {
               let (harvestService, _) = makeServices() else { return }
 
         do {
-            markUserTimerMutation()
+            markUserTimerMutation(expecting: nil)
             await refresh()
 
             guard isEntryStillRunning(alert.entryId) else {
@@ -1450,7 +1479,7 @@ final class TimeComparisonViewModel {
                 return
             }
 
-            markUserTimerMutation()
+            markUserTimerMutation(expecting: nil)
             _ = try await harvestService.stopTimer(entryId: alert.entryId)
             _ = try await harvestService.updateTimeEntry(entryId: alert.entryId, hours: alert.adjustedHours, notes: nil)
             idleDismiss()
@@ -1683,7 +1712,12 @@ final class TimeComparisonViewModel {
             .filter { $0.taskId == taskId && $0.date == todayString && $0.id != move.sourceEntryId }
             .max(by: { $0.id < $1.id })
 
-        markUserTimerMutation()
+        // Final state by mode; a switch is re-marked below once the
+        // destination entry's id is known.
+        markUserTimerMutation(
+            expecting: switchTimer ? nil : (move.sourceWasRunning ? move.sourceEntryId : trackingEntry?.id),
+            via: [nil]
+        )
 
         do {
             let destEntryId: Int
@@ -1718,6 +1752,9 @@ final class TimeComparisonViewModel {
             // soft-favorite inference like the other create paths.
             ProjectTaskHistoryStore.shared.record(projectId: projectId, taskId: taskId)
             settlePostMeetingReminderForMove(move)
+            if switchTimer {
+                markUserTimerMutation(expecting: destEntryId, via: [nil, move.sourceWasRunning ? move.sourceEntryId : nil])
+            }
 
             do {
                 // Stop the source before setting its hours so the PATCH
@@ -2472,7 +2509,9 @@ final class TimeComparisonViewModel {
     @MainActor
     func startNewTimer(projectId: Int, taskId: Int, hours: Double? = nil, notes: String? = nil) async {
         guard let (harvestService, _) = makeServices() else { return }
-        markUserTimerMutation()
+        // Phase one: the previous timer stops. Re-marked below once
+        // the created entry's id is known.
+        markUserTimerMutation(expecting: nil)
         pausedState = nil
 
         // Snapshot the previously-running entry id BEFORE the optimistic
@@ -2511,6 +2550,7 @@ final class TimeComparisonViewModel {
             // preference. Covers every running-timer create path: the form,
             // the per-project quick-start, and Continue-today.
             ProjectTaskHistoryStore.shared.record(projectId: projectId, taskId: taskId)
+            markUserTimerMutation(expecting: created.id, via: [nil])
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
@@ -2550,7 +2590,7 @@ final class TimeComparisonViewModel {
             // running entry — the resulting "stopped" transition is
             // user-initiated and shouldn't pop the HUD.
             if trackingEntry?.id == entryId {
-                markUserTimerMutation()
+                markUserTimerMutation(expecting: nil)
             }
             try await harvestService.deleteTimeEntry(entryId: entryId)
             await refresh()
@@ -2584,7 +2624,7 @@ final class TimeComparisonViewModel {
               let entry = trackingEntry,
               let (harvestService, _) = makeServices() else { return }
 
-        markUserTimerMutation()
+        markUserTimerMutation(expecting: nil)
 
         // Save paused state before stopping. `frozenHours` is the
         // running entry's elapsed time, not the project's week total —
@@ -2623,12 +2663,12 @@ final class TimeComparisonViewModel {
         guard let paused = pausedState,
               let (harvestService, _) = makeServices() else { return }
 
-        markUserTimerMutation()
 
         // Optimistic flip: re-mark the paused entry as running so the
         // banner switches yellow→green and play.fill→pause.fill before
         // the restart API call lands.
         optimisticallyStartEntry(paused.entryId)
+        markUserTimerMutation(expecting: paused.entryId)
 
         do {
             _ = try await harvestService.restartTimer(entryId: paused.entryId)
@@ -2651,7 +2691,7 @@ final class TimeComparisonViewModel {
             // Suppress the external-change HUD — the refresh below
             // would otherwise see the running→stopped transition and
             // announce it as if it came from outside Yield.
-            markUserTimerMutation()
+            markUserTimerMutation(expecting: nil)
             optimisticallyStopEntry(entry.id)
             do {
                 _ = try await harvestService.stopTimer(entryId: entry.id)
@@ -2666,7 +2706,7 @@ final class TimeComparisonViewModel {
     @MainActor
     func toggleEntryTimer(entryId: Int, isRunning: Bool) async {
         guard let (harvestService, _) = makeServices() else { return }
-        markUserTimerMutation()
+        markUserTimerMutation(expecting: isRunning ? nil : entryId, via: isRunning ? [] : [nil])
         if !isRunning { pausedState = nil }
 
         // Snapshot the currently-running entry (if any) BEFORE the
@@ -3672,6 +3712,7 @@ extension TimeComparisonViewModel {
         lastTrackingEntryId: Int? = nil,
         suppressNextTimerChangeHUD: Bool? = nil,
         userTimerMutationUntil: Date?? = nil,
+        userTimerMutation: UserTimerMutation?? = nil,
         pausedState: PausedTimerState? = nil,
         cachedCalendarEvents: [CalendarEvent]? = nil,
         activeMeetingPrompt: CalendarEvent? = nil,
@@ -3692,10 +3733,17 @@ extension TimeComparisonViewModel {
         if let hasSeenInitialTrackingState { self.hasSeenInitialTrackingState = hasSeenInitialTrackingState }
         if let lastTrackingEntryId { self.lastTrackingEntryId = lastTrackingEntryId }
         if let suppressNextTimerChangeHUD {
-            self.userTimerMutationUntil = suppressNextTimerChangeHUD
-                ? Date().addingTimeInterval(Self.userTimerMutationGrace) : nil
+            self.userTimerMutation = suppressNextTimerChangeHUD
+                ? UserTimerMutation(acceptable: [], final: nil, matchesAnything: true,
+                                    until: Date().addingTimeInterval(Self.userTimerMutationGrace))
+                : nil
         }
-        if let userTimerMutationUntil { self.userTimerMutationUntil = userTimerMutationUntil }
+        if let userTimerMutationUntil {
+            self.userTimerMutation = userTimerMutationUntil.map {
+                UserTimerMutation(acceptable: [], final: nil, matchesAnything: true, until: $0)
+            }
+        }
+        if let userTimerMutation { self.userTimerMutation = userTimerMutation }
     }
 
     /// Read-only mirror of `notifiedProjectIds`. The set itself stays

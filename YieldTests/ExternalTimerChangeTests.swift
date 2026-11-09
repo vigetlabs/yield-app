@@ -178,4 +178,52 @@ final class ExternalTimerChangeTests: XCTestCase {
         vm.detectExternalTimerChange()
         XCTAssertEqual(vm.externalTimerChangeCount, 1)
     }
+
+    // MARK: - Expectation-based suppression: content decides, not timing
+
+    private func expecting(_ final: Int?, via: Set<Int?> = []) -> TimeComparisonViewModel.UserTimerMutation {
+        .init(acceptable: via.union([final]), final: final, until: Date().addingTimeInterval(90))
+    }
+
+    /// The user switched to 2. A refresh showing 3 is somebody else's
+    /// doing and is announced at once — the window never silences it —
+    /// while the marker keeps waiting for 2.
+    func test_changeNotMatchingExpectation_isAnnouncedImmediately() {
+        let vm = TimeComparisonViewModel()
+        vm._setStateForTesting(
+            projectStatuses: [project(entry: entry(id: 1))],
+            hasSeenInitialTrackingState: true, lastTrackingEntryId: 1,
+            userTimerMutation: .some(expecting(2, via: [nil]))
+        )
+        vm._setStateForTesting(projectStatuses: [project(entry: entry(id: 3))])
+        vm.detectExternalTimerChange()
+        XCTAssertEqual(vm.externalTimerChangeCount, 1)
+
+        vm._setStateForTesting(projectStatuses: [project(entry: entry(id: 2))])
+        vm.detectExternalTimerChange()
+        XCTAssertEqual(vm.externalTimerChangeCount, 1, "the user's own switch landing is still quiet")
+    }
+
+    /// A switch passes through "nothing running" on the server; that
+    /// intermediate refresh is neither announced nor does it consume
+    /// the marker.
+    func test_intermediateState_isQuietAndKeepsWaiting() {
+        let vm = TimeComparisonViewModel()
+        vm._setStateForTesting(
+            projectStatuses: [project(entry: entry(id: 1))],
+            hasSeenInitialTrackingState: true, lastTrackingEntryId: 1,
+            userTimerMutation: .some(expecting(2, via: [nil]))
+        )
+        vm._setStateForTesting(projectStatuses: [project(entry: entry(id: 1, isRunning: false), isTracking: false)])
+        vm.detectExternalTimerChange()                       // nothing running: mid-switch
+        XCTAssertEqual(vm.externalTimerChangeCount, 0)
+
+        vm._setStateForTesting(projectStatuses: [project(entry: entry(id: 2))])
+        vm.detectExternalTimerChange()                       // landed
+        XCTAssertEqual(vm.externalTimerChangeCount, 0)
+
+        vm._setStateForTesting(projectStatuses: [project(entry: entry(id: 4))])
+        vm.detectExternalTimerChange()                       // later, external
+        XCTAssertEqual(vm.externalTimerChangeCount, 1)
+    }
 }
