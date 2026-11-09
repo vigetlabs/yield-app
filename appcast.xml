@@ -3,6 +3,23 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.7.2</title>
+      <sparkle:version>68</sparkle:version>
+      <sparkle:shortVersionString>1.7.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Fixed: switching timers in Yield could announce "Timer started elsewhere."</strong> A refresh that was already in flight when you clicked could land after your switch and treat it as someone else's. Yield now knows which timer it just started on your behalf and stays quiet when the next refresh confirms it &mdash; while a change made in Harvest or another device is still announced as soon as it's seen, not after a cooldown.</li>
+          <li><strong>Outside changes show up faster.</strong> Yield checks today's entries and the running timer every 30 seconds instead of every minute, so a timer started on your phone or in Harvest appears in the panel sooner.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.7.2/Yield-1.7.2.zip"
+        sparkle:edSignature="XfoojASzjqlFV/vIq2aiTf+DuSrVoS3PQlZsKIENtzui6IGNsIbWEBBYBk/RYyWOtlOXX4VtPwO8TV+3qD1tDg=="
+        length="3238807"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.7.1</title>
       <sparkle:version>67</sparkle:version>
       <sparkle:shortVersionString>1.7.1</sparkle:shortVersionString>
