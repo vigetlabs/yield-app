@@ -45,7 +45,7 @@ Yield/
 
 ## Key Behaviors
 
-- **Auto-refresh**: polls APIs every 5 minutes; local elapsed timer ticks every minute between refreshes
+- **Auto-refresh**: soft refresh (today's Harvest entries + the running timer, two calls) every 30 seconds; full Harvest + Forecast refresh only at launch, on day rollover, and after the user's own timer actions. A separate local ticker advances the running timer's display once a minute between refreshes
 - **Timer control**: start/stop/restart Harvest timers; creates new time entry if none exists for today
 - **Project sorting**: tracking projects first → most recently tracked → alphabetical
 - **Status thresholds**: ±10% of booked hours (min 0.5h) determines on-track/under/over

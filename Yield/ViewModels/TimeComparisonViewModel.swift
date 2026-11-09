@@ -120,16 +120,16 @@ final class TimeComparisonViewModel {
     private(set) var hasConnectivityError: Bool = false
 
     /// Count of consecutive failed soft refreshes. Used to back off the
-    /// polling cadence so a long outage doesn't hammer the API every 60s.
+    /// polling cadence so a long outage doesn't hammer the API every 30s.
     private var consecutiveSoftFailures: Int = 0
 
     /// Earliest time the next soft refresh may fire. Set when backoff
-    /// extends beyond the normal 60s interval.
+    /// extends beyond the normal 30s interval.
     private var softRefreshBackoffUntil: Date?
 
     /// Reachability monitor — triggers an immediate refresh when the
     /// machine reconnects, so the UI catches up without waiting for the
-    /// next 60s tick.
+    /// next 30s tick.
     private let networkMonitor = NetworkMonitor()
 
     #if DEBUG
@@ -732,6 +732,8 @@ final class TimeComparisonViewModel {
         pausedState != nil && trackingProject == nil
     }
 
+    /// Soft-refresh cadence. See `startAutoRefresh` for the reasoning.
+    static let softRefreshInterval: TimeInterval = 30
     private var refreshTimer: Timer?
     private var activeRefreshTask: Task<Void, Never>?
     private var elapsedTimer: Timer?
@@ -765,7 +767,7 @@ final class TimeComparisonViewModel {
     private var currentRefreshDay: String?
 
     // Cached state from last hard refresh — used by softRefresh() to avoid
-    // re-fetching Forecast data and non-today Harvest entries every minute.
+    // re-fetching Forecast data and non-today Harvest entries every 30 seconds.
     private var cachedWeekEntries: [HarvestTimeEntry] = []
     private var cachedForecastBookings: [Int: Double] = [:]
     private var cachedProjectMap: [Int: ForecastProject] = [:]
@@ -1174,13 +1176,20 @@ final class TimeComparisonViewModel {
     func startAutoRefresh() {
         refreshTimer?.invalidate()
         activeRefreshTask?.cancel()
-        // Soft refresh every minute: a single lightweight API call to pick up
+        // Soft refresh every 30 seconds: two lightweight API calls to pick up
         // timer state changes made outside the app. Hard refresh happens on
         // menu open and manual refresh, so no need for a periodic hard refresh.
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        // 30s, not 60: a soft tick is two cheap Harvest calls (today's
+        // entries + the running entry), so halving the interval costs
+        // ~4 requests a minute against a limit of 100 per 15 seconds —
+        // and it halves the lag on everything the tick drives, most
+        // visibly the "timer started elsewhere" notification. The
+        // elapsed ticker below stays at 60: it's local and adds one
+        // minute per tick.
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: Self.softRefreshInterval, repeats: true) { [weak self] _ in
             self?.triggerSoftRefresh()
-            // Minute cadence for the meeting-start prompt window and
-            // the post-meeting overage reminder — runs regardless of
+            // Same cadence for the meeting-start prompt window and the
+            // post-meeting overage reminder — runs regardless of
             // tracking state (unlike the elapsed ticker, which only
             // exists while a timer runs).
             Task { @MainActor in
@@ -1190,7 +1199,7 @@ final class TimeComparisonViewModel {
         }
 
         // Fire an immediate refresh when network connectivity comes back
-        // instead of waiting up to a full minute for the next timer tick.
+        // instead of waiting for the next timer tick.
         // A reconnect is strong evidence that prior failures were caused by
         // the now-resolved outage, so reset both the deadline and the
         // failure counter — otherwise the *next* failure would jump
@@ -1219,7 +1228,7 @@ final class TimeComparisonViewModel {
     }
 
     /// Cancels any in-flight refresh and starts a new soft-refresh task.
-    /// Shared by the 60s tick and the NWPathMonitor reconnect callback.
+    /// Shared by the 30s tick and the NWPathMonitor reconnect callback.
     @MainActor
     private func triggerSoftRefresh() {
         activeRefreshTask?.cancel()
@@ -1880,7 +1889,7 @@ final class TimeComparisonViewModel {
     }
 
     /// Re-evaluate which event (if any) should be prompting right now.
-    /// Runs on the 60s soft-refresh cadence and after the calendar
+    /// Runs on the 30s soft-refresh cadence and after the calendar
     /// cache updates. Fires the start notification once per event.
     @MainActor
     func updateMeetingPrompt(now: Date = Date()) {
@@ -2158,7 +2167,7 @@ final class TimeComparisonViewModel {
     }
 
     /// Re-evaluate whether the post-meeting reminder should be showing.
-    /// Runs on the 60s soft-refresh cadence. Fires the overage
+    /// Runs on the 30s soft-refresh cadence. Fires the overage
     /// notification once per event.
     @MainActor
     func updatePostMeetingReminder(now: Date = Date()) {
@@ -3304,17 +3313,18 @@ final class TimeComparisonViewModel {
     }
 
     /// Exponential backoff after consecutive soft-refresh failures so a
-    /// long outage doesn't hammer the API every 60s. Resets to 0 on any
-    /// successful fetch. Cadence: 60s → 2m → 5m → 15m → 15m …
+    /// long outage doesn't hammer the API every 30s. Resets to 0 on any
+    /// successful fetch. The extra wait holds off ticks until it passes,
+    /// so the gap between attempts runs 30s → 1m → 4m → 14m → 14m …
     @MainActor
     private func scheduleSoftRefreshBackoff() {
         consecutiveSoftFailures += 1
         let extraSeconds: TimeInterval
         switch consecutiveSoftFailures {
-        case 1: extraSeconds = 0          // next 60s tick as normal
-        case 2: extraSeconds = 60         // wait ~2 min total
-        case 3: extraSeconds = 4 * 60     // wait ~5 min total
-        default: extraSeconds = 14 * 60   // cap at ~15 min between attempts
+        case 1: extraSeconds = 0          // next 30s tick as normal
+        case 2: extraSeconds = 60         // ~1 min between attempts
+        case 3: extraSeconds = 4 * 60     // ~4 min between attempts
+        default: extraSeconds = 14 * 60   // cap at ~14 min between attempts
         }
         softRefreshBackoffUntil = extraSeconds > 0 ? Date().addingTimeInterval(extraSeconds) : nil
     }
