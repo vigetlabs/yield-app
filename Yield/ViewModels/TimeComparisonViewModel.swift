@@ -339,13 +339,28 @@ final class TimeComparisonViewModel {
 
     // MARK: - External timer-change detection
     //
-    // Tracks the running entry across refreshes so we can pop a HUD when
+    // Tracks the running entry across refreshes so we can notify when
     // the timer changes from outside Yield (e.g. the Harvest browser
     // extension started a new timer). User-initiated mutations call
-    // `markUserTimerMutation()` first so the next refresh's diff is
-    // suppressed — only changes we didn't make ourselves trigger the HUD.
+    // `markUserTimerMutation()` first so the change *they* cause isn't
+    // announced — only changes we didn't make ourselves notify.
+    //
+    // The marker is a deadline, not a one-shot flag. A one-shot flag
+    // was consumed by whichever detection pass ran next — and refreshes
+    // also arrive from the 60s tick and from the panel opening, so one
+    // could land in the gap between the user's action and that action's
+    // own refresh, carrying the *old* server state. It passed as "no
+    // change", cleared the flag, and the next refresh announced the
+    // user's own switch as external. Now a pass that sees no change
+    // leaves the marker alone; it's consumed only when it suppresses an
+    // actual change, and it expires so a failed mutation can't leave it
+    // armed against a genuine external change later.
     private var hasSeenInitialTrackingState = false
-    private var suppressNextTimerChangeHUD = false
+    private var userTimerMutationUntil: Date? = nil
+    private static let userTimerMutationGrace: TimeInterval = 90
+    /// Count of changes detected as external. Test-visible: the
+    /// notification itself is suppressed under XCTest.
+    private(set) var externalTimerChangeCount = 0
     private var lastTrackingEntryId: Int?
     private var lastTrackingClientName: String?
     private var lastTrackingProjectName: String?
@@ -357,7 +372,7 @@ final class TimeComparisonViewModel {
     /// actions). The next refresh's change-detection sees the resulting
     /// transition as expected and skips the HUD.
     private func markUserTimerMutation() {
-        suppressNextTimerChangeHUD = true
+        userTimerMutationUntil = Date().addingTimeInterval(Self.userTimerMutationGrace)
     }
 
     // MARK: - Optimistic timer mutations
@@ -427,14 +442,22 @@ final class TimeComparisonViewModel {
             lastTrackingProjectCode = currentProject?.projectCode
             lastTrackingTaskName = currentEntry?.taskName
             hasSeenInitialTrackingState = true
-            suppressNextTimerChangeHUD = false
         }
 
         // Skip the very first refresh — discovering an existing running
         // timer at launch isn't a "change" worth announcing.
         guard hasSeenInitialTrackingState else { return }
-        if suppressNextTimerChangeHUD { return }
+        // No change: nothing to announce, and the user-mutation marker
+        // is left in place for the refresh that does carry the change.
         if currentId == lastTrackingEntryId { return }
+        // A change inside the user-mutation window is the user's own
+        // action landing; consume the marker and stay quiet. Past the
+        // window it's treated as external.
+        if let until = userTimerMutationUntil {
+            userTimerMutationUntil = nil
+            if Date() < until { return }
+        }
+        externalTimerChangeCount += 1
 
         // An external change voids any pending idle alert: the entry it
         // references is no longer the one running (or nothing is), so
@@ -1241,7 +1264,7 @@ final class TimeComparisonViewModel {
 
         // External-change detection state
         hasSeenInitialTrackingState = false
-        suppressNextTimerChangeHUD = false
+        userTimerMutationUntil = nil
         lastTrackingEntryId = nil
         lastTrackingClientName = nil
         lastTrackingProjectName = nil
@@ -3648,6 +3671,7 @@ extension TimeComparisonViewModel {
         hasSeenInitialTrackingState: Bool? = nil,
         lastTrackingEntryId: Int? = nil,
         suppressNextTimerChangeHUD: Bool? = nil,
+        userTimerMutationUntil: Date?? = nil,
         pausedState: PausedTimerState? = nil,
         cachedCalendarEvents: [CalendarEvent]? = nil,
         activeMeetingPrompt: CalendarEvent? = nil,
@@ -3667,7 +3691,11 @@ extension TimeComparisonViewModel {
         if let currentRefreshDay { self.currentRefreshDay = currentRefreshDay }
         if let hasSeenInitialTrackingState { self.hasSeenInitialTrackingState = hasSeenInitialTrackingState }
         if let lastTrackingEntryId { self.lastTrackingEntryId = lastTrackingEntryId }
-        if let suppressNextTimerChangeHUD { self.suppressNextTimerChangeHUD = suppressNextTimerChangeHUD }
+        if let suppressNextTimerChangeHUD {
+            self.userTimerMutationUntil = suppressNextTimerChangeHUD
+                ? Date().addingTimeInterval(Self.userTimerMutationGrace) : nil
+        }
+        if let userTimerMutationUntil { self.userTimerMutationUntil = userTimerMutationUntil }
     }
 
     /// Read-only mirror of `notifiedProjectIds`. The set itself stays

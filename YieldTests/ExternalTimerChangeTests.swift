@@ -136,4 +136,46 @@ final class ExternalTimerChangeTests: XCTestCase {
         vm.detectExternalTimerChange()
         XCTAssertNotNil(vm.idleAlertState)
     }
+
+    // MARK: - User-mutation suppression survives an intervening no-change refresh
+
+    /// The race behind "I switched timers in Yield and got the
+    /// started-elsewhere notification": a refresh already in flight
+    /// lands first with the old state (no change), then the switch's
+    /// own refresh lands with the new one. The first pass must not use
+    /// up the suppression.
+    func test_userMutation_notConsumedByNoChangePass_thenSuppressesTheChange() {
+        let vm = TimeComparisonViewModel()
+        vm._setStateForTesting(
+            projectStatuses: [project(entry: entry(id: 1))],
+            hasSeenInitialTrackingState: true,
+            lastTrackingEntryId: 1,
+            suppressNextTimerChangeHUD: true
+        )
+        vm.detectExternalTimerChange()                       // stale refresh: still entry 1
+        XCTAssertEqual(vm.externalTimerChangeCount, 0)
+
+        vm._setStateForTesting(projectStatuses: [project(entry: entry(id: 2))])
+        vm.detectExternalTimerChange()                       // the user's switch lands
+        XCTAssertEqual(vm.externalTimerChangeCount, 0, "the user's own switch must not be announced")
+
+        vm._setStateForTesting(projectStatuses: [project(entry: entry(id: 3))])
+        vm.detectExternalTimerChange()                       // later: a genuinely external switch
+        XCTAssertEqual(vm.externalTimerChangeCount, 1)
+    }
+
+    /// A marker left behind by a failed mutation can't stay armed
+    /// forever: past the grace window a change is external again.
+    func test_userMutation_expires() {
+        let vm = TimeComparisonViewModel()
+        vm._setStateForTesting(
+            projectStatuses: [project(entry: entry(id: 1))],
+            hasSeenInitialTrackingState: true,
+            lastTrackingEntryId: 1,
+            userTimerMutationUntil: .some(Date().addingTimeInterval(-1))
+        )
+        vm._setStateForTesting(projectStatuses: [project(entry: entry(id: 2))])
+        vm.detectExternalTimerChange()
+        XCTAssertEqual(vm.externalTimerChangeCount, 1)
+    }
 }
