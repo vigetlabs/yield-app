@@ -22,10 +22,18 @@ final class MutedMeetingsStore {
 
     private let storageKey = DefaultsKey.mutedMeetingTitles
 
-    /// `loadFromDefaults: false` produces a fresh store with no
-    /// UserDefaults round-trip — used by tests.
-    init(loadFromDefaults: Bool = true) {
-        if loadFromDefaults { load() }
+    /// Where the list lives. Production uses `.standard`; tests pass a
+    /// scratch suite so their mutes never land in the user's real
+    /// preferences. (The store used to take a `loadFromDefaults` flag
+    /// that only skipped the *read* — every test save still went to
+    /// `.standard`, and since the test bundle is hosted in Yield.app,
+    /// that's the user's own list. Each test run replaced it with the
+    /// last fixture.)
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        load()
     }
 
     func isMuted(title: String) -> Bool {
@@ -60,11 +68,11 @@ final class MutedMeetingsStore {
     // MARK: - Persistence
 
     private func save() {
-        UserDefaults.standard.set(titles, forKey: storageKey)
+        defaults.set(titles, forKey: storageKey)
     }
 
     private func load() {
-        guard let stored = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: String] else { return }
+        guard let stored = defaults.dictionary(forKey: storageKey) as? [String: String] else { return }
         titles = stored
     }
 }

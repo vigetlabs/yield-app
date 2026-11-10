@@ -48,11 +48,14 @@ final class MeetingHistoryStore {
 
     private let storageKey = DefaultsKey.meetingHistory
 
-    /// `loadFromDefaults: false` produces a fresh store with no
-    /// UserDefaults round-trip — used by tests to start from a known
-    /// empty state without touching the user's real history.
-    init(loadFromDefaults: Bool = true) {
-        if loadFromDefaults { load() }
+    /// Where the history lives. Production uses `.standard`; tests pass
+    /// a scratch suite so fixture memories never overwrite the user's
+    /// real history (see `MutedMeetingsStore` for how that happened).
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        load()
     }
 
     /// Lowercase + trim a raw title for storage and lookup. Skipping
@@ -115,7 +118,7 @@ final class MeetingHistoryStore {
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey) else { return }
+        guard let data = defaults.data(forKey: storageKey) else { return }
         let decoder = JSONDecoder()
 
         // Try the current persisted shape first.
@@ -166,6 +169,6 @@ final class MeetingHistoryStore {
             )
         }
         guard let data = try? JSONEncoder().encode(persisted) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+        defaults.set(data, forKey: storageKey)
     }
 }

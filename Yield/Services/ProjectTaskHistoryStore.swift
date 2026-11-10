@@ -49,10 +49,14 @@ final class ProjectTaskHistoryStore {
 
     private let storageKey = DefaultsKey.projectTaskHistory
 
-    /// `loadFromDefaults: false` yields a fresh store with no UserDefaults
-    /// round-trip — for tests that want a known-empty starting state.
-    init(loadFromDefaults: Bool = true) {
-        if loadFromDefaults { load() }
+    /// Where the stats live. Production uses `.standard`; tests pass a
+    /// scratch suite so fixture history never overwrites the user's
+    /// real task rankings (see `MutedMeetingsStore`).
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        load()
     }
 
     /// Decay a stored score forward to `now`. Scores only ever decay, so a
@@ -119,7 +123,7 @@ final class ProjectTaskHistoryStore {
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
+        guard let data = defaults.data(forKey: storageKey),
               let decoded = try? JSONDecoder().decode([PersistedStat].self, from: data)
         else { return }
 
@@ -137,6 +141,6 @@ final class ProjectTaskHistoryStore {
             }
         }
         guard let data = try? JSONEncoder().encode(persisted) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+        defaults.set(data, forKey: storageKey)
     }
 }

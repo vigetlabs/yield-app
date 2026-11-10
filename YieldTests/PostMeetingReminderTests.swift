@@ -10,6 +10,13 @@ import XCTest
 final class PostMeetingReminderTests: XCTestCase {
 
     private let now = Date(timeIntervalSince1970: 1_755_000_000)
+    /// One scratch suite per test instance; wiped in tearDown.
+    private let scratch = ScratchDefaults()
+
+    override func tearDown() async throws {
+        scratch.discard()
+        try await super.tearDown()
+    }
 
     /// An event that *ended* `endedMinutesAgo` before `now`.
     private func endedEvent(
@@ -51,8 +58,8 @@ final class PostMeetingReminderTests: XCTestCase {
     /// stores.
     private func makeVM() -> TimeComparisonViewModel {
         let vm = TimeComparisonViewModel()
-        vm.meetingHistoryStore = MeetingHistoryStore(loadFromDefaults: false)
-        vm.mutedMeetingsStore = MutedMeetingsStore(loadFromDefaults: false)
+        vm.meetingHistoryStore = MeetingHistoryStore(defaults: scratch.defaults)
+        vm.mutedMeetingsStore = MutedMeetingsStore(defaults: scratch.defaults)
         vm.postMeetingReminderMinutes = { 10 }
         vm.postMeetingRemindersEnabled = { true }
         return vm

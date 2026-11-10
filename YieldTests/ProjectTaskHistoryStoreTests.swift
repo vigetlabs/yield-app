@@ -11,6 +11,7 @@ import XCTest
 final class ProjectTaskHistoryStoreTests: XCTestCase {
 
     private var store: ProjectTaskHistoryStore!
+    private var scratch: ScratchDefaults!
 
     /// A fixed reference instant; tests offset from it so decay is
     /// deterministic regardless of wall-clock.
@@ -19,7 +20,14 @@ final class ProjectTaskHistoryStoreTests: XCTestCase {
 
     override func setUp() async throws {
         try await super.setUp()
-        store = ProjectTaskHistoryStore(loadFromDefaults: false)
+        scratch = ScratchDefaults()
+        store = ProjectTaskHistoryStore(defaults: scratch.defaults)
+    }
+
+    override func tearDown() async throws {
+        store = nil
+        scratch.discard()
+        try await super.tearDown()
     }
 
     // MARK: - Basic record / lookup

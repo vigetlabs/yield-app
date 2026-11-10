@@ -9,13 +9,41 @@ import XCTest
 final class MeetingHistoryStoreTests: XCTestCase {
 
     private var store: MeetingHistoryStore!
+    private var scratch: ScratchDefaults!
 
     override func setUp() async throws {
         try await super.setUp()
-        // `loadFromDefaults: false` skips reading the user's real
-        // history, so each test starts from a known empty state
-        // without leaking across runs.
-        store = MeetingHistoryStore(loadFromDefaults: false)
+        // A scratch suite, so each test starts empty and nothing it
+        // records can reach the user's real history.
+        scratch = ScratchDefaults()
+        store = MeetingHistoryStore(defaults: scratch.defaults)
+    }
+
+    override func tearDown() async throws {
+        store = nil
+        scratch.discard()
+        try await super.tearDown()
+    }
+
+    // MARK: - Isolation from the user's preferences
+
+    /// The test bundle runs inside Yield.app, so `.standard` here is the
+    /// user's real history. A store on a scratch suite must never write
+    /// to it — the old `loadFromDefaults: false` flag skipped only the
+    /// read, and every test run replaced the user's history with the
+    /// last fixture saved.
+    func test_scratchStore_neverWritesStandardDefaults() {
+        let before = UserDefaults.standard.data(forKey: DefaultsKey.meetingHistory)
+        store.record(notes: "Fixture Only", projectId: 1, taskId: 2)
+        XCTAssertEqual(UserDefaults.standard.data(forKey: DefaultsKey.meetingHistory), before)
+        XCTAssertNotNil(scratch.defaults.data(forKey: DefaultsKey.meetingHistory))
+    }
+
+    func test_persistsAcrossInstances_onSameSuite() {
+        store.record(notes: "Standup", projectId: 100, taskId: 7)
+        let reloaded = MeetingHistoryStore(defaults: scratch.defaults)
+        XCTAssertEqual(reloaded.lookup(title: "standup")?.projectId, 100)
+        XCTAssertEqual(reloaded.lookup(title: "standup")?.taskId, 7)
     }
 
     // MARK: - Normalization

@@ -46,13 +46,21 @@ final class MeetingPromptTests: XCTestCase {
         )
     }
 
-    /// A view model whose prompt engine reads fresh, non-persisted
-    /// stores — tests must never write into the user's real
+    /// One scratch suite per test instance; wiped in tearDown.
+    private let scratch = ScratchDefaults()
+
+    override func tearDown() async throws {
+        scratch.discard()
+        try await super.tearDown()
+    }
+
+    /// A view model whose prompt engine reads stores on the scratch
+    /// suite — tests must never write into the user's real
     /// UserDefaults-backed history or mute list.
     private func makeVM() -> TimeComparisonViewModel {
         let vm = TimeComparisonViewModel()
-        vm.meetingHistoryStore = MeetingHistoryStore(loadFromDefaults: false)
-        vm.mutedMeetingsStore = MutedMeetingsStore(loadFromDefaults: false)
+        vm.meetingHistoryStore = MeetingHistoryStore(defaults: scratch.defaults)
+        vm.mutedMeetingsStore = MutedMeetingsStore(defaults: scratch.defaults)
         return vm
     }
 
@@ -264,8 +272,44 @@ final class MeetingPromptTests: XCTestCase {
 @MainActor
 final class MutedMeetingsStoreTests: XCTestCase {
 
+    private let scratch = ScratchDefaults()
+
+    override func tearDown() async throws {
+        scratch.discard()
+        try await super.tearDown()
+    }
+
+    // MARK: - Isolation from the user's preferences
+
+    /// The test bundle runs inside Yield.app, so `.standard` here is the
+    /// user's real muted list. A store on a scratch suite must never
+    /// write to it. (The old `loadFromDefaults: false` flag skipped only
+    /// the read; every save still went to `.standard`, so each test run
+    /// replaced the user's mutes with the last fixture — "Retro" and
+    /// "All Hands" from `test_sortedMuted_alphabetical`.)
+    func test_scratchStore_neverWritesStandardDefaults() {
+        let before = UserDefaults.standard.dictionary(forKey: DefaultsKey.mutedMeetingTitles) as? [String: String]
+        let store = MutedMeetingsStore(defaults: scratch.defaults)
+        store.mute(title: "Fixture Only")
+        store.unmute(normalizedTitle: "fixture only")
+        store.mute(title: "Fixture Only")
+        let after = UserDefaults.standard.dictionary(forKey: DefaultsKey.mutedMeetingTitles) as? [String: String]
+        XCTAssertEqual(before, after)
+        XCTAssertEqual(
+            scratch.defaults.dictionary(forKey: DefaultsKey.mutedMeetingTitles) as? [String: String],
+            ["fixture only": "Fixture Only"]
+        )
+    }
+
+    func test_persistsAcrossInstances_onSameSuite() {
+        MutedMeetingsStore(defaults: scratch.defaults).mute(title: "Daily Standup")
+        let reloaded = MutedMeetingsStore(defaults: scratch.defaults)
+        XCTAssertTrue(reloaded.isMuted(title: "daily standup"))
+        XCTAssertEqual(reloaded.sortedMuted.first?.title, "Daily Standup")
+    }
+
     func test_muteAndUnmute_roundTrip() {
-        let store = MutedMeetingsStore(loadFromDefaults: false)
+        let store = MutedMeetingsStore(defaults: scratch.defaults)
         store.mute(title: "  Weekly Standup ")
         XCTAssertTrue(store.isMuted(title: "weekly standup"))
         XCTAssertEqual(store.sortedMuted.first?.title, "Weekly Standup")
@@ -276,14 +320,14 @@ final class MutedMeetingsStoreTests: XCTestCase {
     }
 
     func test_emptyTitle_neverMutes() {
-        let store = MutedMeetingsStore(loadFromDefaults: false)
+        let store = MutedMeetingsStore(defaults: scratch.defaults)
         store.mute(title: "   ")
         XCTAssertTrue(store.titles.isEmpty)
         XCTAssertFalse(store.isMuted(title: ""))
     }
 
     func test_sortedMuted_alphabetical() {
-        let store = MutedMeetingsStore(loadFromDefaults: false)
+        let store = MutedMeetingsStore(defaults: scratch.defaults)
         store.mute(title: "Retro")
         store.mute(title: "All Hands")
         XCTAssertEqual(store.sortedMuted.map(\.title), ["All Hands", "Retro"])
