@@ -3,6 +3,22 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.7.3</title>
+      <sparkle:version>69</sparkle:version>
+      <sparkle:shortVersionString>1.7.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Fixed: "Don't prompt for meetings like this" didn't stick.</strong> The mute worked, but every Yield release quietly replaced your muted list with two placeholder titles &mdash; <em>Retro</em> and <em>All Hands</em> &mdash; and reset the project/task pairings Yield had learned for your meetings. Both are preserved from now on. One-time cleanup: remove the two placeholder entries from Settings &rarr; Muted Meetings, and re-mute the meetings you actually wanted quiet.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.7.3/Yield-1.7.3.zip"
+        sparkle:edSignature="ZCFX7SFqRX+L9dNJIRDDHbo7x2syeL9nmZOUUo5YjVZt2L8v8UC9UwXT1W1rof/Q5pnu7v+7/wlG6ZWCoPWmBw=="
+        length="3238947"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.7.2</title>
       <sparkle:version>68</sparkle:version>
       <sparkle:shortVersionString>1.7.2</sparkle:shortVersionString>
