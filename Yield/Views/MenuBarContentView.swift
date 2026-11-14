@@ -54,6 +54,12 @@ enum MenuBarLabelMode: String, CaseIterable {
     /// denominator). A paused timer keeps showing its frozen value;
     /// once all timers are stopped, falls back to today's running total.
     case currentTimer
+    /// Hours left on the running project's booking — "10:48 left",
+    /// or "0:40 over" once past it. The compact partner to the ring
+    /// and capsule styles, which already draw the tracked/booked
+    /// ratio. Unbooked timers show their own hours; with no timer it
+    /// reports the week against the weekly budget.
+    case timeLeft
 
     var label: String {
         switch self {
@@ -61,6 +67,18 @@ enum MenuBarLabelMode: String, CaseIterable {
         case .dayTime:          return "Current / day total"
         case .currentRemaining: return "Current / remaining"
         case .currentTimer:     return "Current timer"
+        case .timeLeft:         return "Time left"
+        }
+    }
+
+    /// Widest realistic label for this mode, used to reserve a fixed
+    /// text slot so the menu bar item doesn't change width (and shove
+    /// its neighbors around) as the numbers tick.
+    var widestLabel: String {
+        switch self {
+        case .currentTimer: return "88:88"
+        case .timeLeft:     return "88:88 left"
+        case .projectTime, .dayTime, .currentRemaining: return "8:88 / 88:88"
         }
     }
 }

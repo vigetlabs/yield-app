@@ -15,6 +15,9 @@ enum DefaultsKey {
     /// `AppearanceMode` (light/dark) is a separate axis.
     static let uiTheme = "uiTheme"
     static let menuBarLabelMode = "menuBarLabelMode"
+    /// Selected `MenuBarStyle` raw value — which graphic the menu bar
+    /// item draws. `menuBarLabelMode` (the text) is a separate axis.
+    static let menuBarStyle = "menuBarStyle"
     static let idleDetectionEnabled = "idleDetectionEnabled"
     static let idleMinutes = "idleMinutes"
     /// Whether externally-triggered timer starts/stops (e.g. from the

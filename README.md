@@ -32,7 +32,7 @@ Unzip, drag Yield to your Applications folder, and launch — it'll take root in
 
 **Visualizations & navigation**
 
-- 🎛️ **Configurable menu bar display** — pick what shows next to the icon: project tracked vs. booked, current timer vs. day total, current timer vs. project remaining, or just the running timer. The icon itself rotates as a gauge tied to your progress on the active project.
+- 🎛️ **Configurable menu bar display** — pick the graphic and the text separately. Styles: the classic monochrome gauge, a budget ring that fills toward the active project's booking, a status capsule whose fill doubles as a progress bar, or week bars showing Monday to Friday against your daily target. The colored styles stay monochrome until a timer runs, then turn green, amber near the booking, and red once over it. Text: project tracked vs. booked, current timer vs. day total, current timer vs. project remaining, just the running timer, or time left.
 - 📈 **Weekly time chart** — stacked area chart showing hours by project across the week. Click a legend row to isolate a single project, or export the chart as a PNG. In the System theme, hover a day for that day's hours by project.
 - 🔍 **Day-of-week filter** — click a weekday in the header to narrow the list to projects you spent time on (or are booked on) that day.
 

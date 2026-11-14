@@ -10,6 +10,7 @@ struct PreferencesCard: View {
     @AppStorage(DefaultsKey.idleMinutes) private var idleMinutes = 10
     @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
     @AppStorage(DefaultsKey.menuBarLabelMode) private var menuBarLabelMode: String = MenuBarLabelMode.projectTime.rawValue
+    @AppStorage(DefaultsKey.menuBarStyle) private var menuBarStyle: String = MenuBarStyle.default.rawValue
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -52,7 +53,14 @@ struct PreferencesCard: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
 
-            // Menu bar display
+            // Menu bar graphic (Classic / ring / capsule / week bars)
+            menuBarStyleRow
+
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+
+            // Menu bar text
             menuBarDisplayRow
 
             Rectangle()
@@ -183,10 +191,20 @@ struct PreferencesCard: View {
         ) { ThemeStore.shared.select(YieldTheme(rawValue: $0) ?? .default) }
     }
 
+    private var menuBarStyleRow: some View {
+        enumPickerRow(
+            icon: "circle.dashed",
+            label: "Menu bar style",
+            cases: MenuBarStyle.allCases,
+            selectedRawValue: menuBarStyle,
+            title: { $0.label }
+        ) { menuBarStyle = $0 }
+    }
+
     private var menuBarDisplayRow: some View {
         enumPickerRow(
             icon: "menubar.rectangle",
-            label: "Menu bar display",
+            label: "Menu bar text",
             cases: MenuBarLabelMode.allCases,
             selectedRawValue: menuBarLabelMode,
             title: { $0.label }

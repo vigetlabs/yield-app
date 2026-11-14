@@ -943,6 +943,7 @@ final class TimeComparisonViewModel {
         case .dayTime:          return dayTimeLabel()
         case .currentRemaining: return currentRemainingLabel()
         case .currentTimer:     return currentTimerLabel()
+        case .timeLeft:         return timeLeftLabel()
         }
     }
 
@@ -1029,6 +1030,84 @@ final class TimeComparisonViewModel {
             return formatHM(paused.frozenHours)
         }
         return formatHM(totalTodayLogged)
+    }
+
+    /// Hours left on the timer's project ("10:48 left"), or how far
+    /// past its booking ("0:40 over"). Unbooked timers have nothing to
+    /// count down, so they show their own hours. With no timer set the
+    /// same question is asked of the week.
+    private func timeLeftLabel() -> String {
+        if let tracking = projectStatuses.first(where: { $0.isTracking }) {
+            if tracking.bookedHours == 0 {
+                return formatHM((trackingEntry?.hours ?? 0) + elapsedOffset)
+            }
+            return Self.formatLeft(tracking.bookedHours - (tracking.loggedHours + elapsedOffset))
+        }
+        if let project = pausedProject {
+            if project.bookedHours == 0 {
+                return formatHM(pausedState?.frozenHours ?? 0)
+            }
+            return Self.formatLeft(project.bookedHours - project.loggedHours)
+        }
+        let allTracked = totalLogged + totalUnbookedLogged
+        let budget = max(totalBooked, weeklyHoursTarget)
+        return Self.formatLeft(budget - allTracked)
+    }
+
+    /// "10:48 left" for a positive remainder, "0:40 over" for a
+    /// negative one. Rounds to the minute first so a remainder of a few
+    /// seconds either way reads "0:00 left" rather than "0:00 over".
+    static func formatLeft(_ remaining: Double) -> String {
+        let minutes = Int((remaining * 60).rounded())
+        let magnitude = (Double(abs(minutes)) / 60).formattedColon
+        return minutes < 0 ? "\(magnitude) over" : "\(magnitude) left"
+    }
+
+    /// State for the ring, capsule and week-bars menu bar styles. The
+    /// classic style keeps using `menuBarIcon`; the two agree on what
+    /// "over" means.
+    var menuBarGraphicState: MenuBarGraphicState {
+        var state = MenuBarGraphicState()
+        state.isStale = !serviceErrors.isEmpty || hasConnectivityError
+        state.meetingDue = activeMeetingPrompt != nil
+        guard lastUpdated != nil else { return state }
+
+        if let tracking = projectStatuses.first(where: { $0.isTracking }) {
+            state.timer = .running
+            if tracking.bookedHours > 0 {
+                let logged = tracking.loggedHours + elapsedOffset
+                state.tone = MenuBarGraphicState.tone(logged: logged, booked: tracking.bookedHours)
+                state.progress = MenuBarGraphicState.quantize(logged / tracking.bookedHours)
+            }
+        } else if pausedState != nil {
+            state.timer = .paused
+            if let project = pausedProject, project.bookedHours > 0 {
+                state.progress = MenuBarGraphicState.quantize(project.loggedHours / project.bookedHours)
+            }
+        } else {
+            let budget = max(totalBooked, weeklyHoursTarget)
+            state.progress = MenuBarGraphicState.quantize((totalLogged + totalUnbookedLogged) / budget)
+            state.isTimeOff = isFullDayOffToday
+        }
+
+        // Monday…Friday against the daily target. The running timer's
+        // local ticks land on today's bar so it grows between refreshes.
+        let days = DateHelpers.weekDays(starting: DateHelpers.currentWeekBounds().start)
+            .prefix(DateHelpers.workdaysPerWeek)
+        let today = DateHelpers.dateFormatter.string(from: Date())
+        var hoursByDate: [String: Double] = [:]
+        for project in projectStatuses {
+            for entry in project.timeEntries {
+                hoursByDate[entry.date, default: 0] += entry.hours
+            }
+        }
+        if state.timer == .running {
+            hoursByDate[today, default: 0] += elapsedOffset
+        }
+        let target = dailyHoursTarget
+        state.weekFractions = days.map { MenuBarGraphicState.quantize((hoursByDate[$0.str] ?? 0) / target) }
+        state.todayIndex = days.firstIndex { $0.str == today }.map { days.distance(from: days.startIndex, to: $0) }
+        return state
     }
 
     var menuBarIcon: MenuBarIcon {
@@ -3727,8 +3806,10 @@ extension TimeComparisonViewModel {
         cachedCalendarEvents: [CalendarEvent]? = nil,
         activeMeetingPrompt: CalendarEvent? = nil,
         calendarSourcedTimer: CalendarSourcedTimer? = nil,
-        idleAlertState: IdleAlertState? = nil
+        idleAlertState: IdleAlertState? = nil,
+        lastUpdated: Date? = nil
     ) {
+        if let lastUpdated { self.lastUpdated = lastUpdated }
         if let pausedState { self.pausedState = pausedState }
         if let idleAlertState { self.idleAlertState = idleAlertState }
         if let cachedCalendarEvents { self.cachedCalendarEvents = cachedCalendarEvents }

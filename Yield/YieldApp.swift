@@ -44,6 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
             DefaultsKey.idleDetectionEnabled: true,
             DefaultsKey.idleMinutes: 10,
             DefaultsKey.menuBarLabelMode: MenuBarLabelMode.projectTime.rawValue,
+            DefaultsKey.menuBarStyle: MenuBarStyle.default.rawValue,
             DefaultsKey.appearanceMode: AppearanceMode.default.rawValue,
             DefaultsKey.uiTheme: YieldTheme.default.rawValue,
             DefaultsKey.timerChangeHUDEnabled: true,
@@ -150,6 +151,9 @@ struct YieldApp: App {
     /// in Settings re-runs the MenuBarExtra label closure with the new
     /// mode, which produces a different cache key and a new image.
     @AppStorage(DefaultsKey.menuBarLabelMode) private var menuBarLabelModeRaw: String = MenuBarLabelMode.projectTime.rawValue
+    /// Which graphic the item draws. Same reasoning as the label mode:
+    /// reading it here makes the label closure re-run on change.
+    @AppStorage(DefaultsKey.menuBarStyle) private var menuBarStyleRaw: String = MenuBarStyle.default.rawValue
     /// Drives `NSApp.appearance` and the panel's preferred color scheme
     /// so the user's appearance choice is honored at runtime.
     @AppStorage(DefaultsKey.appearanceMode) private var appearanceModeRaw: String = AppearanceMode.default.rawValue
@@ -168,6 +172,7 @@ struct YieldApp: App {
                 }
         } label: {
             let mode = MenuBarLabelMode(rawValue: menuBarLabelModeRaw) ?? .projectTime
+            let style = MenuBarStyle(rawValue: menuBarStyleRaw) ?? .default
             // SwiftUI's `.help()` doesn't propagate to MenuBarExtra's
             // `NSStatusBarButton`, so we set the AppKit `toolTip`
             // directly. Reading `menuBarTooltip` here makes the label
@@ -178,7 +183,8 @@ struct YieldApp: App {
             return Image(nsImage: composedMenuBarImage(
                 label: viewModel.menuBarLabel,
                 icon: viewModel.menuBarIcon,
-                mode: mode
+                mode: mode,
+                style: style
             ))
         }
         .menuBarExtraStyle(.window)
@@ -193,6 +199,11 @@ struct YieldApp: App {
         let label: String
         let icon: TimeComparisonViewModel.MenuBarIcon
         let mode: MenuBarLabelMode
+        /// Nil for the classic (template) image. For the colored
+        /// styles: the graphic's state plus which ink the bar needs.
+        var graphic: MenuBarGraphicState? = nil
+        var style: MenuBarStyle = .classic
+        var isDark: Bool = false
     }
 
     /// Process-global cache for the composed menu bar image. SwiftUI re-runs
@@ -220,13 +231,45 @@ struct YieldApp: App {
 
     /// Compose the full menu bar image: [tracking dot] [time text] [state icon]
     /// Draws into a single NSImage so MenuBarExtra renders it reliably.
-    private func composedMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, mode: MenuBarLabelMode) -> NSImage {
-        let key = MenuBarImageKey(label: label, icon: icon, mode: mode)
+    private func composedMenuBarImage(
+        label: String,
+        icon: TimeComparisonViewModel.MenuBarIcon,
+        mode: MenuBarLabelMode,
+        style: MenuBarStyle
+    ) -> NSImage {
+        // The classic style never touches the graphic state or the
+        // menu bar's appearance — its path is exactly what it was
+        // before the other styles existed. A day off also falls back
+        // to it: the moon says "you're off" better than an empty ring.
+        var graphic: MenuBarGraphicState?
+        if style != .classic {
+            let state = viewModel.menuBarGraphicState
+            if !state.isTimeOff || state.isStale { graphic = state }
+        }
+
+        var key = MenuBarImageKey(label: label, icon: icon, mode: mode)
+        if let graphic {
+            MenuBarAppearance.shared.attachIfNeeded()
+            key.graphic = graphic
+            key.style = style
+            key.isDark = MenuBarAppearance.shared.isDark
+        }
         if let cached = Self.cache, cached.key == key {
             return cached.image
         }
 
-        let image = renderMenuBarImage(label: label, icon: icon, mode: mode)
+        let image: NSImage
+        if let graphic {
+            image = MenuBarGraphicRenderer.render(
+                style: style,
+                label: label,
+                state: graphic,
+                labelMode: mode,
+                isDark: key.isDark
+            )
+        } else {
+            image = renderMenuBarImage(label: label, icon: icon, mode: mode)
+        }
         Self.cache = (key, image)
         return image
     }
@@ -282,7 +325,7 @@ struct YieldApp: App {
         // a long week's tracked total) the menu bar shifts right by
         // a single digit's width. Rare and small enough to be a fair
         // exchange for the day-to-day tighter layout.
-        let maxLabel = mode == .currentTimer ? "88:88" : "8:88 / 88:88"
+        let maxLabel = mode.widestLabel
         let reservedTextWidth: CGFloat = (maxLabel as NSString).size(withAttributes: attrs).width
         let textSize: CGSize = label.isEmpty ? .zero : (label as NSString).size(withAttributes: attrs)
         // The reserved width covers the typical case; when the actual
