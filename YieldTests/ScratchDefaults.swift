@@ -1,32 +1,35 @@
 import Foundation
 
-/// A throwaway `UserDefaults` suite for tests that exercise a
-/// persisted store. The test bundle is hosted inside Yield.app, so
-/// `UserDefaults.standard` in a test *is* the user's real preferences;
-/// a store under test must be pointed somewhere else or every fixture
-/// it saves replaces the user's data.
+/// A `UserDefaults` suite for tests to write to instead of
+/// `UserDefaults.standard`.
 ///
-/// One per test instance, empty on creation. Call `discard()` from
-/// `tearDown` — XCTest keeps test instances alive until the whole run
-/// ends, so relying on `deinit` leaves the suite's plist behind in
-/// ~/Library/Preferences.
+/// The test bundle is hosted inside Yield.app, so `.standard` in a test
+/// is the user's real `com.yield` preferences. Stores that persist
+/// take a `UserDefaults` in their initializer; tests pass
+/// `scratch.defaults` so fixtures can never overwrite real data.
+///
+/// One fixed suite name, emptied before and after each use — not a
+/// fresh name per test. A unique name per test looked tidier but left
+/// a file behind every time: cfprefsd writes an emptied domain back to
+/// disk some seconds after the test process has gone, so deleting the
+/// plist (even after `synchronize()`) only had it reappear, and
+/// `~/Library/Preferences` gained a couple of dozen empty files per
+/// run. A fixed name leaves exactly one small, empty plist, ever.
+/// Tests run serially in one process, so sharing the name is safe.
 final class ScratchDefaults {
-    let name: String
+    static let suiteName = "com.yield.tests.scratch"
+
     let defaults: UserDefaults
 
     init() {
-        name = "com.yield.tests.scratch.\(UUID().uuidString)"
-        defaults = UserDefaults(suiteName: name)!
+        defaults = UserDefaults(suiteName: Self.suiteName)!
+        // Start clean even if an earlier run crashed mid-test.
+        defaults.removePersistentDomain(forName: Self.suiteName)
     }
 
-    /// Wipe the suite from memory and disk. Idempotent.
+    /// Empty the suite. Idempotent; call from `tearDown`.
     func discard() {
-        defaults.removePersistentDomain(forName: name)
-        // `removePersistentDomain` empties the domain but can leave a
-        // zero-entry plist on disk; remove that too.
-        let plist = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Preferences/\(name).plist")
-        try? FileManager.default.removeItem(at: plist)
+        defaults.removePersistentDomain(forName: Self.suiteName)
     }
 
     deinit { discard() }
