@@ -9,6 +9,11 @@ import AppKit
 /// and inspected, which is how the preview sheet in the tests is made.
 enum MenuBarGraphicRenderer {
     static let barHeight: CGFloat = 18
+    /// The capsule is taller than the other styles' canvas: it is a
+    /// filled shape, and at 18pt it sat small in a 24pt menu bar. 21pt
+    /// fills more of the bar while staying inside the 22pt status
+    /// items are given.
+    static let capsuleHeight: CGFloat = 21
     private static let spacing: CGFloat = 4
     private static let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
 
@@ -94,7 +99,7 @@ enum MenuBarGraphicRenderer {
         switch style {
         case .capsule:
             let width = label.isEmpty ? capsuleEmptyWidth : ceil(textSlot + capsulePadding * 2)
-            image = NSImage(size: NSSize(width: width, height: barHeight), flipped: false) { _ in
+            image = NSImage(size: NSSize(width: width, height: capsuleHeight), flipped: false) { _ in
                 guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
                 drawCapsule(ctx, width: width, label: label, textSize: textSize, state: state, palette: palette)
                 return true
@@ -197,8 +202,12 @@ enum MenuBarGraphicRenderer {
 
     // MARK: - Capsule
 
-    private static let capsulePadding: CGFloat = 9
-    private static let capsuleEmptyWidth: CGFloat = 28
+    private static let capsulePadding: CGFloat = 10
+    private static let capsuleEmptyWidth: CGFloat = 32
+    /// Stroke of the battery outline around the unused share.
+    private static let capsuleOutline: CGFloat = 1.5
+    /// The least fill a started booking shows.
+    private static let capsuleMinFill: CGFloat = 4
 
     private static func drawCapsule(
         _ ctx: CGContext,
@@ -208,8 +217,8 @@ enum MenuBarGraphicRenderer {
         state: MenuBarGraphicState,
         palette: Palette
     ) {
-        let rect = CGRect(x: 0, y: 0, width: width, height: barHeight)
-        let shape = CGPath(roundedRect: rect, cornerWidth: barHeight / 2, cornerHeight: barHeight / 2, transform: nil)
+        let rect = CGRect(x: 0, y: 0, width: width, height: capsuleHeight)
+        let shape = CGPath(roundedRect: rect, cornerWidth: capsuleHeight / 2, cornerHeight: capsuleHeight / 2, transform: nil)
 
         var fill: NSColor?
         var textColor = palette.ink
@@ -247,20 +256,37 @@ enum MenuBarGraphicRenderer {
             outlineDashed = true
         }
 
-        if let fill {
+        // Where the used share of the booking ends, for the two toned
+        // running states. Nil everywhere else.
+        var split: CGFloat?
+
+        if let fill, showsProgress, let progress = state.progress {
+            // A battery: the used share of the booking is solid from
+            // the leading edge and the rest is an empty outline, so
+            // the two parts differ by filled-versus-not rather than by
+            // two shades of one color. A sliver stays visible however
+            // little is used, so the capsule never reads as unbooked.
+            let used = progress > 0 ? max(width * CGFloat(min(progress, 1)), capsuleMinFill) : 0
+            split = used
+            ctx.saveGState()
+            ctx.addPath(shape)
+            ctx.clip()
+            ctx.setFillColor(fill.cgColor)
+            ctx.fill(CGRect(x: 0, y: 0, width: used, height: capsuleHeight))
+            ctx.restoreGState()
+
+            let inset = rect.insetBy(dx: capsuleOutline / 2, dy: capsuleOutline / 2)
+            ctx.addPath(CGPath(
+                roundedRect: inset,
+                cornerWidth: inset.height / 2, cornerHeight: inset.height / 2, transform: nil
+            ))
+            ctx.setStrokeColor(fill.cgColor)
+            ctx.setLineWidth(capsuleOutline)
+            ctx.strokePath()
+        } else if let fill {
             ctx.addPath(shape)
             ctx.setFillColor(fill.cgColor)
             ctx.fillPath()
-            if showsProgress, let progress = state.progress, progress > 0 {
-                // The elapsed share of the booking, as a darker run
-                // from the leading edge.
-                ctx.saveGState()
-                ctx.addPath(shape)
-                ctx.clip()
-                ctx.setFillColor(NSColor.black.withAlphaComponent(0.2).cgColor)
-                ctx.fill(CGRect(x: 0, y: 0, width: width * progress, height: barHeight))
-                ctx.restoreGState()
-            }
         } else {
             let inset = rect.insetBy(dx: 0.5, dy: 0.5)
             ctx.saveGState()
@@ -276,15 +302,26 @@ enum MenuBarGraphicRenderer {
         }
 
         if !label.isEmpty {
-            drawText(
-                label,
-                at: CGPoint(x: (width - textSize.width) / 2, y: (barHeight - textSize.height) / 2),
-                color: textColor
-            )
+            let origin = CGPoint(x: (width - textSize.width) / 2, y: (capsuleHeight - textSize.height) / 2)
+            if let split {
+                // The label crosses the boundary, so it is drawn twice,
+                // each pass clipped to its side: the fill's own text
+                // color over the solid part, bar ink over the empty one.
+                ctx.saveGState()
+                ctx.clip(to: CGRect(x: 0, y: 0, width: split, height: capsuleHeight))
+                drawText(label, at: origin, color: textColor)
+                ctx.restoreGState()
+                ctx.saveGState()
+                ctx.clip(to: CGRect(x: split, y: 0, width: width - split, height: capsuleHeight))
+                drawText(label, at: origin, color: palette.ink)
+                ctx.restoreGState()
+            } else {
+                drawText(label, at: origin, color: textColor)
+            }
         }
 
         if badge {
-            drawBadge(ctx, center: CGPoint(x: width - 3.5, y: barHeight - 3.5), color: palette.meeting)
+            drawBadge(ctx, center: CGPoint(x: width - 3.5, y: capsuleHeight - 3.5), color: palette.meeting)
         }
     }
 

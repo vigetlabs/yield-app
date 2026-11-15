@@ -152,7 +152,9 @@ final class MenuBarGraphicTests: XCTestCase {
             let narrow = render(style, "1:11 left").size
             let wide = render(style, "18:48 left").size
             XCTAssertEqual(narrow.width, wide.width, "\(style) must not shove its neighbors as digits change")
-            XCTAssertEqual(narrow.height, MenuBarGraphicRenderer.barHeight)
+            XCTAssertEqual(narrow.height, style == .capsule
+                ? MenuBarGraphicRenderer.capsuleHeight : MenuBarGraphicRenderer.barHeight)
+            XCTAssertLessThanOrEqual(narrow.height, 22, "a status item's image is given 22pt")
         }
     }
 
@@ -160,6 +162,51 @@ final class MenuBarGraphicTests: XCTestCase {
         let normal = render(.ring, "9:59 / 16:00", mode: .projectTime).size.width
         let long = render(.ring, "100:17 / 120:00", mode: .projectTime).size.width
         XCTAssertGreaterThan(long, normal)
+    }
+
+    // MARK: - Capsule battery
+
+    /// Alpha and color of one pixel, a given fraction across the
+    /// capsule at mid-height. An empty label keeps text out of the way.
+    private func capsulePixel(_ state: MenuBarGraphicState, at fraction: CGFloat) -> NSColor? {
+        let image = render(.capsule, "", state)
+        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        let rep = NSBitmapImageRep(cgImage: cg)
+        return rep.colorAt(x: Int(CGFloat(rep.pixelsWide) * fraction), y: rep.pixelsHigh / 2)
+    }
+
+    func test_capsule_usedShareIsSolid_restIsEmpty() throws {
+        for tone in [MenuBarGraphicState.Tone.onPace, .nearLimit] {
+            var state = MenuBarGraphicState()
+            state.timer = .running
+            state.tone = tone
+            state.progress = 0.5
+            let used = try XCTUnwrap(capsulePixel(state, at: 0.25))
+            let unused = try XCTUnwrap(capsulePixel(state, at: 0.75))
+            XCTAssertEqual(used.alphaComponent, 1, accuracy: 0.01, "\(tone): the used half is filled")
+            XCTAssertEqual(unused.alphaComponent, 0, accuracy: 0.01, "\(tone): the unused half is outline only")
+        }
+    }
+
+    func test_capsule_overAndUnbookedStaySolid() throws {
+        var over = MenuBarGraphicState()
+        over.timer = .running
+        over.tone = .over
+        over.progress = 1
+        XCTAssertEqual(try XCTUnwrap(capsulePixel(over, at: 0.75)).alphaComponent, 1, accuracy: 0.01)
+
+        // Unbooked is filled with bar ink, which is itself translucent.
+        var unbooked = MenuBarGraphicState()
+        unbooked.timer = .running
+        XCTAssertGreaterThan(try XCTUnwrap(capsulePixel(unbooked, at: 0.75)).alphaComponent, 0.8)
+    }
+
+    func test_capsule_aJustStartedBookingStillShowsAFill() throws {
+        var state = MenuBarGraphicState()
+        state.timer = .running
+        state.tone = .onPace
+        state.progress = 0.01
+        XCTAssertGreaterThan(try XCTUnwrap(capsulePixel(state, at: 0.08)).alphaComponent, 0.5)
     }
 
     func test_render_emptyLabelStillDrawsSomething() {
