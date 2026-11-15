@@ -68,14 +68,22 @@ struct MenuBarHeaderView: View {
             .animation(.easeInOut(duration: 0.15), value: viewModel.isLoading)
             .animation(.easeInOut(duration: 0.15), value: viewModel.isLoadingOtherWeek)
             .animation(.easeInOut(duration: 0.15), value: viewModel.isViewingOtherWeek)
-            .padding(16)
+            // System: one left margin for the whole panel — the 19pt
+            // the timer bar, client names and project names sit on.
+            .padding(.leading, Self.leadingInset)
+            .padding(.trailing, 16)
+            .padding(.vertical, 16)
 
             // Weekday mini-bar: past/current weeks show tracked hours per
             // day; future weeks show scheduled (Forecast-booked) hours.
             if !viewModel.displayedDailyHours.isEmpty {
+                // Each day cell pads its text by 6pt, so System's strip
+                // starts 6pt short of the margins to land the text on
+                // them: "Mon" on the 19pt edge, the week total on the
+                // 16pt one.
                 WeekDayBarView(viewModel: viewModel)
-                    .padding(.leading, 18)
-                    .padding(.trailing, 16)
+                    .padding(.leading, ThemeStore.shared.theme.usesRefreshedLayout ? Self.leadingInset - 6 : 18)
+                    .padding(.trailing, ThemeStore.shared.theme.usesRefreshedLayout ? 10 : 16)
                     .padding(.bottom, 10)
             }
         }
@@ -86,30 +94,56 @@ struct MenuBarHeaderView: View {
         }
     }
 
-    /// Grouped back/forward chevron controls, styled to match the tab
-    /// toggle — filled subtle bg, no outer border, thin panel-colored seam
-    /// between the two buttons so they read as distinct halves.
+    /// Left margin of the header's controls.
+    static var leadingInset: CGFloat {
+        ThemeStore.shared.theme.usesRefreshedLayout ? 16 + 3 : 16
+    }
+
+    /// Back/forward week chevrons. Editorial: a grouped pair styled to
+    /// match the tab toggle — filled subtle bg, no outer border, thin
+    /// panel-colored seam between the two buttons so they read as
+    /// distinct halves. System: two round buttons, like every other
+    /// icon button in the theme.
+    @ViewBuilder
     private var weekNavControls: some View {
-        HStack(spacing: 0) {
-            HeaderIconButton(systemImage: "chevron.left", help: "Previous week") {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    viewModel.goBackWeek()
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            HStack(spacing: 6) {
+                HeaderIconButton(systemImage: "chevron.left", help: "Previous week") {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        viewModel.goBackWeek()
+                    }
+                }
+                .clipShape(Circle())
+
+                HeaderIconButton(systemImage: "chevron.right", help: "Next week") {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        viewModel.advanceWeek()
+                    }
+                }
+                .clipShape(Circle())
+            }
+        } else {
+            HStack(spacing: 0) {
+                HeaderIconButton(systemImage: "chevron.left", help: "Previous week") {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        viewModel.goBackWeek()
+                    }
+                }
+
+                // 0.5pt = 1 physical pixel on Retina displays. 1pt renders as
+                // 2px on @2x which read as a visible gap rather than a seam.
+                Rectangle()
+                    .fill(YieldColors.background)
+                    .frame(width: 0.5, height: YieldDimensions.buttonHeight)
+
+                HeaderIconButton(systemImage: "chevron.right", help: "Next week") {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        viewModel.advanceWeek()
+                    }
                 }
             }
-
-            // 0.5pt = 1 physical pixel on Retina displays. 1pt renders as
-            // 2px on @2x which read as a visible gap rather than a seam.
-            Rectangle()
-                .fill(YieldColors.background)
-                .frame(width: 0.5, height: YieldDimensions.buttonHeight)
-
-            HeaderIconButton(systemImage: "chevron.right", help: "Next week") {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    viewModel.advanceWeek()
-                }
-            }
+            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
         }
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
     }
 
     /// "This Week" pill — matches the nav chevrons' outlined, transparent-bg
@@ -313,6 +347,41 @@ struct HeaderIconButton: View {
         .help(help)
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+        }
+    }
+}
+
+/// System theme: the title bar of a page that replaces the panel's
+/// main view — Settings, the calendar event picker. The main header
+/// in miniature: a round tinted back chevron, then the title beside
+/// it on the left, where the week title sits. Editorial's pages keep
+/// their own centered-title bars.
+struct SubpageTitleBar: View {
+    let title: String
+    let onBack: () -> Void
+    /// Whether the bar rules itself off underneath. Off when what
+    /// follows draws that rule itself (Settings' first section band).
+    var ruled: Bool = true
+
+    var body: some View {
+        HStack(spacing: 10) {
+            HeaderIconButton(systemImage: "chevron.left", help: "Back", action: onBack)
+                .clipShape(Circle())
+            Text(title)
+                .font(YieldFonts.titleMedium)
+                .foregroundStyle(YieldColors.textPrimary)
+                .lineLimit(1)
+            Spacer()
+        }
+        .padding(.leading, MenuBarHeaderView.leadingInset)
+        .padding(.trailing, 16)
+        .padding(.vertical, 16)
+        .overlay(alignment: .bottom) {
+            if ruled {
+                Rectangle()
+                    .fill(YieldColors.border)
+                    .frame(height: 1)
+            }
         }
     }
 }

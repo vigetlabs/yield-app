@@ -70,9 +70,17 @@ enum YieldTheme: String, CaseIterable {
         }
     }
 
+    /// The size a family function draws at. System has a floor of
+    /// 11pt: the ~80 call sites that pass a literal were written for
+    /// Editorial, whose 9pt and 10pt captions are too small to read
+    /// comfortably in this theme's wider type. Deliberately smaller
+    /// text (the badge's tracked capitals) asks for Manrope directly.
     private func scaled(_ size: CGFloat) -> CGFloat {
-        scale == 1 ? size : (size * scale).rounded()
+        let size = scale == 1 ? size : (size * scale).rounded()
+        return self == .system ? max(size, Self.systemMinimumSize) : size
     }
+
+    static let systemMinimumSize: CGFloat = 11
 
     // MARK: - Font families (SwiftUI)
 

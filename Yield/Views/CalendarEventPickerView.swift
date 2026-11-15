@@ -91,44 +91,50 @@ struct CalendarEventPickerView: View {
 
     // MARK: - Header
 
+    @ViewBuilder
     private var header: some View {
-        HStack(spacing: 8) {
-            Button {
-                onCancel()
-            } label: {
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            // System: the same title bar Settings has.
+            SubpageTitleBar(title: "Today's events", onBack: onCancel)
+        } else {
+            HStack(spacing: 8) {
+                Button {
+                    onCancel()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 9, weight: .semibold))
+                        Text("Back")
+                            .font(YieldFonts.label(11, weight: .medium))
+                    }
+                    .foregroundStyle(YieldColors.textPrimary)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Text("Today's events")
+                    .font(YieldFonts.label(13, weight: .semibold))
+                    .foregroundStyle(YieldColors.textPrimary)
+
+                Spacer()
+
+                // Symmetry spacer so the title stays centered.
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 9, weight: .semibold))
                     Text("Back")
                         .font(YieldFonts.label(11, weight: .medium))
                 }
-                .foregroundStyle(YieldColors.textPrimary)
+                .hidden()
             }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text("Today's events")
-                .font(YieldFonts.label(13, weight: .semibold))
-                .foregroundStyle(YieldColors.textPrimary)
-
-            Spacer()
-
-            // Symmetry spacer so the title stays centered.
-            HStack(spacing: 4) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 9, weight: .semibold))
-                Text("Back")
-                    .font(YieldFonts.label(11, weight: .medium))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(YieldColors.border)
+                    .frame(height: 1)
             }
-            .hidden()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
         }
     }
 
@@ -174,7 +180,7 @@ struct CalendarEventPickerView: View {
         VStack(spacing: 10) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 22, weight: .light))
-                .foregroundStyle(.red.opacity(0.8))
+                .foregroundStyle(YieldStatusColors.errorText(editorialOpacity: 0.8))
             Text(message)
                 .font(YieldFonts.label(11))
                 .foregroundStyle(YieldColors.textSecondary)

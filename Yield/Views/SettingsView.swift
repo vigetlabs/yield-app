@@ -22,7 +22,42 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
+            SettingsHeader(onDismiss: onDismiss)
+
+            // Content — scrollable so a long Settings panel (e.g.
+            // many favorites) doesn't push past the menu-bar panel's
+            // available height on short screens. `fixedSize(vertical:
+            // true)` lets the scroll view shrink to its content's
+            // ideal height when everything fits — same pattern the
+            // main panel's project list uses.
+            ScrollView {
+                SettingsCardStack(
+                    oAuthService: oAuthService, onDismiss: onDismiss,
+                    allProjects: allProjects, isLoadingProjects: isLoadingProjects
+                )
+            }
+            .scrollIndicators(.automatic)
+            .frame(maxHeight: settingsContentMaxHeight)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .task {
+            isLoadingProjects = true
+            allProjects = (try? await AppState.shared.viewModel.fetchAllProjects()) ?? []
+            isLoadingProjects = false
+        }
+    }
+}
+
+/// The Settings panel's title bar: back button, centered title.
+/// A view of its own so the snapshot harness can render it.
+struct SettingsHeader: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        if SettingsStyle.refreshed {
+            // No rule: the first section's band draws it.
+            SubpageTitleBar(title: "Settings", onBack: onDismiss, ruled: false)
+        } else {
             HStack {
                 Button {
                     onDismiss()
@@ -61,37 +96,35 @@ struct SettingsView: View {
                     .fill(YieldColors.border)
                     .frame(height: 1)
             }
+        }
+    }
+}
 
-            // Content — scrollable so a long Settings panel (e.g.
-            // many favorites) doesn't push past the menu-bar panel's
-            // available height on short screens. `fixedSize(vertical:
-            // true)` lets the scroll view shrink to its content's
-            // ideal height when everything fits — same pattern the
-            // main panel's project list uses.
-            ScrollView {
-                VStack(spacing: 12) {
-                    AboutCard()
-                    // Account + Calendar stack full-width. They were
-                    // 50/50 side-by-side, but the Calendar card's
-                    // content (prompt toggle, connect states) outgrew
-                    // the Account card and the mismatched heights read
-                    // as broken.
-                    AccountCard(oAuthService: oAuthService, onDismiss: onDismiss)
-                    GoogleCalendarCard()
-                    PreferencesCard()
-                    FavoritesCard(allProjects: allProjects, isLoadingProjects: isLoadingProjects)
-                    MutedMeetingsCard()
-                }
-                .padding(16)
-            }
-            .scrollIndicators(.automatic)
-            .frame(maxHeight: settingsContentMaxHeight)
-            .fixedSize(horizontal: false, vertical: true)
+/// The Settings cards, in order, with the panel's margins. A view of
+/// its own — outside the `ScrollView` that hosts it — so the snapshot
+/// harness can render it (`ImageRenderer` can't draw a scroll view).
+struct SettingsCardStack: View {
+    let oAuthService: OAuthService
+    let onDismiss: () -> Void
+    let allProjects: [TimeComparisonViewModel.TimerProjectOption]
+    let isLoadingProjects: Bool
+
+    var body: some View {
+        // System: the sections are bands that run edge to edge, so
+        // there is no gap between them and no margin around them.
+        VStack(spacing: SettingsStyle.refreshed ? 0 : 12) {
+            AboutCard()
+            // Account + Calendar stack full-width. They were
+            // 50/50 side-by-side, but the Calendar card's
+            // content (prompt toggle, connect states) outgrew
+            // the Account card and the mismatched heights read
+            // as broken.
+            AccountCard(oAuthService: oAuthService, onDismiss: onDismiss)
+            GoogleCalendarCard()
+            PreferencesCard()
+            FavoritesCard(allProjects: allProjects, isLoadingProjects: isLoadingProjects)
+            MutedMeetingsCard()
         }
-        .task {
-            isLoadingProjects = true
-            allProjects = (try? await AppState.shared.viewModel.fetchAllProjects()) ?? []
-            isLoadingProjects = false
-        }
+        .padding(SettingsStyle.refreshed ? 0 : 16)
     }
 }

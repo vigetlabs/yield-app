@@ -14,6 +14,7 @@ struct IdleAlertView: View {
     private func idleContent(alert: TimeComparisonViewModel.IdleAlertState) -> some View {
         let minutes = alert.currentIdleMinutes
         let label = Self.idleDurationLabel(minutes: minutes)
+        let refreshed = ThemeStore.shared.theme.usesRefreshedLayout
 
         return VStack(spacing: 0) {
             // Header
@@ -27,7 +28,7 @@ struct IdleAlertView: View {
                     .foregroundStyle(YieldColors.textPrimary)
 
                 Text("You've been idle while tracking **\(alert.projectName)**.")
-                    .font(YieldFonts.label(11))
+                    .font(YieldFonts.message)
                     .foregroundStyle(YieldColors.textSecondary)
                     .multilineTextAlignment(.center)
             }
@@ -43,7 +44,7 @@ struct IdleAlertView: View {
                 idleActionButton(
                     title: "Continue Timing",
                     subtitle: "Remove \(label) of idle time",
-                    icon: "play.fill"
+                    icon: refreshed ? "play" : "play.fill"
                 ) {
                     Task { await viewModel.idleContinueAndRemoveTime() }
                     MenuBarStatusItem.closePanel()
@@ -51,12 +52,13 @@ struct IdleAlertView: View {
 
                 Divider()
                     .background(YieldColors.border)
-                    .padding(.horizontal, 16)
+                    .padding(.leading, refreshed ? 16 + 3 : 16)
+                    .padding(.trailing, 16)
 
                 idleActionButton(
                     title: "Stop Timer",
                     subtitle: "Remove \(label) of idle time",
-                    icon: "stop.fill"
+                    icon: refreshed ? "stop" : "stop.fill"
                 ) {
                     Task { await viewModel.idleStopAndRemoveTime() }
                     MenuBarStatusItem.closePanel()
@@ -64,7 +66,8 @@ struct IdleAlertView: View {
 
                 Divider()
                     .background(YieldColors.border)
-                    .padding(.horizontal, 16)
+                    .padding(.leading, refreshed ? 16 + 3 : 16)
+                    .padding(.trailing, 16)
 
                 idleActionButton(
                     title: "Move Time…",
@@ -76,7 +79,8 @@ struct IdleAlertView: View {
 
                 Divider()
                     .background(YieldColors.border)
-                    .padding(.horizontal, 16)
+                    .padding(.leading, refreshed ? 16 + 3 : 16)
+                    .padding(.trailing, 16)
 
                 idleActionButton(
                     title: "Keep All Time",
@@ -97,17 +101,23 @@ struct IdleAlertView: View {
             }
             .padding(.vertical, 8)
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    YieldColors.yellowFaint,
-                    YieldColors.background,
-                    YieldColors.background,
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        .background {
+            if refreshed {
+                // System has no gradients; the panel colour, with the
+                // orange glyph as the cue.
+                YieldColors.background
+            } else {
+                LinearGradient(
+                    colors: [
+                        YieldColors.yellowFaint,
+                        YieldColors.background,
+                        YieldColors.background,
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        }
     }
 
     /// Format an idle duration for the alert's header and button
@@ -148,29 +158,33 @@ private struct IdleActionButtonView: View {
     let action: () -> Void
     @State private var isHovered = false
 
+    private var refreshed: Bool { ThemeStore.shared.theme.usesRefreshedLayout }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 11))
+                    .font(.system(size: refreshed ? 13 : 11, weight: refreshed ? .semibold : .regular))
                     .foregroundStyle(isSecondary ? YieldColors.textSecondary : YieldColors.yellowAccent)
-                    .frame(width: 18)
+                    .frame(width: refreshed ? 20 : 18)
 
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: refreshed ? 2 : 1) {
                     Text(title)
-                        .font(YieldFonts.label(12, weight: .semibold))
+                        .font(refreshed ? YieldFonts.titleMedium : YieldFonts.label(12, weight: .semibold))
                         .foregroundStyle(isSecondary ? YieldColors.textSecondary : YieldColors.textPrimary)
 
                     Text(subtitle)
-                        .font(YieldFonts.label(10))
+                        .font(refreshed ? YieldFonts.rowSubtitle : YieldFonts.label(10))
                         .foregroundStyle(YieldColors.textSecondary)
                 }
 
                 Spacer()
             }
-            .padding(.horizontal, 20)
+            // System: the list's margins and its row hover.
+            .padding(.leading, refreshed ? 16 + 3 : 20)
+            .padding(.trailing, refreshed ? 16 : 20)
             .padding(.vertical, 12)
-            .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
+            .background(isHovered ? (refreshed ? YieldColors.rowHover : YieldColors.surfaceDefault) : Color.clear)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

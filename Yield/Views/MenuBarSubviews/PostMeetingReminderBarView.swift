@@ -52,7 +52,7 @@ struct PostMeetingReminderBarView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Image(systemName: "calendar.badge.exclamationmark")
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(YieldColors.yellowAccent)
+                                .foregroundStyle(YieldStatusColors.meeting)
                             Text(statusLine(now: now))
                                 .font(YieldFonts.rowSubtitle)
                                 .foregroundStyle(YieldColors.textSecondary)
@@ -95,11 +95,11 @@ struct PostMeetingReminderBarView: View {
             .padding(.leading, refreshed ? 16 + 3 : 16)
             .padding(.trailing, 16)
             .padding(.vertical, refreshed ? 12 : 10)
-            // System: a wash of the bar's own orange, edge to edge, as
-            // the timer bar is washed green. Grey made it one of three
-            // grey bands in the panel — with the client headers and an
-            // open project — and it is the one that wants an answer.
-            .background(refreshed ? YieldColors.yellowAccent.opacity(0.09) : YieldColors.yellowFaint)
+            // System: a wash of the meeting blue, edge to edge, as the
+            // timer bar is washed green. Blue is what the menu bar
+            // shows for a meeting, and it keeps this bar apart from a
+            // paused timer's amber one.
+            .background(refreshed ? YieldStatusColors.meeting.opacity(0.08) : YieldColors.yellowFaint)
         }
         // One rule, underneath. Whatever is above — the header, or the
         // other meeting bar — has already drawn the one between them.

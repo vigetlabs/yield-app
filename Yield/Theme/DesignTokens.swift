@@ -64,10 +64,8 @@ enum YieldColors {
     static var controlAccentFaint: Color  { controlAccent.opacity(0.04) }
     static var controlAccentBorder: Color { controlAccent.opacity(0.15) }
     static var controlAccentBorderActive: Color { controlAccent.opacity(0.3) }
-    /// Progress fill for a booked project nobody is timing right now.
-    /// Editorial fills every bar green, as it always has. System keeps
-    /// color for the running project and for over-budget, so the row
-    /// you're on is the one that stands out.
+    /// Fill for the day strip's bars on days other than today (System).
+    /// Editorial has no day bars; it resolves to its green there.
     static var idleFill: Color        { theme == .editorial ? Editorial.greenAccent : System.idleFill }
     static var textPrimary: Color     { theme == .editorial ? Editorial.textPrimary : System.textPrimary }
     static var textSecondary: Color   { theme == .editorial ? Editorial.textSecondary : System.textSecondary }
@@ -153,7 +151,15 @@ enum YieldColors {
         static let background = dynamicColor(light: hex(0xFFFFFF), dark: hex(0x121212))        // White
         /// "Running / on track". Fixed, as before: status colours don't
         /// follow the control colour.
-        static let greenAccent = dynamicColor(light: hex(0x1F8B24), dark: hex(0x52D858))       // Green / 05 · 03
+        /// Light: between the kit's Green / 05 and 06. Green / 05 itself
+        /// is 4.4:1 on white and 3.9:1 on an open project's grey — short
+        /// of the 4.5:1 small text needs, and this green is the running
+        /// time in the drawer. This step is 5.4:1 on white, 4.9:1 on the
+        /// timer bar's wash and 4.8:1 on the grey.
+        static let greenAccent = dynamicColor(light: hex(0x1C7B20), dark: hex(0x52D858))       // Green / 05–06 · 03
+        /// The label on a green badge: the next step down the ramp, as
+        /// the kit sets badge text, so it holds 4.5:1 on its own tint.
+        static let greenInk = dynamicColor(light: hex(0x155D18), dark: hex(0x8CE590))          // Green / 06 · 02
         /// Text and glyphs on controls, links, selected marks.
         static let controlAccent = dynamicColor(light: hex(0x0F56B3), dark: hex(0x8AB9F6))     // Blue / 05 · 02
         /// A contained button's fill, and the label that sits on it.
@@ -162,13 +168,11 @@ enum YieldColors {
         static let onControlFill = dynamicColor(light: hex(0xC5DCFA), dark: hex(0xFFFFFF))     // Blue / 01
         static let idleFill = dynamicColor(light: hex(0xA1A1A1), dark: hex(0x818181))          // Grey / 03 · 04
         /// Paused / warning.
-        static let yellowAccent = dynamicColor(light: hex(0xBF710F), dark: hex(0xF2B05C))      // Orange / 05 · 03
-        /// The meeting bars' button: the bar's own orange at full
-        /// strength, with a dark label — the pairing the menu bar's
-        /// "nearly out" capsule uses. White on this orange is too faint.
-        static let attentionFill = dynamicColor(light: hex(0xED9526), dark: hex(0xF2B05C))       // Orange / 04 · 03
-        static let attentionFillHover = dynamicColor(light: hex(0xF2B05C), dark: hex(0xF6CA92))  // Orange / 03 · 02
-        static let onAttentionFill = dynamicColor(light: hex(0x3D2800), dark: hex(0x3D2800))
+        /// Light: halfway between the kit's Orange / 05 and 06. Orange /
+        /// 05 is 3.8:1 on white — too faint for the 11pt warning line
+        /// under a project name. This step is 5.2:1 on white and 4.7:1
+        /// on its own wash (the paused timer bar).
+        static let yellowAccent = dynamicColor(light: hex(0x9F5E0C), dark: hex(0xF2B05C))      // Orange / 05–06 · 03
         static let over = dynamicColor(light: hex(0xDA100B), dark: hex(0xF7716E))              // Red / 05 · 03
         static let prospective = dynamicColor(light: hex(0xE1125E), dark: hex(0xF584AD))       // Pink / 04 · 02
         static let unbooked = dynamicColor(light: hex(0xA1A1A1), dark: hex(0x616161))          // Grey / 03 · 05
@@ -311,6 +315,45 @@ extension YieldFonts {
     static var heroFigure: Font { theme.heroFigure }
 }
 
+// MARK: - Settings typography
+
+extension YieldFonts {
+    /// A Settings row's label. Editorial: 11pt at the weight asked
+    /// for. System: 13pt medium (semibold where Editorial asks for
+    /// it) — the 11pt labels were the smallest text in the app.
+    static func settingsLabel(weight: Font.Weight = .regular) -> Font {
+        guard theme.usesRefreshedLayout else { return label(11, weight: weight) }
+        return YieldTheme.manrope(13, weight == .semibold ? .semibold : .medium)
+    }
+
+    /// A sentence addressed to the user outside a row: an empty state,
+    /// an error, an explanation. Same sizes as a Settings label.
+    static var message: Font { settingsLabel() }
+
+    /// Secondary text in Settings: captions, units, warnings.
+    static var settingsCaption: Font {
+        theme.usesRefreshedLayout ? YieldTheme.manrope(11, .medium) : label(10)
+    }
+
+    /// A number in a Settings row: the version, an hours field. System
+    /// sets it at the label's size so the row reads as one line of
+    /// text rather than a label with a footnote.
+    static var settingsValue: Font {
+        theme.usesRefreshedLayout ? YieldTheme.manrope(13, .medium).monospacedDigit() : monoXS
+    }
+
+    /// The name on an identity row (your account, Google Calendar).
+    static var settingsTitle: Font {
+        theme.usesRefreshedLayout ? theme.titleMedium : label(12, weight: .semibold)
+    }
+
+    /// A text button's label inside Settings. Editorial sets its own
+    /// size per button; System uses the one button font everywhere.
+    static func settingsButton(_ editorialSize: CGFloat) -> Font {
+        theme.usesRefreshedLayout ? theme.labelButton : label(editorialSize, weight: .semibold)
+    }
+}
+
 // MARK: - Corner Radii
 
 // MARK: - Status Colors
@@ -332,6 +375,20 @@ enum YieldStatusColors {
     /// yet linked to a Harvest project.
     static var prospective: Color {
         theme == .editorial ? Editorial.prospective : YieldColors.System.prospective
+    }
+    /// A calendar meeting: the prompt and reminder bars. Editorial's
+    /// are its amber, as they always were. System's are blue — the
+    /// colour the menu bar already uses for a meeting — which also
+    /// keeps them apart from a paused timer's amber bar.
+    static var meeting: Color {
+        theme == .editorial ? YieldColors.yellowAccent : YieldColors.controlAccent
+    }
+    /// Error and destructive text. Editorial keeps the system red it
+    /// shipped with, at the strength each place used; System uses the
+    /// theme's own red.
+    static func errorText(editorialOpacity: Double = 1) -> Color {
+        guard theme == .editorial else { return over }
+        return editorialOpacity == 1 ? Color.red : Color.red.opacity(editorialOpacity)
     }
     /// Warning amber — booked in Forecast, not a member in Harvest. The
     /// theme's yellow accent, so it matches the bars and the paused

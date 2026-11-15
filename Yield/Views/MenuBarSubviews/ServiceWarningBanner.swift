@@ -21,7 +21,9 @@ struct ServiceWarningBanner: View {
 
             Spacer()
         }
-        .padding(.horizontal, 16)
+        // System: on the list's text margin, like the bars around it.
+        .padding(.leading, ThemeStore.shared.theme.usesRefreshedLayout ? 16 + 3 : 16)
+        .padding(.trailing, 16)
         .padding(.vertical, 8)
         .background(YieldColors.yellowFaint)
         .overlay(alignment: .bottom) {

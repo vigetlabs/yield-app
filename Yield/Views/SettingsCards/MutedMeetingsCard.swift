@@ -22,11 +22,10 @@ struct MutedMeetingsCard: View {
 
                 if muted.isEmpty {
                     Text("No muted meetings. Mute one from a meeting prompt's \u{201C}Don't prompt for meetings like this.\u{201D}")
-                        .font(YieldFonts.label(11))
+                        .font(YieldFonts.settingsLabel())
                         .foregroundStyle(YieldColors.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
+                        .settingsRowPadding(vertical: 10)
                 } else {
                     // Same scroll treatment as the favorites list: size
                     // to content when short, cap with scrolling when the
@@ -36,9 +35,7 @@ struct MutedMeetingsCard: View {
                             ForEach(Array(muted.enumerated()), id: \.element.key) { index, entry in
                                 mutedRow(entry)
                                 if index < muted.count - 1 {
-                                    Rectangle()
-                                        .fill(YieldColors.border)
-                                        .frame(height: 1)
+                                    SettingsRowDivider()
                                 }
                             }
                         }
@@ -48,19 +45,17 @@ struct MutedMeetingsCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .yieldCard()
+            .settingsCard()
         }
     }
 
     private func mutedRow(_ entry: (key: String, title: String)) -> some View {
         HStack(alignment: .center, spacing: 8) {
             Image(systemName: "bell.slash")
-                .font(.system(size: 10))
-                .foregroundStyle(YieldColors.textSecondary)
-                .frame(width: 16)
+                .settingsRowIcon()
 
             Text(entry.title)
-                .font(YieldFonts.label(11, weight: .medium))
+                .font(YieldFonts.settingsLabel(weight: .medium))
                 .foregroundStyle(YieldColors.textPrimary)
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -79,7 +74,6 @@ struct MutedMeetingsCard: View {
             .buttonStyle(.plain)
             .help("Prompt for this meeting again")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .settingsRowPadding()
     }
 }

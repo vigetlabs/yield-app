@@ -12,6 +12,52 @@ struct TimeOffRowView: View {
     @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
 
     var body: some View {
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            bar
+        } else {
+            editorialRow
+        }
+    }
+
+    /// System: a bar in the family of the timer and meeting bars it
+    /// sits above — title on the list's margin, a glyph leading the
+    /// line beneath it, the hours as a figure. Hours are written
+    /// "12:00" like every other duration in this theme.
+    private var bar: some View {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Time off")
+                    .font(YieldFonts.titleMedium)
+                    .foregroundStyle(YieldColors.textPrimary)
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Image(systemName: "moon.zzz")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(YieldColors.textSecondary)
+                    Text(block.dayLabels.isEmpty ? "This week" : block.dayLabels.joined(separator: ", "))
+                        .font(YieldFonts.rowSubtitle)
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Text(RowFormat.colon(block.totalHours))
+                .font(YieldFonts.figureLarge)
+                .foregroundStyle(YieldColors.textSecondary)
+        }
+        .padding(.leading, 16 + 3)
+        .padding(.trailing, 16)
+        .frame(height: YieldDimensions.projectRowDefaultHeight)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(YieldColors.border)
+                .frame(height: 1)
+        }
+    }
+
+    private var editorialRow: some View {
         HStack(alignment: .center, spacing: 0) {
             // Neutral status line (matches the structure of ProjectRowView
             // so the row visually aligns with the projects above it).

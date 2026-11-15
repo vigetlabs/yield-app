@@ -13,9 +13,9 @@ enum KitButtonKind {
     case shaded
     /// The shaded button in red, for destructive actions.
     case danger
-    /// Filled in the meeting bars' orange, flat: the action on a
-    /// bar that is itself washed in that orange.
-    case attention
+    /// The contained button without its shadow: the action on a
+    /// tinted bar, where a shadow would smudge the bar's wash.
+    case flat
 }
 
 struct KitButtonChrome: ViewModifier {
@@ -25,20 +25,18 @@ struct KitButtonChrome: ViewModifier {
 
     private var foreground: Color {
         switch kind {
-        case .contained: return YieldColors.onControlFill
+        case .contained, .flat: return YieldColors.onControlFill
         case .outlined, .shaded: return YieldColors.controlAccent
         case .danger: return YieldStatusColors.over
-        case .attention: return YieldColors.System.onAttentionFill
         }
     }
 
     private var fill: Color {
         switch kind {
-        case .contained: return isHovered ? YieldColors.controlFillHover : YieldColors.controlFill
+        case .contained, .flat: return isHovered ? YieldColors.controlFillHover : YieldColors.controlFill
         case .outlined:  return isHovered ? YieldColors.controlAccent.opacity(0.08) : Color.clear
         case .shaded:    return isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault
         case .danger:    return YieldStatusColors.over.opacity(isHovered ? 0.2 : 0.1)
-        case .attention: return isHovered ? YieldColors.System.attentionFillHover : YieldColors.System.attentionFill
         }
     }
 
@@ -256,12 +254,12 @@ struct TimerControlButtonStyle: ButtonStyle {
 
 // MARK: - Meeting bar button (System)
 
-struct KitAttentionButtonStyle: ButtonStyle {
+struct KitFlatFilledButtonStyle: ButtonStyle {
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .modifier(KitButtonChrome(kind: .attention, isPressed: configuration.isPressed, isHovered: isHovered))
+            .modifier(KitButtonChrome(kind: .flat, isPressed: configuration.isPressed, isHovered: isHovered))
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
             }
@@ -287,14 +285,37 @@ extension ButtonStyle where Self == BorderedButtonStyle {
 }
 
 extension View {
+    /// The timer form's commit — Start Timer, Save, Move Time.
+    /// Editorial: the tinted outline. System: the filled button, so
+    /// the form has one obvious primary action.
+    @ViewBuilder
+    func formCommitButtonStyle() -> some View {
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            buttonStyle(.greenFilled)
+        } else {
+            buttonStyle(.greenOutlined)
+        }
+    }
+
+    /// The "− Timer" that closes the timer form. Editorial fills it to
+    /// show the form is open. System leaves the fill to the commit
+    /// button below and draws this as the outline "+ Timer" was.
+    @ViewBuilder
+    func formCloseButtonStyle() -> some View {
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            buttonStyle(.greenOutlined)
+        } else {
+            buttonStyle(.greenFilled)
+        }
+    }
+
     /// The one action on a meeting bar. Editorial: the tinted outline
-    /// it has always been. System: filled in the bar's own orange, so
-    /// the prompt has an obvious answer that belongs to the bar, the
-    /// way the timer bar's controls take its green.
+    /// it has always been. System: the filled button in the meeting
+    /// blue, without its shadow, so the prompt has an obvious answer.
     @ViewBuilder
     func meetingBarButtonStyle() -> some View {
         if ThemeStore.shared.theme.usesRefreshedLayout {
-            buttonStyle(KitAttentionButtonStyle())
+            buttonStyle(KitFlatFilledButtonStyle())
         } else {
             buttonStyle(.greenOutlined)
         }

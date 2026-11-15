@@ -30,7 +30,7 @@ struct AccountCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         if let name = oAuthService.userName {
                             Text(name)
-                                .font(YieldFonts.label(12, weight: .semibold))
+                                .font(YieldFonts.settingsTitle)
                                 .foregroundStyle(YieldColors.textPrimary)
                         }
                         HStack(spacing: 6) {
@@ -45,12 +45,10 @@ struct AccountCard: View {
 
                     Spacer()
                 }
-                .padding(12)
+                .settingsBlockPadding()
 
                 // Divider
-                Rectangle()
-                    .fill(YieldColors.border)
-                    .frame(height: 1)
+                SettingsRowDivider()
 
                 // Sign out row. We render confirmation INLINE rather
                 // than via `.confirmationDialog` because system
@@ -77,21 +75,20 @@ struct AccountCard: View {
                             onDismiss()
                         }
                     )
-                    .padding(12)
+                    .settingsBlockPadding()
                 } else {
                     Button {
                         showSignOutConfirm = true
                     } label: {
                         HStack {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
-                                .font(.system(size: 10))
+                                .settingsInlineIcon()
                             Text("Sign Out")
-                                .font(YieldFonts.label(11, weight: .medium))
+                                .font(YieldFonts.settingsLabel(weight: .medium))
                             Spacer()
                         }
-                        .foregroundStyle(.red.opacity(0.8))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .foregroundStyle(SettingsStyle.destructive)
+                        .settingsRowPadding()
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -99,7 +96,7 @@ struct AccountCard: View {
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Connect your Harvest account to compare logged hours against Forecast bookings.")
-                        .font(YieldFonts.label(11))
+                        .font(YieldFonts.settingsLabel())
                         .foregroundStyle(YieldColors.textSecondary)
                         .lineSpacing(2)
 
@@ -115,7 +112,7 @@ struct AccountCard: View {
                                     .font(.system(size: 11))
                             }
                             Text("Sign in with Harvest")
-                                .font(YieldFonts.label(11, weight: .semibold))
+                                .font(YieldFonts.settingsButton(11))
                         }
                     }
                     .buttonStyle(.greenOutlined)
@@ -123,14 +120,14 @@ struct AccountCard: View {
 
                     if let error = oAuthService.authError {
                         Text(error)
-                            .font(YieldFonts.label(10))
-                            .foregroundStyle(.red)
+                            .font(YieldFonts.settingsCaption)
+                            .foregroundStyle(YieldStatusColors.errorText())
                     }
                 }
-                .padding(12)
+                .settingsBlockPadding()
             }
         }
-        .yieldCard()
+        .settingsCard()
     }
 
     private var initials: String {
@@ -142,13 +139,20 @@ struct AccountCard: View {
         return result.isEmpty ? "?" : result
     }
 
+    @ViewBuilder
     private func accountBadge(_ text: String) -> some View {
-        Text(text)
-            .font(YieldFonts.label(8, weight: .medium))
-            .foregroundStyle(YieldColors.textSecondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(YieldColors.background)
-            .clipShape(RoundedRectangle(cornerRadius: 3))
+        if SettingsStyle.refreshed {
+            // System: the theme's badge. Editorial's chip is the panel
+            // colour, which vanishes now that there's no card behind it.
+            YieldBadge(text: text, neutral: true)
+        } else {
+            Text(text)
+                .font(YieldFonts.label(8, weight: .medium))
+                .foregroundStyle(YieldColors.textSecondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(YieldColors.background)
+                .clipShape(RoundedRectangle(cornerRadius: 3))
+        }
     }
 }

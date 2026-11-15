@@ -237,7 +237,7 @@ enum GroupedRowLayout: ProjectRowLayout {
     /// The project name, with its Forecast code — "[12]" — in secondary
     /// ink. Same text as `displayName`; the code is a reference number,
     /// and at full weight it competed with the name it's attached to.
-    private static func title(_ project: ProjectStatus) -> Text {
+    static func title(_ project: ProjectStatus) -> Text {
         let name = Text(project.projectName).foregroundStyle(YieldColors.textPrimary)
         guard let code = project.projectCode, !code.isEmpty else { return name }
         return Text("[\(code)] ").foregroundStyle(YieldColors.textSecondary) + name
@@ -274,8 +274,7 @@ enum GroupedRowLayout: ProjectRowLayout {
                     ProgressBarView(
                         logged: ctx.effectiveLoggedHours,
                         booked: ctx.project.bookedHours,
-                        dayLogged: ctx.dayFilteredHours,
-                        emphasized: ctx.project.isTracking
+                        dayLogged: ctx.dayFilteredHours
                     )
                 }
             }

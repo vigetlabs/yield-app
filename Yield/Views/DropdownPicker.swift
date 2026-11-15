@@ -211,7 +211,9 @@ private struct NativePopUpButton: NSViewRepresentable {
                 if let groupLabel = group.label {
                     let headerItem = NSMenuItem()
                     headerItem.attributedTitle = NSAttributedString(
-                        string: groupLabel.uppercased(),
+                        // System writes group names as it writes client
+                        // names everywhere else: in their own case.
+                        string: ThemeStore.shared.theme.usesRefreshedLayout ? groupLabel : groupLabel.uppercased(),
                         attributes: [
                             .font: headerFont,
                             .foregroundColor: NSColor.secondaryLabelColor,

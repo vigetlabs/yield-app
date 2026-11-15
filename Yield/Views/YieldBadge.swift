@@ -12,12 +12,17 @@ struct YieldBadge: View {
     /// Neutral badges sit on the kit's grey tint rather than a wash of
     /// their own label colour.
     var neutral: Bool = false
+    /// The label's colour, when it should be darker than the tint so
+    /// it stays readable on the tint's own wash. Defaults to the tint.
+    var ink: Color? = nil
 
     var body: some View {
         Text(text.uppercased())
-            .font(YieldFonts.label(9, weight: .heavy))
+            // Below the theme's 11pt floor on purpose: tracked capitals
+            // read larger than their size, and this is the kit's own.
+            .font(YieldTheme.manrope(9, .heavy))
             .tracking(1.1)
-            .foregroundStyle(tint)
+            .foregroundStyle(ink ?? tint)
             .lineLimit(1)
             .padding(.horizontal, 5)
             .frame(height: 16)

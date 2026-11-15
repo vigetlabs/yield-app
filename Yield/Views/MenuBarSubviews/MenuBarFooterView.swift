@@ -58,7 +58,8 @@ struct MenuBarFooterView: View {
                 .fixedSize()
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.leading, MenuBarHeaderView.leadingInset)
+        .padding(.trailing, 16)
         .padding(.vertical, 8)
         .overlay(alignment: .top) {
             // Pull up by 1pt so this divider paints into the same pixel

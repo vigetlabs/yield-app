@@ -35,37 +35,27 @@ struct PreferencesCard: View {
                 }
             }
 
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
+            SettingsRowDivider()
 
             // Appearance (System / Light / Dark)
             appearanceRow
 
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
+            SettingsRowDivider()
 
             // Theme (Editorial / System)
             themeRow
 
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
+            SettingsRowDivider()
 
             // Menu bar graphic (Classic / ring / capsule / week bars)
             menuBarStyleRow
 
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
+            SettingsRowDivider()
 
             // Menu bar text
             menuBarDisplayRow
 
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
+            SettingsRowDivider()
 
             hoursTargetRow(
                 icon: "calendar.badge.clock",
@@ -74,26 +64,22 @@ struct PreferencesCard: View {
                 upperBound: 168  // 24×7 ceiling
             )
 
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
+            SettingsRowDivider()
 
             // Idle detection
             HStack(spacing: 8) {
                 Image(systemName: "moon.zzz")
-                    .font(.system(size: 10))
-                    .foregroundStyle(YieldColors.textSecondary)
-                    .frame(width: 16)
+                    .settingsRowIcon()
 
                 Text("Idle detection after")
-                    .font(YieldFonts.label(11))
+                    .font(YieldFonts.settingsLabel())
                     .foregroundStyle(idleDetectionEnabled ? YieldColors.textPrimary : YieldColors.textSecondary)
 
                 TextField("", value: $idleMinutes, format: .number)
-                    .font(YieldFonts.monoXS)
+                    .font(YieldFonts.settingsValue)
                     .foregroundStyle(YieldColors.textPrimary)
                     .textFieldStyle(.plain)
-                    .frame(width: 26)
+                    .frame(width: SettingsStyle.refreshed ? 34 : 26)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 3)
@@ -106,22 +92,17 @@ struct PreferencesCard: View {
                     }
 
                 Text("min")
-                    .font(YieldFonts.label(10))
+                    .font(YieldFonts.settingsCaption)
                     .foregroundStyle(YieldColors.textSecondary)
 
                 Spacer()
 
                 Toggle("Idle detection", isOn: $idleDetectionEnabled)
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
-                    .labelsHidden()
+                    .settingsSwitch()
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .settingsRowPadding()
 
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
+            SettingsRowDivider()
 
             settingsToggleRow(
                 icon: "megaphone",
@@ -134,16 +115,14 @@ struct PreferencesCard: View {
             // "Time's up!" notification silently doesn't fire and
             // the user has no way to know why.
             if NotificationPermission.shared.status == .denied {
-                Rectangle()
-                    .fill(YieldColors.border)
-                    .frame(height: 1)
+                SettingsRowDivider()
 
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 10))
                         .foregroundStyle(YieldColors.yellowAccent)
                     Text("Notifications are off — over-budget alerts won't fire.")
-                        .font(YieldFonts.label(10))
+                        .font(YieldFonts.settingsCaption)
                         .foregroundStyle(YieldColors.textSecondary)
                         .lineLimit(2)
                     Spacer(minLength: 4)
@@ -151,13 +130,12 @@ struct PreferencesCard: View {
                         NotificationPermission.shared.openSystemSettings()
                     }
                     .buttonStyle(.yieldBordered)
-                    .font(YieldFonts.label(10, weight: .medium))
+                    .font(SettingsStyle.refreshed ? YieldFonts.labelButton : YieldFonts.label(10, weight: .medium))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .settingsRowPadding()
             }
         }
-        .yieldCard()
+        .settingsCard()
         .task {
             // Re-check permission whenever Settings appears so the
             // warning updates if the user toggled it from System
@@ -231,11 +209,9 @@ struct PreferencesCard: View {
 
         return HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundStyle(YieldColors.textSecondary)
-                .frame(width: 16)
+                .settingsRowIcon()
             Text(label)
-                .font(YieldFonts.label(11))
+                .font(YieldFonts.settingsLabel())
                 .foregroundStyle(YieldColors.textPrimary)
             Spacer()
             DropdownPicker(
@@ -249,8 +225,7 @@ struct PreferencesCard: View {
             }
             .frame(width: YieldDimensions.settingsRowControlWidth)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .settingsRowPadding()
     }
 
     /// Reusable row for an integer "hours target" setting — small
@@ -264,21 +239,19 @@ struct PreferencesCard: View {
     ) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundStyle(YieldColors.textSecondary)
-                .frame(width: 16)
+                .settingsRowIcon()
 
             Text(label)
-                .font(YieldFonts.label(11))
+                .font(YieldFonts.settingsLabel())
                 .foregroundStyle(YieldColors.textPrimary)
 
             Spacer()
 
             TextField("", value: value, format: .number)
-                .font(YieldFonts.monoXS)
+                .font(YieldFonts.settingsValue)
                 .foregroundStyle(YieldColors.textPrimary)
                 .textFieldStyle(.plain)
-                .frame(width: 32)
+                .frame(width: SettingsStyle.refreshed ? 38 : 32)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 4)
                 .padding(.vertical, 3)
@@ -290,29 +263,23 @@ struct PreferencesCard: View {
                 }
 
             Text("hr")
-                .font(YieldFonts.label(10))
+                .font(YieldFonts.settingsCaption)
                 .foregroundStyle(YieldColors.textSecondary)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .settingsRowPadding()
     }
 
     private func settingsToggleRow(icon: String, label: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundStyle(YieldColors.textSecondary)
-                .frame(width: 16)
+                .settingsRowIcon()
             Text(label)
-                .font(YieldFonts.label(11))
+                .font(YieldFonts.settingsLabel())
                 .foregroundStyle(YieldColors.textPrimary)
             Spacer()
             Toggle("", isOn: isOn)
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-                .labelsHidden()
+                .settingsSwitch()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .settingsRowPadding()
     }
 }

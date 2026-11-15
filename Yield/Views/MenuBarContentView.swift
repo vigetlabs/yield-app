@@ -244,9 +244,10 @@ struct MenuBarContentView: View {
                     ServiceWarningBanner(viewModel: viewModel)
                 } else if let error = viewModel.errorMessage {
                     Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .padding(.horizontal, 16)
+                        .font(ThemeStore.shared.theme.usesRefreshedLayout ? YieldFonts.rowSubtitle : Font.caption)
+                        .foregroundStyle(Self.errorColor)
+                        .padding(.leading, Self.messageLeading)
+                        .padding(.trailing, 16)
                         .padding(.vertical, 8)
                 }
 
@@ -340,8 +341,10 @@ struct MenuBarContentView: View {
                 ? "No projects found for this day."
                 : "No projects found for this week.")
                 .foregroundStyle(YieldColors.textSecondary)
-                .font(YieldFonts.label(11))
-                .padding(16)
+                .font(YieldFonts.message)
+                .padding(.leading, Self.messageLeading)
+                .padding(.trailing, 16)
+                .padding(.vertical, 16)
         } else {
             if ThemeStore.shared.theme.usesRefreshedLayout {
                 // Grouped layout: one section header per client, then
@@ -535,19 +538,32 @@ struct MenuBarContentView: View {
             .padding(24)
         } else if let err = viewModel.otherWeekError {
             Text(err)
-                .font(YieldFonts.label(11))
-                .foregroundStyle(.red)
-                .padding(16)
+                .font(YieldFonts.message)
+                .foregroundStyle(Self.errorColor)
+                .padding(.leading, Self.messageLeading)
+                .padding(.trailing, 16)
+                .padding(.vertical, 16)
         } else if viewModel.displayedFilteredStatuses.isEmpty {
             Text(viewModel.weekOffset > 0
                 ? "Nothing booked for this week yet."
                 : "No projects found for this week.")
                 .foregroundStyle(YieldColors.textSecondary)
-                .font(YieldFonts.label(11))
-                .padding(16)
+                .font(YieldFonts.message)
+                .padding(.leading, Self.messageLeading)
+                .padding(.trailing, 16)
+                .padding(.vertical, 16)
         } else {
             let weekStart = viewModel.weekSnapshots[viewModel.weekOffset]?.weekStart
-            if viewModel.weekOffset > 0 {
+            if viewModel.weekOffset > 0, ThemeStore.shared.theme.usesRefreshedLayout {
+                // System: a future week is grouped under client bands,
+                // like every other week.
+                ForEach(ProjectGrouping.grouped(viewModel.displayedFilteredStatuses)) { group in
+                    ClientSectionHeader(client: group.client)
+                    ForEach(group.projects) { project in
+                        LookAheadRowView(project: project, insetRule: project.id != group.projects.last?.id)
+                    }
+                }
+            } else if viewModel.weekOffset > 0 {
                 ForEach(viewModel.displayedFilteredStatuses) { project in
                     LookAheadRowView(project: project)
                 }
@@ -567,6 +583,17 @@ struct MenuBarContentView: View {
         }
     }
 
+    // MARK: - Messages
+
+    /// Left margin for a sentence shown in place of the list (an empty
+    /// state, an error). System: the list's own text margin.
+    private static var messageLeading: CGFloat {
+        ThemeStore.shared.theme.usesRefreshedLayout ? 16 + 3 : 16
+    }
+
+    /// Error text.
+    private static var errorColor: Color { YieldStatusColors.errorText() }
+
     // MARK: - States
 
     private var notConfiguredView: some View {
@@ -577,7 +604,7 @@ struct MenuBarContentView: View {
             Text("Sign in to connect your Harvest and Forecast accounts.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(YieldColors.textSecondary)
-                .font(YieldFonts.label(11))
+                .font(YieldFonts.message)
             Button("Sign in with Harvest") {
                 AppState.shared.oAuthService.startOAuthFlow()
             }

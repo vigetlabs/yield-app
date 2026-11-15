@@ -10,14 +10,12 @@ struct AboutCard: View {
             // alongside the info it acts on.
             HStack {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 10))
-                    .foregroundStyle(YieldColors.textSecondary)
-                    .frame(width: 16)
+                    .settingsRowIcon()
                 Text("Version")
-                    .font(YieldFonts.label(11))
+                    .font(YieldFonts.settingsLabel())
                     .foregroundStyle(YieldColors.textSecondary)
                 Text(appVersion)
-                    .font(YieldFonts.monoXS)
+                    .font(YieldFonts.settingsValue)
                     .foregroundStyle(YieldColors.textPrimary)
                 Spacer()
                 Button {
@@ -34,17 +32,14 @@ struct AboutCard: View {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.system(size: 9, weight: .semibold))
                         Text("Check for Updates")
-                            .font(YieldFonts.label(10, weight: .semibold))
+                            .font(YieldFonts.settingsButton(10))
                     }
                 }
                 .buttonStyle(.greenOutlined)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .settingsRowPadding()
 
-            Rectangle()
-                .fill(YieldColors.border)
-                .frame(height: 1)
+            SettingsRowDivider()
 
             // Reveal logs in Finder — utility row for attaching
             // logs to a bug report.
@@ -53,25 +48,22 @@ struct AboutCard: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 10))
-                        .foregroundStyle(YieldColors.textSecondary)
-                        .frame(width: 16)
+                        .settingsRowIcon()
                     Text("Reveal Logs in Finder")
-                        .font(YieldFonts.label(11))
+                        .font(YieldFonts.settingsLabel())
                         .foregroundStyle(YieldColors.textPrimary)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(YieldColors.textSecondary.opacity(0.5))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .settingsRowPadding()
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("Open ~/Library/Logs/Yield in Finder so you can attach logs to a bug report")
         }
-        .yieldCard()
+        .settingsCard()
     }
 
     private var appVersion: String {

@@ -104,6 +104,7 @@
 		E334718332CF138B1EAC4ADF /* ForecastModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */; };
 		E668F374FE5C32E40B8F3CCE /* MenuBarStatusItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457D60FE27EF219D36D1901E /* MenuBarStatusItem.swift */; };
 		EA70B3A5695C4282ACE6316F /* BudgetNotificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168140D146C953F805F0D8AE /* BudgetNotificationTests.swift */; };
+		EC523B1363DE6D14CA40A764 /* SettingsStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79A02750090208A4C315F1EA /* SettingsStyle.swift */; };
 		EE882AB59C60F5BAE74C3B8A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF707BC7919EFF060031F5B9 /* SettingsView.swift */; };
 		FDCF7D82E3EC296419530CAB /* Newsreader-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6CD7C88B49D2E0356F35FCF4 /* Newsreader-Regular.ttf */; };
 		FF42A73158D24FD281CB4E99 /* AboutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 022F6CFD5D6BDCC3DDB9B23E /* AboutCard.swift */; };
@@ -160,6 +161,7 @@
 		70F4302B3CE68236C2898978 /* ProjectTaskHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectTaskHistoryStore.swift; sourceTree = "<group>"; };
 		77C42827589B10C29C0772BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectRowView.swift; sourceTree = "<group>"; };
+		79A02750090208A4C315F1EA /* SettingsStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStyle.swift; sourceTree = "<group>"; };
 		7AC15EED42FBAABA8E309340 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastNotesIcon.swift; sourceTree = "<group>"; };
 		7F93262C6A2A274DE932502F /* ScratchDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchDefaults.swift; sourceTree = "<group>"; };
@@ -294,6 +296,7 @@
 				BCD907CCE73B8116AE553407 /* MutedMeetingsCard.swift */,
 				94CDCEBAAB1B8D5E04E319D7 /* PreferencesCard.swift */,
 				012E6519E7BF327FD9064743 /* SettingsCardSectionHeader.swift */,
+				79A02750090208A4C315F1EA /* SettingsStyle.swift */,
 			);
 			path = SettingsCards;
 			sourceTree = "<group>";
@@ -638,6 +641,7 @@
 				2E3EF213E9BF83C9C8108519 /* ProjectTaskHistoryStore.swift in Sources */,
 				C26E6ADF39EAB91FF9DBCF7F /* ServiceWarningBanner.swift in Sources */,
 				7A5A5DCB1FD15587A437A0BD /* SettingsCardSectionHeader.swift in Sources */,
+				EC523B1363DE6D14CA40A764 /* SettingsStyle.swift in Sources */,
 				EE882AB59C60F5BAE74C3B8A /* SettingsView.swift in Sources */,
 				A718514604B129BD1665B93E /* StatusIndicator.swift in Sources */,
 				8F63E1C0A91D89249020D891 /* TimeComparisonViewModel.swift in Sources */,

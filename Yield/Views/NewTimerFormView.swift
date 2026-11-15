@@ -332,6 +332,13 @@ struct NewTimerFormView: View {
         }
     }
 
+    /// Left margin of the form's content. System: the 19pt the timer
+    /// bar and the project list use, so the form's fields sit under
+    /// the same edge as everything it's opened over.
+    private static var leadingInset: CGFloat {
+        ThemeStore.shared.theme.usesRefreshedLayout ? 16 + 3 : 16
+    }
+
     private var formBody: some View {
         // Hoist resolvedFavorites once per body pass — it's read by
         // the isEmpty guard, the popover's `richItems`, the indices
@@ -361,9 +368,11 @@ struct NewTimerFormView: View {
                             .font(YieldFonts.labelButton)
                     }
                 }
-                .buttonStyle(.greenFilled)
+                .formCloseButtonStyle()
             }
-            .padding(16)
+            .padding(.leading, Self.leadingInset)
+            .padding(.trailing, 16)
+            .padding(.vertical, 16)
             .overlay(alignment: .bottom) {
                 Rectangle()
                     .fill(YieldColors.border)
@@ -425,7 +434,9 @@ struct NewTimerFormView: View {
                     TimeInputView(hours: $timeHours, minutes: $timeMinutes)
                 }
             }
-            .padding(16)
+            .padding(.leading, Self.leadingInset)
+            .padding(.trailing, 16)
+            .padding(.vertical, 16)
 
             // Duplicate timer confirmation. In timer-move mode this is
             // informational (an existing destination entry gets merged
@@ -447,7 +458,8 @@ struct NewTimerFormView: View {
             // action never fires).
             if showDeleteConfirm {
                 deleteConfirmRow
-                    .padding(.horizontal, 16)
+                    .padding(.leading, Self.leadingInset)
+                    .padding(.trailing, 16)
                     .padding(.top, 8)
                     .padding(.bottom, 16)
             } else {
@@ -458,7 +470,7 @@ struct NewTimerFormView: View {
                         } label: {
                             Text("Save")
                         }
-                        .buttonStyle(.greenOutlined)
+                        .formCommitButtonStyle()
                         .disabled(!canStart)
                         .opacity(canStart ? 1 : 0.5)
                     } else if isIdleMove {
@@ -471,7 +483,7 @@ struct NewTimerFormView: View {
                         } label: {
                             Text("Move Time")
                         }
-                        .buttonStyle(.greenOutlined)
+                        .formCommitButtonStyle()
                         .disabled(!canLog || duplicateConfirmEntries != nil)
                         .opacity(canLog && duplicateConfirmEntries == nil ? 1 : 0.5)
                     } else if let move = timerMove {
@@ -486,7 +498,7 @@ struct NewTimerFormView: View {
                         } label: {
                             Text(move.sourceWasRunning ? "Move & Keep Timing" : "Move Time")
                         }
-                        .buttonStyle(.greenOutlined)
+                        .formCommitButtonStyle()
                         .disabled(!canMove)
                         .opacity(canMove ? 1 : 0.5)
 
@@ -504,7 +516,7 @@ struct NewTimerFormView: View {
                         } label: {
                             Text("Start Timer")
                         }
-                        .buttonStyle(.greenOutlined)
+                        .formCommitButtonStyle()
                         .disabled(!canStart || duplicateConfirmEntries != nil)
                         .opacity(canStart && duplicateConfirmEntries == nil ? 1 : 0.5)
                     }
@@ -538,7 +550,8 @@ struct NewTimerFormView: View {
                         .buttonStyle(.redOutlined)
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.leading, Self.leadingInset)
+                .padding(.trailing, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 16)
             }
@@ -580,21 +593,34 @@ struct NewTimerFormView: View {
     /// shape exactly (size, weight, hit target, plain style) so the
     /// two icon affordances feel like a set. Hidden entirely (see the
     /// call site) when Google Calendar isn't connected.
+    @ViewBuilder
     private var calendarPickerButton: some View {
-        Button {
-            pickerOpenedFromMainView = false
-            withAnimation(.easeInOut(duration: 0.2)) {
-                showCalendarPicker = true
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            // System: the same round tinted button the header uses for
+            // this action, not a bare glyph.
+            HeaderIconButton(systemImage: "calendar", help: "Pick from today's calendar events") {
+                pickerOpenedFromMainView = false
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showCalendarPicker = true
+                }
             }
-        } label: {
-            Image(systemName: "calendar")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(YieldColors.textPrimary)
-                .frame(width: 32, height: 32)
-                .contentShape(Rectangle())
+            .clipShape(Circle())
+        } else {
+            Button {
+                pickerOpenedFromMainView = false
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showCalendarPicker = true
+                }
+            } label: {
+                Image(systemName: "calendar")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(YieldColors.textPrimary)
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Pick from today's calendar events")
         }
-        .buttonStyle(.plain)
-        .help("Pick from today's calendar events")
     }
 
     /// Apply a selected calendar event to the form's fields. Empty
@@ -1167,7 +1193,8 @@ struct NewTimerFormView: View {
         .padding(12)
         .background(isMoveSelfTarget ? YieldColors.yellowFaint : YieldColors.surfaceDefault)
         .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
-        .padding(.horizontal, 16)
+        .padding(.leading, Self.leadingInset)
+        .padding(.trailing, 16)
         .padding(.bottom, 8)
         .transition(.opacity)
     }
@@ -1278,7 +1305,8 @@ struct NewTimerFormView: View {
             RoundedRectangle(cornerRadius: YieldRadius.dropdown)
                 .strokeBorder(YieldColors.yellowAccent.opacity(0.3), lineWidth: 1)
         )
-        .padding(.horizontal, 16)
+        .padding(.leading, Self.leadingInset)
+        .padding(.trailing, 16)
         .padding(.bottom, 8)
         .transition(.opacity)
     }

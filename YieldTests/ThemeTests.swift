@@ -279,6 +279,68 @@ final class ThemeSnapshotTests: XCTestCase {
             try Self.write(stack, to: outDir.appendingPathComponent("stack-system-\(suffix).png"))
         }
 
+        // The views no other render covers, for auditing the System
+        // theme: the new-timer form, a future week's rows, time off,
+        // the inline confirmation and the calendar picker.
+        let lookAhead = Self.groupedFixtures.filter { $0.isForecasted }.prefix(3)
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            func shot<V: View>(_ name: String, _ view: V) throws {
+                try Self.write(
+                    view.frame(width: YieldDimensions.panelWidth)
+                        .background(YieldColors.background)
+                        .environment(\.colorScheme, scheme),
+                    to: outDir.appendingPathComponent("audit-\(name)-system-\(suffix).png")
+                )
+            }
+            try shot("form", NewTimerFormView(viewModel: bannerVM, onDismiss: {}))
+            try shot("lookahead", VStack(spacing: 0) {
+                TimeOffRowView(block: .init(totalHours: 12, dayLabels: ["Thu", "Fri"], fullDayLabels: ["Fri"]))
+                ForEach(ProjectGrouping.grouped(Array(lookAhead))) { group in
+                    ClientSectionHeader(client: group.client)
+                    ForEach(group.projects) { project in
+                        LookAheadRowView(project: project, insetRule: project.id != group.projects.last?.id)
+                    }
+                }
+            })
+            try shot("confirm", InlineConfirmationRow(
+                message: "Delete this entry?", confirmLabel: "Delete", onCancel: {}, onConfirm: {}
+            ).padding(12))
+            try shot("calendar", CalendarEventPickerView(viewModel: bannerVM, onSelect: { _ in }, onStartTimer: { _ in }, onCancel: {}))
+        }
+
+        // The title bar Settings and the calendar picker share (System).
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            let bar = SubpageTitleBar(title: "Today's events", onBack: {})
+                .frame(width: YieldDimensions.panelWidth)
+                .background(YieldColors.background)
+                .environment(\.colorScheme, scheme)
+            try Self.write(bar, to: outDir.appendingPathComponent("titlebar-system-\(suffix).png"))
+        }
+
+        // Settings, both themes. The cards are rendered outside their
+        // scroll view; AppKit-backed controls (switches, pop-up menus)
+        // don't draw in an ImageRenderer, so their slots come out empty.
+        for theme in [YieldTheme.editorial, .system] {
+            ThemeStore.shared.select(theme)
+            for (appearance, scheme, suffix) in appearances {
+                NSApp.appearance = NSAppearance(named: appearance)
+                let settings = VStack(alignment: .leading, spacing: 0) {
+                    SettingsHeader(onDismiss: {})
+                    SettingsCardStack(
+                        oAuthService: AppState.shared.oAuthService, onDismiss: {},
+                        allProjects: [], isLoadingProjects: false
+                    )
+                }
+                .frame(width: YieldDimensions.panelWidth)
+                .background(YieldColors.background)
+                .environment(\.colorScheme, scheme)
+                try Self.write(settings, to: outDir.appendingPathComponent("settings-\(theme.rawValue)-\(suffix).png"))
+            }
+        }
+        ThemeStore.shared.select(.system)
+
         // The banner's awkward case: a long task, long notes and a long
         // project name — to see what truncates and what doesn't.
         let longVM = Self.makeBannerViewModel()

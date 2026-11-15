@@ -24,19 +24,17 @@ struct FavoritesCard: View {
                         .controlSize(.small)
                         .tint(YieldColors.textSecondary)
                     Text("Loading…")
-                        .font(YieldFonts.label(11))
+                        .font(YieldFonts.settingsLabel())
                         .foregroundStyle(YieldColors.textSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .settingsRowPadding(vertical: 10)
             } else if favorites.isEmpty {
                 Text("No favorites yet. Add one from the new/edit timer screen.")
-                    .font(YieldFonts.label(11))
+                    .font(YieldFonts.settingsLabel())
                     .foregroundStyle(YieldColors.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
+                    .settingsRowPadding(vertical: 10)
             } else {
                 // Cap the list at ~3 rows of height with a partial 4th
                 // row peeking, so 4+ favorites trigger scrolling.
@@ -49,9 +47,7 @@ struct FavoritesCard: View {
                         ForEach(Array(favorites.enumerated()), id: \.element.id) { index, fav in
                             favoriteRow(fav)
                             if index < favorites.count - 1 {
-                                Rectangle()
-                                    .fill(YieldColors.border)
-                                    .frame(height: 1)
+                                SettingsRowDivider()
                             }
                         }
                     }
@@ -61,7 +57,7 @@ struct FavoritesCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .yieldCard()
+        .settingsCard()
     }
 
     // MARK: - Row
@@ -69,18 +65,15 @@ struct FavoritesCard: View {
     private func favoriteRow(_ fav: FavoriteEntry) -> some View {
         HStack(alignment: .center, spacing: 8) {
             Image(systemName: "star.fill")
-                .font(.system(size: 10))
-                .foregroundStyle(YieldColors.textSecondary)
-                .frame(width: 16)
+                .settingsRowIcon()
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(ProjectStatus.qualifiedName(client: fav.clientName, project: fav.displayName))
-                    .font(YieldFonts.label(11, weight: .medium))
-                    .foregroundStyle(YieldColors.textPrimary)
+                favoriteTitle(fav)
+                    .font(YieldFonts.settingsLabel(weight: .medium))
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Text(fav.taskName)
-                    .font(YieldFonts.label(10))
+                    .font(YieldFonts.settingsCaption)
                     .foregroundStyle(YieldColors.textSecondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -100,8 +93,21 @@ struct FavoritesCard: View {
             .buttonStyle(.plain)
             .help("Remove favorite")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .settingsRowPadding()
+    }
+
+    /// "Client — [code] Project". System sets the code in secondary
+    /// ink, as the project list and timer bar do; Editorial keeps the
+    /// whole name at full strength.
+    private func favoriteTitle(_ fav: FavoriteEntry) -> Text {
+        guard SettingsStyle.refreshed, let code = fav.projectCode, !code.isEmpty else {
+            return Text(ProjectStatus.qualifiedName(client: fav.clientName, project: fav.displayName))
+                .foregroundStyle(YieldColors.textPrimary)
+        }
+        let client = fav.clientName.map { "\($0) — " } ?? ""
+        return Text(client).foregroundStyle(YieldColors.textPrimary)
+            + Text("[\(code)] ").foregroundStyle(YieldColors.textSecondary)
+            + Text(fav.projectName).foregroundStyle(YieldColors.textPrimary)
     }
 
     // MARK: - Resolution

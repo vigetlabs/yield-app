@@ -507,11 +507,6 @@ struct ProgressBarView: View {
     /// dims to 50% and a full-opacity overlay shows the day's portion of
     /// the week so far.
     var dayLogged: Double? = nil
-    /// False draws an on-track fill in `idleFill` rather than the
-    /// status green. The System list passes `isTracking`, so only the
-    /// running project's bar is colored; over-budget is red either way.
-    /// Defaults to true — the original, always-green behavior.
-    var emphasized: Bool = true
 
     private var ratio: Double {
         guard booked > 0 else { return 0 }
@@ -521,8 +516,10 @@ struct ProgressBarView: View {
     private var isOver: Bool { ratio > 1.0 }
 
     private var barColor: Color {
-        if isOver { return YieldStatusColors.over }
-        return emphasized ? YieldStatusColors.under : YieldColors.idleFill
+        // On track is green in both themes, running or not: grey bars
+        // on every idle project made the list look switched off. The
+        // running project is told apart by its edge line, not its bar.
+        return isOver ? YieldStatusColors.over : YieldStatusColors.under
     }
 
     /// Normalized fill: when over, the "booked" portion shrinks to show overage visually.
@@ -858,7 +855,7 @@ struct TaskEntryRowView: View {
                     if entry.isRunning {
                         Group {
                             if ThemeStore.shared.theme.usesRefreshedLayout {
-                                YieldBadge(text: "Now", tint: YieldColors.greenAccent)
+                                YieldBadge(text: "Now", tint: YieldColors.greenAccent, ink: YieldColors.System.greenInk)
                             } else {
                                 Text("Now")
                                     .font(YieldFonts.monoXS)
@@ -945,8 +942,11 @@ struct TaskEntryRowView: View {
                     borderColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.buttonBorder,
                     // System: a resting play button is the kit's shaded icon
                     // button — primary glyph on a primary tint.
-                    foregroundColor: entry.isRunning ? YieldColors.greenAccent
-                        : (ThemeStore.shared.theme.usesRefreshedLayout ? YieldColors.controlAccent : YieldColors.textSecondary),
+                    // Stop is neutral there too, as it is on the timer bar;
+                    // the green time and "Now" badge already say it's running.
+                    foregroundColor: ThemeStore.shared.theme.usesRefreshedLayout
+                        ? (entry.isRunning ? YieldColors.textSecondary : YieldColors.controlAccent)
+                        : (entry.isRunning ? YieldColors.greenAccent : YieldColors.textSecondary),
                     destructiveOnHover: entry.isRunning,
                     size: compact ? 20 : YieldDimensions.timerButtonSize
                 ))
