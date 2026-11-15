@@ -1,25 +1,104 @@
 import SwiftUI
 
+// MARK: - Material-X button chrome (System theme)
+
+/// The kit's four button styles. Editorial's buttons are drawn by the
+/// original code in each style below; these are System's.
+enum KitButtonKind {
+    /// Filled with the primary colour, raised on a tinted shadow.
+    case contained
+    /// White with a 1pt grey outline and a primary label.
+    case outlined
+    /// A flat grey tint with a primary label — the neutral action.
+    case shaded
+    /// The shaded button in red, for destructive actions.
+    case danger
+    /// Filled in the meeting bars' orange, flat: the action on a
+    /// bar that is itself washed in that orange.
+    case attention
+}
+
+struct KitButtonChrome: ViewModifier {
+    let kind: KitButtonKind
+    let isPressed: Bool
+    let isHovered: Bool
+
+    private var foreground: Color {
+        switch kind {
+        case .contained: return YieldColors.onControlFill
+        case .outlined, .shaded: return YieldColors.controlAccent
+        case .danger: return YieldStatusColors.over
+        case .attention: return YieldColors.System.onAttentionFill
+        }
+    }
+
+    private var fill: Color {
+        switch kind {
+        case .contained: return isHovered ? YieldColors.controlFillHover : YieldColors.controlFill
+        case .outlined:  return isHovered ? YieldColors.controlAccent.opacity(0.08) : Color.clear
+        case .shaded:    return isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault
+        case .danger:    return YieldStatusColors.over.opacity(isHovered ? 0.2 : 0.1)
+        case .attention: return isHovered ? YieldColors.System.attentionFillHover : YieldColors.System.attentionFill
+        }
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .font(YieldFonts.labelButton)
+            .tracking(YieldDimensions.buttonLabelTracking)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
+            .frame(height: YieldDimensions.buttonHeight)
+            .background(fill)
+            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+            .overlay {
+                if kind == .outlined {
+                    RoundedRectangle(cornerRadius: YieldRadius.pill)
+                        .strokeBorder(YieldColors.buttonBorder, lineWidth: 1)
+                }
+            }
+            .kitShadow(YieldColors.controlFill, dp: kind == .contained ? (isHovered ? 4 : 2) : 0)
+            .opacity(isPressed ? 0.7 : 1)
+    }
+}
+
+extension View {
+    /// The kit's two-layer drop shadow at an elevation given in its
+    /// "dp": one layer offset by the elevation, one by half of it.
+    /// Zero draws nothing.
+    func kitShadow(_ color: Color, dp: CGFloat, opacity: Double = 0.2) -> some View {
+        self
+            .shadow(color: color.opacity(dp > 0 ? opacity : 0), radius: dp, x: 0, y: dp)
+            .shadow(color: color.opacity(dp > 0 ? opacity : 0), radius: dp / 2, x: 0, y: dp / 2)
+    }
+}
+
 // MARK: - Green Filled Button (+ Timer, Start Timer)
 
 struct GreenFilledButtonStyle: ButtonStyle {
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(YieldFonts.labelButton)
-            // System: white on the accent, as every filled macOS button
-            // is. Editorial knocks the label out to the panel color.
-            .foregroundStyle(ThemeStore.shared.theme.usesRefreshedLayout ? Color.white : YieldColors.background)
-            .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
-            .padding(.vertical, 4)
-            .frame(height: YieldDimensions.buttonHeight)
-            .background(YieldColors.controlAccent)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
-            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
-            }
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            configuration.label
+                .modifier(KitButtonChrome(kind: .contained, isPressed: configuration.isPressed, isHovered: isHovered))
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                }
+        } else {
+            configuration.label
+                .font(YieldFonts.labelButton)
+                .foregroundStyle(YieldColors.background)
+                .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
+                .padding(.vertical, 4)
+                .frame(height: YieldDimensions.buttonHeight)
+                .background(YieldColors.controlAccent)
+                .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+                .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                }
+        }
     }
 }
 
@@ -29,22 +108,30 @@ struct GreenOutlinedButtonStyle: ButtonStyle {
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(YieldFonts.labelButton)
-            .foregroundStyle(YieldColors.controlAccent)
-            .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
-            .padding(.vertical, 4)
-            .frame(height: YieldDimensions.buttonHeight)
-            .background(isHovered ? YieldColors.controlAccentSubtle : YieldColors.controlAccentFaint)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
-            .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.pill)
-                    .strokeBorder(isHovered ? YieldColors.controlAccentBorderActive : YieldColors.controlAccentBorder, lineWidth: 1)
-            )
-            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
-            }
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            configuration.label
+                .modifier(KitButtonChrome(kind: .outlined, isPressed: configuration.isPressed, isHovered: isHovered))
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                }
+        } else {
+            configuration.label
+                .font(YieldFonts.labelButton)
+                .foregroundStyle(YieldColors.controlAccent)
+                .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
+                .padding(.vertical, 4)
+                .frame(height: YieldDimensions.buttonHeight)
+                .background(isHovered ? YieldColors.controlAccentSubtle : YieldColors.controlAccentFaint)
+                .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+                .overlay(
+                    RoundedRectangle(cornerRadius: YieldRadius.pill)
+                        .strokeBorder(isHovered ? YieldColors.controlAccentBorderActive : YieldColors.controlAccentBorder, lineWidth: 1)
+                )
+                .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                }
+        }
     }
 }
 
@@ -54,22 +141,30 @@ struct RedOutlinedButtonStyle: ButtonStyle {
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(YieldFonts.labelButton)
-            .foregroundStyle(YieldStatusColors.over)
-            .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
-            .padding(.vertical, 4)
-            .frame(height: YieldDimensions.buttonHeight)
-            .background(YieldStatusColors.over.opacity(isHovered ? 0.15 : 0.04))
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
-            .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.pill)
-                    .strokeBorder(YieldStatusColors.over.opacity(isHovered ? 0.3 : 0.15), lineWidth: 1)
-            )
-            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
-            }
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            configuration.label
+                .modifier(KitButtonChrome(kind: .danger, isPressed: configuration.isPressed, isHovered: isHovered))
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                }
+        } else {
+            configuration.label
+                .font(YieldFonts.labelButton)
+                .foregroundStyle(YieldStatusColors.over)
+                .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
+                .padding(.vertical, 4)
+                .frame(height: YieldDimensions.buttonHeight)
+                .background(YieldStatusColors.over.opacity(isHovered ? 0.15 : 0.04))
+                .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+                .overlay(
+                    RoundedRectangle(cornerRadius: YieldRadius.pill)
+                        .strokeBorder(YieldStatusColors.over.opacity(isHovered ? 0.3 : 0.15), lineWidth: 1)
+                )
+                .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                }
+        }
     }
 }
 
@@ -79,22 +174,30 @@ struct BorderedButtonStyle: ButtonStyle {
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(YieldFonts.labelButton)
-            .foregroundStyle(YieldColors.textPrimary)
-            .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
-            .padding(.vertical, 4)
-            .frame(height: YieldDimensions.buttonHeight)
-            .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
-            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
-            .overlay(
-                RoundedRectangle(cornerRadius: YieldRadius.pill)
-                    .strokeBorder(YieldColors.buttonBorder, lineWidth: 1)
-            )
-            .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
-            }
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            configuration.label
+                .modifier(KitButtonChrome(kind: .shaded, isPressed: configuration.isPressed, isHovered: isHovered))
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                }
+        } else {
+            configuration.label
+                .font(YieldFonts.labelButton)
+                .foregroundStyle(YieldColors.textPrimary)
+                .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
+                .padding(.vertical, 4)
+                .frame(height: YieldDimensions.buttonHeight)
+                .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
+                .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+                .overlay(
+                    RoundedRectangle(cornerRadius: YieldRadius.pill)
+                        .strokeBorder(YieldColors.buttonBorder, lineWidth: 1)
+                )
+                .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+                }
+        }
     }
 }
 
@@ -151,6 +254,20 @@ struct TimerControlButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Meeting bar button (System)
+
+struct KitAttentionButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .modifier(KitButtonChrome(kind: .attention, isPressed: configuration.isPressed, isHovered: isHovered))
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
+            }
+    }
+}
+
 // MARK: - Convenience Extensions
 
 extension ButtonStyle where Self == GreenFilledButtonStyle {
@@ -171,12 +288,13 @@ extension ButtonStyle where Self == BorderedButtonStyle {
 
 extension View {
     /// The one action on a meeting bar. Editorial: the tinted outline
-    /// it has always been. System: filled, so the bar has an obvious
-    /// primary button now that the band behind it is neutral.
+    /// it has always been. System: filled in the bar's own orange, so
+    /// the prompt has an obvious answer that belongs to the bar, the
+    /// way the timer bar's controls take its green.
     @ViewBuilder
     func meetingBarButtonStyle() -> some View {
         if ThemeStore.shared.theme.usesRefreshedLayout {
-            buttonStyle(.greenFilled)
+            buttonStyle(KitAttentionButtonStyle())
         } else {
             buttonStyle(.greenOutlined)
         }

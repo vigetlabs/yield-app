@@ -185,6 +185,20 @@ final class ThemeSnapshotTests: XCTestCase {
             try Self.write(Self.banner(bannerVM).environment(\.colorScheme, scheme),
                            to: outDir.appendingPathComponent("banner-system-\(suffix).png"))
         }
+        // The bar with nothing running, above the running one, so the
+        // two can be compared for height and alignment.
+        let idleVM = Self.makeIdleViewModel()
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            let pair = VStack(spacing: 0) {
+                TimerBannerView(viewModel: idleVM)
+                TimerBannerView(viewModel: bannerVM)
+            }
+            .frame(width: YieldDimensions.panelWidth)
+            .background(YieldColors.background)
+            .environment(\.colorScheme, scheme)
+            try Self.write(pair, to: outDir.appendingPathComponent("banner-idle-system-\(suffix).png"))
+        }
         for (appearance, scheme, suffix) in appearances {
             NSApp.appearance = NSAppearance(named: appearance)
             try Self.write(Self.header(bannerVM).environment(\.colorScheme, scheme),
@@ -234,6 +248,35 @@ final class ThemeSnapshotTests: XCTestCase {
             .background(YieldColors.background)
             .environment(\.colorScheme, scheme)
             try Self.write(drawer, to: outDir.appendingPathComponent("drawer-system-\(suffix).png"))
+        }
+
+        // The top of the panel as one piece — header, a meeting prompt,
+        // the timer bar, a client band, an open project — to judge how
+        // the bands sit against one another rather than one at a time.
+        let stackEvent = CalendarEvent(
+            id: "evt-stack", summary: "Design review — BOATUS",
+            start: Date().addingTimeInterval(-6 * 60), end: Date().addingTimeInterval(24 * 60)
+        )
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            let stack = VStack(spacing: 0) {
+                MenuBarHeaderView(viewModel: bannerVM, onToggleNewTimerForm: {})
+                MeetingPromptBarView(viewModel: bannerVM, event: stackEvent, onStartTimer: {})
+                TimerBannerView(viewModel: bannerVM)
+                ClientSectionHeader(client: "GEICO [GCO]")
+                ProjectRowView<GroupedRowLayout>(
+                    project: drawerProject, effectiveLoggedHours: drawerProject.loggedHours,
+                    visibleEntries: drawerEntries, startsExpanded: true
+                )
+                .separatorInset(true)
+                ProjectRowView<GroupedRowLayout>(
+                    project: nextProject, effectiveLoggedHours: nextProject.loggedHours, visibleEntries: []
+                )
+            }
+            .frame(width: YieldDimensions.panelWidth)
+            .background(YieldColors.background)
+            .environment(\.colorScheme, scheme)
+            try Self.write(stack, to: outDir.appendingPathComponent("stack-system-\(suffix).png"))
         }
 
         // The banner's awkward case: a long task, long notes and a long
@@ -350,6 +393,24 @@ final class ThemeSnapshotTests: XCTestCase {
         TimerBannerView(viewModel: vm)
             .frame(width: YieldDimensions.panelWidth)
             .background(YieldColors.background)
+    }
+
+    /// A view model with time logged today and nothing running.
+    static func makeIdleViewModel() -> TimeComparisonViewModel {
+        let vm = TimeComparisonViewModel()
+        let stamp = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-3 * 3600))
+        let entry = HarvestTimeEntry(
+            id: 2, hours: 3.7, spentDate: DateHelpers.dateFormatter.string(from: Date()), isRunning: false,
+            updatedAt: stamp, notes: "Homepage hero + nav", isLocked: nil, approvalStatus: nil,
+            timerStartedAt: nil,
+            project: HarvestProjectRef(id: 1, name: "BOATUS.com Website Redesign", code: nil),
+            client: HarvestClientRef(id: 1, name: "GEICO [GCO]"),
+            task: nil,
+            taskAssignment: HarvestTaskAssignmentRef(id: 901, task: HarvestTaskRef(id: 100, name: "FED"))
+        )
+        vm.applyRefreshedData(entries: [entry], bookedByForecastProject: [:], projectMap: [:],
+                              clientMap: [:], timeOffBlock: nil, notesByForecastProject: [:])
+        return vm
     }
 
     /// A view model with one timer running on today's entry.

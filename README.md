@@ -49,7 +49,7 @@ Unzip, drag Yield to your Applications folder, and launch — it'll take root in
 
 **Polish**
 
-- 🎨 **Two looks** — Settings → Preferences → Theme. **Editorial** is the original and the default: serif project names, compact rows, Yield's own palette. **System** is an alternative built for legibility: system fonts a touch larger, projects grouped under one header per client with each row leading on its logged hours, round controls, and macOS's own colors in place of a custom palette. Your accent color tints the buttons; status keeps fixed colors (green for the running project, red for over, orange for paused), so no accent choice can make a healthy project look like a warning. Both work in light and dark.
+- 🎨 **Two looks** — Settings → Preferences → Theme. **Editorial** is the original and the default: serif project names, compact rows, Yield's own palette. **System** is an alternative drawn with the Material-X kit: Manrope type, projects grouped under a band per client with each row leading on its logged hours, round icon buttons, and the kit's blue for controls. Status keeps fixed colors (green for the running project, red for over, orange for paused and for meeting prompts), so a healthy project never looks like a warning. The timer bar stays in place with an idle state when nothing is running. Both work in light and dark.
 - 🌗 **Light & dark mode** — pick System, Light, or Dark from Settings. The light palette is tuned for WCAG AA contrast across every accent.
 
 ## 🔁 Updates

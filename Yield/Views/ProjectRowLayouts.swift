@@ -36,10 +36,12 @@ protocol ProjectRowLayout {
     /// Color of the 3pt line on the row's leading edge. `.clear` keeps
     /// the slot (and the row's alignment) without drawing anything.
     static func statusLineColor(_ project: ProjectStatus) -> Color
-    /// Whether the expanded drawer is drawn as an inset tray with
-    /// one-line entries (System) rather than as full-width rows in the
-    /// list (Editorial).
-    static var usesTrayDrawer: Bool { get }
+    /// Whether the expanded drawer is drawn as a tinted band with
+    /// one-line entries (System) rather than as full-width rows on the
+    /// list's own background (Editorial).
+    static var usesBandDrawer: Bool { get }
+    /// Fill behind the row's header for its hover and open states.
+    static func headerBackground(isHovered: Bool, isExpanded: Bool) -> Color
 }
 
 // MARK: - Editorial (the original layout)
@@ -49,7 +51,11 @@ protocol ProjectRowLayout {
 /// original header columns, moved here unchanged.
 enum EditorialRowLayout: ProjectRowLayout {
 
-    static var usesTrayDrawer: Bool { false }
+    static var usesBandDrawer: Bool { false }
+
+    static func headerBackground(isHovered: Bool, isExpanded: Bool) -> Color {
+        isHovered ? YieldColors.surfaceDefault : Color.clear
+    }
 
     /// - Clear: project has no booking (Harvest-only tracked time)
     /// - Pink: prospective / proposal-stage (booked but no Harvest link)
@@ -169,10 +175,20 @@ enum EditorialRowLayout: ProjectRowLayout {
 /// + bar on the right.
 enum GroupedRowLayout: ProjectRowLayout {
 
-    /// Full-width entry rows on the list's own background read as more
-    /// list items. A recessed, inset panel reads as something that slid
-    /// out from under the project it belongs to.
-    static var usesTrayDrawer: Bool { true }
+    /// An open project is one block: its header and its entries share
+    /// a grey band that runs the full width of the panel. Nothing is
+    /// inset, so there is no box inside the list — the block's own
+    /// edges say where the project's entries start and stop.
+    static var usesBandDrawer: Bool { true }
+
+    /// Open: the band's grey, hovered or not, so the header and the
+    /// drawer never show a seam. Closed and hovered: a wash of the
+    /// control colour — deliberately not that grey, so a hovered row
+    /// next to an open project doesn't read as part of it.
+    static func headerBackground(isHovered: Bool, isExpanded: Bool) -> Color {
+        if isExpanded { return YieldColors.surfaceDefault }
+        return isHovered ? YieldColors.rowHover : Color.clear
+    }
 
     /// The edge line means exactly one thing here: this is the project
     /// the clock is running on. "Booked" is already said by the
@@ -235,13 +251,7 @@ enum GroupedRowLayout: ProjectRowLayout {
     /// without a line on every booked row. A filled shape rather than
     /// more grey text, so it reads as a mark, not a sentence.
     private static var unbookedTag: some View {
-        Text("Unbooked")
-            .font(YieldFonts.rowSubtitle.weight(.medium))
-            .foregroundStyle(YieldColors.textSecondary)
-            .lineLimit(1)
-            .padding(.horizontal, 6)
-            .background(YieldColors.surfaceActive)
-            .clipShape(Capsule())
+        YieldBadge(text: "Unbooked", neutral: true)
             .help("Not booked in Forecast this week")
     }
 

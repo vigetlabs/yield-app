@@ -12,7 +12,7 @@ struct MenuBarFooterView: View {
                 HeaderIconButton(systemImage: "ladybug.fill", help: "Report a bug") {
                     openBugReport()
                 }
-                .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+                .clipShape(RoundedRectangle(cornerRadius: YieldRadius.iconButton))
             } else {
                 Button {
                     openBugReport()
@@ -34,11 +34,11 @@ struct MenuBarFooterView: View {
                     menuItems
                 } label: {
                     Image(systemName: "gearshape")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(YieldColors.textSecondary)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(YieldColors.controlAccent)
                         .frame(width: YieldDimensions.headerIconWidth, height: YieldDimensions.buttonHeight)
                         .background(YieldColors.surfaceDefault)
-                        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+                        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.iconButton))
                         .contentShape(Rectangle())
                 }
                 .menuStyle(.button)

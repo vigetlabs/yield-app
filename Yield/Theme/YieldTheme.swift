@@ -19,11 +19,12 @@ enum YieldTheme: String, CaseIterable {
     /// The original look: Newsreader serif for titles and project
     /// names, DM Sans for labels, JetBrains Mono for times. Compact.
     case editorial
-    /// System fonts — SF Pro for text, SF Mono for times — at slightly
-    /// larger sizes, with a little more room in each row and softer
-    /// corners. Built for legibility at the panel's small type sizes:
-    /// the serif's thin strokes are what make 14px project names hard
-    /// to read, and SF is what macOS rasterizes best at that scale.
+    /// The alternative look, drawn with the Material-X kit: Manrope
+    /// throughout (tabular figures for times), the kit's blue for
+    /// controls, its grey tints for surfaces, 8pt buttons, round icon
+    /// buttons, a segmented control with a raised selection, and
+    /// uppercase tracked overlines and badges. The name is historical —
+    /// it began as a system-font theme.
     case system
 
     /// Single source of truth for the default, referenced by the
@@ -63,7 +64,9 @@ enum YieldTheme: String, CaseIterable {
     private var scale: CGFloat {
         switch self {
         case .editorial: return 1.0
-        case .system:    return 1.05
+        // Manrope runs wide and tall for its point size; the kit's own
+        // sizes are used as given rather than scaled up.
+        case .system:    return 1.0
         }
     }
 
@@ -77,14 +80,15 @@ enum YieldTheme: String, CaseIterable {
     func title(_ size: CGFloat) -> Font {
         switch self {
         case .editorial: return .custom("Newsreader-Regular", size: size)
-        case .system:    return .system(size: scaled(size), weight: .medium)
+        case .system:    return Self.manrope(scaled(size), .semibold)
         }
     }
 
     func titleItalic(_ size: CGFloat) -> Font {
         switch self {
         case .editorial: return .custom("Newsreader-Italic", size: size)
-        case .system:    return .system(size: scaled(size), weight: .medium).italic()
+        // The kit has no italic; emphasis is weight and color.
+        case .system:    return Self.manrope(scaled(size), .semibold)
         }
     }
 
@@ -98,14 +102,14 @@ enum YieldTheme: String, CaseIterable {
             default:        return .custom("DMSans-Regular", size: size)
             }
         case .system:
-            return .system(size: scaled(size), weight: weight)
+            return Self.manrope(scaled(size), weight)
         }
     }
 
     func labelItalic(_ size: CGFloat) -> Font {
         switch self {
         case .editorial: return .custom("DMSans-Italic", size: size)
-        case .system:    return .system(size: scaled(size)).italic()
+        case .system:    return Self.manrope(scaled(size), .regular)
         }
     }
 
@@ -118,8 +122,28 @@ enum YieldTheme: String, CaseIterable {
             default:      return .custom("JetBrainsMono-Regular", size: size)
             }
         case .system:
-            return .system(size: scaled(size), weight: weight).monospacedDigit()
+            return Self.manrope(scaled(size), weight == .regular ? .medium : weight).monospacedDigit()
         }
+    }
+
+    // MARK: - Manrope (System theme)
+
+    /// The Material-X kit's typeface. One variable font file is bundled
+    /// (`Manrope-Variable.ttf`); its named instances resolve by
+    /// PostScript name, so each weight is asked for the same way the
+    /// static Editorial fonts are.
+    static func manropeName(_ weight: Font.Weight) -> String {
+        switch weight {
+        case .medium:              return "Manrope-Medium"
+        case .semibold:            return "Manrope-SemiBold"
+        case .bold:                return "Manrope-Bold"
+        case .heavy, .black:       return "Manrope-ExtraBold"
+        default:                   return "Manrope-Regular"
+        }
+    }
+
+    static func manrope(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+        .custom(manropeName(weight), size: size)
     }
 
     // MARK: - Font families (AppKit)
@@ -129,7 +153,7 @@ enum YieldTheme: String, CaseIterable {
     func nsTitle(_ size: CGFloat) -> NSFont {
         switch self {
         case .editorial: return NSFont(name: "Newsreader-Regular", size: size) ?? .systemFont(ofSize: size)
-        case .system:    return .systemFont(ofSize: scaled(size), weight: .medium)
+        case .system:    return NSFont(name: "Manrope-SemiBold", size: scaled(size)) ?? .systemFont(ofSize: scaled(size), weight: .semibold)
         }
     }
 
@@ -144,7 +168,14 @@ enum YieldTheme: String, CaseIterable {
             }
             return NSFont(name: name, size: size) ?? .systemFont(ofSize: size, weight: weight)
         case .system:
-            return .systemFont(ofSize: scaled(size), weight: weight)
+            let name: String
+            switch weight {
+            case .medium:   name = "Manrope-Medium"
+            case .semibold: name = "Manrope-SemiBold"
+            case .bold:     name = "Manrope-Bold"
+            default:        name = "Manrope-Regular"
+            }
+            return NSFont(name: name, size: scaled(size)) ?? .systemFont(ofSize: scaled(size), weight: weight)
         }
     }
 
@@ -158,7 +189,7 @@ enum YieldTheme: String, CaseIterable {
     var titleMedium: Font {
         switch self {
         case .editorial: return title(14)
-        case .system:    return .system(size: 14.5, weight: .medium)
+        case .system:    return Self.manrope(14, .semibold)
         }
     }
 
@@ -166,7 +197,7 @@ enum YieldTheme: String, CaseIterable {
     var titleSmall: Font {
         switch self {
         case .editorial: return title(12)
-        case .system:    return .system(size: 12.5, weight: .medium)
+        case .system:    return Self.manrope(12, .semibold)
         }
     }
 
@@ -174,7 +205,7 @@ enum YieldTheme: String, CaseIterable {
     var labelProject: Font {
         switch self {
         case .editorial: return label(9, weight: .medium)
-        case .system:    return .system(size: 10, weight: .semibold)
+        case .system:    return Self.manrope(10, .heavy)
         }
     }
 
@@ -184,7 +215,7 @@ enum YieldTheme: String, CaseIterable {
         case .editorial: return label(9)
         // 11pt: macOS's own size for supporting text. 10pt in
         // secondary grey was hard going.
-        case .system:    return .system(size: 11)
+        case .system:    return Self.manrope(11, .medium)
         }
     }
 
@@ -192,7 +223,7 @@ enum YieldTheme: String, CaseIterable {
     var labelNote: Font {
         switch self {
         case .editorial: return labelItalic(9)
-        case .system:    return .system(size: 11).italic()
+        case .system:    return Self.manrope(11, .regular)
         }
     }
 
@@ -200,7 +231,7 @@ enum YieldTheme: String, CaseIterable {
     var labelButton: Font {
         switch self {
         case .editorial: return label(10, weight: .semibold)
-        case .system:    return .system(size: 11, weight: .semibold)
+        case .system:    return Self.manrope(12, .bold)
         }
     }
 
@@ -208,7 +239,7 @@ enum YieldTheme: String, CaseIterable {
     var monoSmall: Font {
         switch self {
         case .editorial: return mono(11)
-        case .system:    return .system(size: 11.5).monospacedDigit()
+        case .system:    return Self.manrope(11.5, .medium).monospacedDigit()
         }
     }
 
@@ -216,7 +247,7 @@ enum YieldTheme: String, CaseIterable {
     var monoXS: Font {
         switch self {
         case .editorial: return mono(10)
-        case .system:    return .system(size: 11).monospacedDigit()
+        case .system:    return Self.manrope(11, .medium).monospacedDigit()
         }
     }
 
@@ -224,7 +255,7 @@ enum YieldTheme: String, CaseIterable {
     var monoMedium: Font {
         switch self {
         case .editorial: return mono(12, weight: .medium)
-        case .system:    return .system(size: 12.5, weight: .medium).monospacedDigit()
+        case .system:    return Self.manrope(12.5, .semibold).monospacedDigit()
         }
     }
 
@@ -234,7 +265,7 @@ enum YieldTheme: String, CaseIterable {
     var figureLarge: Font {
         switch self {
         case .editorial: return mono(11)
-        case .system:    return .system(size: 15, weight: .medium).monospacedDigit()
+        case .system:    return Self.manrope(15, .bold).monospacedDigit()
         }
     }
 
@@ -242,7 +273,7 @@ enum YieldTheme: String, CaseIterable {
     var figureDenominator: Font {
         switch self {
         case .editorial: return mono(11)
-        case .system:    return .system(size: 11.5).monospacedDigit()
+        case .system:    return Self.manrope(11.5, .medium).monospacedDigit()
         }
     }
 
@@ -250,7 +281,7 @@ enum YieldTheme: String, CaseIterable {
     var rowSubtitle: Font {
         switch self {
         case .editorial: return label(9)
-        case .system:    return .system(size: 10)
+        case .system:    return Self.manrope(11, .medium)
         }
     }
 
@@ -258,7 +289,7 @@ enum YieldTheme: String, CaseIterable {
     var sectionHeader: Font {
         switch self {
         case .editorial: return label(9, weight: .medium)
-        case .system:    return .system(size: 10.5, weight: .semibold)
+        case .system:    return Self.manrope(12, .bold)
         }
     }
 
@@ -266,7 +297,7 @@ enum YieldTheme: String, CaseIterable {
     var heroFigure: Font {
         switch self {
         case .editorial: return monoMedium
-        case .system:    return .system(size: 22, weight: .medium).monospacedDigit()
+        case .system:    return Self.manrope(24, .semibold).monospacedDigit()
         }
     }
 
@@ -286,8 +317,8 @@ enum YieldTheme: String, CaseIterable {
     // MARK: - Corner radii
 
     var panelRadius: CGFloat       { self == .editorial ? 14 : 16 }
-    var cardRadius: CGFloat        { self == .editorial ? 8 : 10 }
-    var buttonRadius: CGFloat      { self == .editorial ? 4 : 6 }
+    var cardRadius: CGFloat        { self == .editorial ? 8 : 12 }
+    var buttonRadius: CGFloat      { self == .editorial ? 4 : 8 }
     var dropdownRadius: CGFloat    { self == .editorial ? 6 : 8 }
     var progressBarRadius: CGFloat { 4 }
 
@@ -296,18 +327,21 @@ enum YieldTheme: String, CaseIterable {
     // Text buttons (+ Timer, Start Timer, Cancel, Delete…). System's are
     // a touch taller and rest at full opacity; Editorial's rest at 80%
     // and brighten on hover, as they always have.
-    var buttonHeight: CGFloat            { self == .editorial ? 22 : 26 }
+    var buttonHeight: CGFloat            { self == .editorial ? 22 : 32 }
     var buttonHorizontalPadding: CGFloat { self == .editorial ? 11 : 12 }
     var buttonRestingOpacity: Double     { self == .editorial ? 0.8 : 1.0 }
-    /// Corner radius for buttons and header chips specifically — not
-    /// the general `buttonRadius`, which other small controls share.
-    /// System's is half the button height, so text buttons and
-    /// segmented controls are capsules and icon buttons are circles:
-    /// one round language, everywhere a control has chrome.
-    var pillRadius: CGFloat              { self == .editorial ? 4 : 13 }
+    /// Corner radius for text buttons and header chips specifically —
+    /// not the general `buttonRadius`, which other small controls
+    /// share. System takes the kit's 8pt button corner.
+    var pillRadius: CGFloat              { self == .editorial ? 4 : 8 }
+    /// Icon-only buttons. The kit's are circles (its FAB); Editorial's
+    /// share the text buttons' corner.
+    var iconButtonRadius: CGFloat        { self == .editorial ? 4 : 16 }
+    /// Letter-spacing on button labels: the kit tracks them 5%.
+    var buttonLabelTracking: CGFloat     { self == .editorial ? 0 : 0.6 }
     /// Header icon chips (week chevrons, calendar). Editorial's are a
     /// 24×22 rectangle; System's are square so the clip makes a circle.
-    var headerIconWidth: CGFloat         { self == .editorial ? 24 : 26 }
+    var headerIconWidth: CGFloat         { self == .editorial ? 24 : 32 }
     /// Whether icon controls (play / pause / stop) are filled circles
     /// rather than bordered squares.
     var usesCircularControls: Bool       { self == .system }

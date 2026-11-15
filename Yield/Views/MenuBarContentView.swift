@@ -459,11 +459,17 @@ struct MenuBarContentView: View {
             },
             onDeleteEntry: { entry in
                 Task { await viewModel.deleteTimeEntry(entryId: entry.id) }
+            },
+            onStartTimer: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showNewTimerForm = true
+                }
             }
         )
         // On the chart tab the slot collapses to 0pt so the banner is
         // hidden; everywhere else `maxHeight: nil` lets the banner take
-        // its natural ~74pt (running) or ~16pt (idle strip) height. The
+        // its natural height: ~74pt running, and when idle Editorial's
+        // ~16pt strip or System's full-height idle bar. The
         // earlier `.infinity` made the slot greedily fill any spare
         // vertical space, inflating the whole panel when content was
         // short.

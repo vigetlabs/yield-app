@@ -30,32 +30,40 @@ struct PostMeetingReminderBarView: View {
         // panel sits open.
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let now = timeline.date
+            let refreshed = ThemeStore.shared.theme.usesRefreshedLayout
             HStack(spacing: 10) {
-                if ThemeStore.shared.theme.usesRefreshedLayout {
-                    // System: the glyph sits in a tinted disc so the bar
-                    // reads as a band with a leading mark, like the rows.
-                    Image(systemName: "calendar.badge.exclamationmark")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(YieldColors.yellowAccent)
-                        .frame(width: 24, height: 24)
-                        .background(YieldColors.yellowAccent.opacity(0.14))
-                        .clipShape(Circle())
-                } else {
+                // Editorial leads with the glyph. System keeps its text on
+                // the margin the timer bar and the list use, and carries
+                // the glyph on the status line instead.
+                if !refreshed {
                     Image(systemName: "calendar.badge.exclamationmark")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(YieldColors.yellowAccent)
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: refreshed ? 3 : 2) {
+                    // System: the timer bar's sizes, as on the prompt bar.
                     Text(reminder.eventTitle)
-                        .font(YieldFonts.titleSmall)
+                        .font(refreshed ? YieldFonts.titleMedium : YieldFonts.titleSmall)
                         .foregroundStyle(YieldColors.textPrimary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                    Text(statusLine(now: now))
-                        .font(YieldFonts.label(10))
-                        .foregroundStyle(YieldColors.textSecondary)
-                        .lineLimit(1)
+                    if refreshed {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Image(systemName: "calendar.badge.exclamationmark")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(YieldColors.yellowAccent)
+                            Text(statusLine(now: now))
+                                .font(YieldFonts.rowSubtitle)
+                                .foregroundStyle(YieldColors.textSecondary)
+                                .lineLimit(1)
+                        }
+                    } else {
+                        Text(statusLine(now: now))
+                            .font(YieldFonts.label(10))
+                            .foregroundStyle(YieldColors.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
 
                 Spacer(minLength: 8)
@@ -84,20 +92,17 @@ struct PostMeetingReminderBarView: View {
                 .buttonStyle(.plain)
                 .help("Dismiss")
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, ThemeStore.shared.theme.usesRefreshedLayout ? 12 : 10)
-            // System: a plain band. The orange disc is the cue; tinting
-            // the whole bar turned muddy brown in dark mode.
-            .background(ThemeStore.shared.theme.usesRefreshedLayout ? YieldColors.surfaceDefault : YieldColors.yellowFaint)
+            .padding(.leading, refreshed ? 16 + 3 : 16)
+            .padding(.trailing, 16)
+            .padding(.vertical, refreshed ? 12 : 10)
+            // System: a wash of the bar's own orange, edge to edge, as
+            // the timer bar is washed green. Grey made it one of three
+            // grey bands in the panel — with the client headers and an
+            // open project — and it is the one that wants an answer.
+            .background(refreshed ? YieldColors.yellowAccent.opacity(0.09) : YieldColors.yellowFaint)
         }
-        .overlay(alignment: .top) {
-            // System: bands are hairlined on both edges.
-            if ThemeStore.shared.theme.usesRefreshedLayout {
-                Rectangle()
-                    .fill(YieldColors.border)
-                    .frame(height: 1)
-            }
-        }
+        // One rule, underneath. Whatever is above — the header, or the
+        // other meeting bar — has already drawn the one between them.
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(YieldColors.border)

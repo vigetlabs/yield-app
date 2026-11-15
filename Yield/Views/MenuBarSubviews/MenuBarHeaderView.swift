@@ -153,10 +153,12 @@ struct MenuBarHeaderView: View {
         .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
     }
 
-    /// System: the two list filters on their own. Neither is selected
-    /// while the chart is showing; picking one leaves the chart.
+    /// System: the two list filters on their own, as the kit's
+    /// segmented control — a grey trough with the selected segment
+    /// lifted out of it in white. Neither is selected while the chart
+    /// is showing; picking one leaves the chart.
     private var listFilterToggle: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach([TimeComparisonViewModel.ProjectTab.recent, .forecasted], id: \.self) { tab in
                 let isSelected = viewModel.selectedTab == tab
                 Button {
@@ -165,16 +167,27 @@ struct MenuBarHeaderView: View {
                         viewModel.selectTab(tab)
                     }
                 } label: {
-                    tabLabel(tab, isSelected: isSelected)
-                        .padding(.horizontal, 9)
-                        .frame(height: YieldDimensions.buttonHeight)
-                        .background(isSelected ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
+                    Text(tab == .recent ? "All" : "Booked")
+                        .font(YieldFonts.label(12, weight: isSelected ? .bold : .semibold))
+                        .foregroundStyle(isSelected ? YieldColors.textPrimary : YieldColors.textSecondary)
+                        .padding(.horizontal, 12)
+                        .frame(height: YieldDimensions.buttonHeight - 6)
+                        .background {
+                            if isSelected {
+                                RoundedRectangle(cornerRadius: YieldRadius.pill - 1)
+                                    .fill(YieldColors.raised)
+                                    .kitShadow(YieldColors.shadow, dp: 1)
+                            }
+                        }
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help(tabHelp(tab))
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+        .padding(3)
+        .background(YieldColors.surfaceDefault)
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill + 2))
     }
 
     /// System: the chart as its own toggle. Pressing it again returns
@@ -193,7 +206,7 @@ struct MenuBarHeaderView: View {
                 viewModel.selectTab(isChart ? lastListTab : .chart)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.iconButton))
     }
 
     @ViewBuilder
@@ -237,7 +250,7 @@ struct MenuBarHeaderView: View {
                 onOpenCalendarTimerForm?()
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.iconButton))
         .disabledWhenHarvestDown(viewModel.isHarvestDown)
     }
 
@@ -273,13 +286,27 @@ struct HeaderIconButton: View {
     let action: () -> Void
     @State private var isHovered = false
 
+    private var kit: Bool { ThemeStore.shared.theme.usesRefreshedLayout }
+
+    /// System: the kit's shaded icon button — primary glyph on a grey
+    /// tint — and its contained one when switched on.
+    private var foreground: Color {
+        if kit { return isSelected ? YieldColors.onControlFill : YieldColors.controlAccent }
+        return isSelected ? YieldColors.textPrimary : YieldColors.textSecondary
+    }
+
+    private var fill: Color {
+        if kit, isSelected { return isHovered ? YieldColors.controlFillHover : YieldColors.controlFill }
+        return (isHovered || isSelected) ? YieldColors.surfaceActive : YieldColors.surfaceDefault
+    }
+
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(isSelected ? YieldColors.textPrimary : YieldColors.textSecondary)
+                .font(.system(size: kit ? 12 : 10, weight: .semibold))
+                .foregroundStyle(foreground)
                 .frame(width: YieldDimensions.headerIconWidth, height: YieldDimensions.buttonHeight)
-                .background((isHovered || isSelected) ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
+                .background(fill)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -301,7 +328,7 @@ struct HeaderTextButton: View {
         Button(action: action) {
             Text(title)
                 .font(YieldFonts.labelButton)
-                .foregroundStyle(YieldColors.textPrimary)
+                .foregroundStyle(ThemeStore.shared.theme.usesRefreshedLayout ? YieldColors.controlAccent : YieldColors.textPrimary)
                 .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
                 .frame(height: YieldDimensions.buttonHeight)
                 .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)

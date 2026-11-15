@@ -83,7 +83,7 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
     }
 
     var body: some View {
-        let tray = Layout.usesTrayDrawer
+        let band = Layout.usesBandDrawer
         return VStack(alignment: .leading, spacing: 0) {
             // Header. When there are no entries to expand into (booked-
             // only forecast projects, past-week rows without logged
@@ -91,7 +91,7 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
             // Button — `.disabled` would dim the content even though
             // the row's data is still meant to be readable.
             let header = projectHeader
-                .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
+                .background(Layout.headerBackground(isHovered: isHovered, isExpanded: isExpanded))
                 .contentShape(Rectangle())
                 .onHover { hovering in
                     withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
@@ -138,14 +138,15 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
                     // so the bar aligns with the rows below it. Top padding
                     // doubled (20) so there's room for the hover tooltip to
                     // float above the bar without being clipped.
-                    // Tray: 12pt from the tray's top and sides, the same
-                    // inset the entries below it keep — 8 here plus the
-                    // tray's own 4. (The bar's tooltip is a system one
-                    // and needs no room reserved.)
-                    .padding(.leading, tray ? 8 : 32)
-                    .padding(.trailing, tray ? 8 : 16)
-                    .padding(.top, tray ? 12 : 20)
-                    .padding(.bottom, tray ? 6 : 10)
+                    // Band: lined up with the project name above (19pt
+                    // in) and the figures' right edge (16pt in). The
+                    // header already ends in white space, so the bar
+                    // needs little above it. (Its tooltip is a system
+                    // one and needs no room reserved.)
+                    .padding(.leading, band ? 8 : 32)
+                    .padding(.trailing, band ? 8 : 16)
+                    .padding(.top, band ? 2 : 20)
+                    .padding(.bottom, band ? 6 : 10)
                 }
 
                 ForEach(visibleEntries) { entry in
@@ -168,7 +169,7 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
                         onMoveTime: {
                             onMoveEntry?(entry)
                         },
-                        compact: tray
+                        compact: band
                     )
                 }
             })
@@ -184,8 +185,9 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
             Rectangle()
                 .fill(YieldColors.border)
                 .frame(height: 1)
-                .padding(.leading, separatorInset ? 19 : 0)
-                .padding(.trailing, separatorInset ? 16 : 0)
+                // An open band is full-width, so its closing rule is too.
+                .padding(.leading, separatorInset && !(Layout.usesBandDrawer && isExpanded) ? 19 : 0)
+                .padding(.trailing, separatorInset && !(Layout.usesBandDrawer && isExpanded) ? 16 : 0)
         }
         // Clip the row's content to its own bounds so that during
         // list-level height transitions (e.g. switching tabs / weeks
@@ -208,32 +210,22 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
     }
 
     /// The drawer's container. Editorial: nothing — its entries are
-    /// full-width rows. Tray layouts: a recessed, rounded panel inset
-    /// from the row's edges, so the entries read as belonging to the
-    /// project above them rather than as more rows in the list. The
-    /// row's edge line (green on the running project) carries on down
-    /// the drawer's side, tying the two together.
-    ///
-    /// Even all the way round: the tray sits 14pt in from the panel's
-    /// left and right edges and 14pt above the row's bottom rule —
-    /// 14 because that is the space the header above it already ends
-    /// in, so the tray needs no top margin of its own — and its
-    /// contents sit 12pt inside it on every side.
+    /// full-width rows. Band layouts: the same grey the open header
+    /// takes, edge to edge, so the project and its entries are one
+    /// block. The row's edge line (green on the running project)
+    /// carries on down the drawer's side.
     @ViewBuilder
     private func drawerChrome<Content: View>(_ content: Content) -> some View {
-        if Layout.usesTrayDrawer {
+        if Layout.usesBandDrawer {
             content
-                // Entries pad themselves by 8 horizontally and 5
-                // vertically (their hover highlight needs the room), so
-                // these bring the tray's inner margin up to 12.
-                .padding(.horizontal, 4)
-                .padding(.bottom, 7)
-                .background(
-                    RoundedRectangle(cornerRadius: YieldRadius.card)
-                        .fill(YieldColors.surfaceDefault)
-                )
-                .padding(.horizontal, 14)
-                .padding(.bottom, 14)
+                // The day bar and the entries each pad themselves by 8
+                // horizontally (the entries' hover highlight needs the
+                // room); these bring them to the project name's margin
+                // (19pt) and the figures' right edge (16pt).
+                .padding(.leading, 11)
+                .padding(.trailing, 8)
+                .padding(.bottom, 8)
+                .background(YieldColors.surfaceDefault)
                 .overlay(alignment: .leading) {
                     Rectangle()
                         .fill(Layout.statusLineColor(project))
@@ -779,7 +771,7 @@ struct TaskEntryRowView: View {
     var onCopyToToday: (() -> Void)? = nil
     /// Today's entries only: move some of this entry's time elsewhere.
     var onMoveTime: (() -> Void)? = nil
-    /// One line — task, then notes in secondary ink — on a tray, with
+    /// One line — task, then notes in secondary ink — on the band, with
     /// no hairline between entries and a smaller timer button. The
     /// System drawer; Editorial keeps the two-line row.
     var compact: Bool = false
@@ -864,15 +856,19 @@ struct TaskEntryRowView: View {
                         .foregroundStyle(entry.isRunning ? YieldColors.greenAccent : YieldColors.textSecondary)
 
                     if entry.isRunning {
-                        Text("Now")
-                            .font(YieldFonts.monoXS)
-                            .foregroundStyle(YieldColors.greenAccent)
-                            .padding(.horizontal, ThemeStore.shared.theme.usesRefreshedLayout ? 6 : 4)
-                            .padding(.vertical, 2)
-                            .background(YieldColors.greenDim)
-                            // System: a capsule, like every other control there.
-                            .clipShape(RoundedRectangle(cornerRadius: ThemeStore.shared.theme.usesRefreshedLayout
-                                ? YieldRadius.pill : YieldRadius.button))
+                        Group {
+                            if ThemeStore.shared.theme.usesRefreshedLayout {
+                                YieldBadge(text: "Now", tint: YieldColors.greenAccent)
+                            } else {
+                                Text("Now")
+                                    .font(YieldFonts.monoXS)
+                                    .foregroundStyle(YieldColors.greenAccent)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 2)
+                                    .background(YieldColors.greenDim)
+                                    .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+                            }
+                        }
                             // Compact: badge and day label share a
                             // column width so the times line up above
                             // one another.
@@ -947,7 +943,10 @@ struct TaskEntryRowView: View {
                 }
                 .buttonStyle(TimerControlButtonStyle(
                     borderColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.buttonBorder,
-                    foregroundColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.textSecondary,
+                    // System: a resting play button is the kit's shaded icon
+                    // button — primary glyph on a primary tint.
+                    foregroundColor: entry.isRunning ? YieldColors.greenAccent
+                        : (ThemeStore.shared.theme.usesRefreshedLayout ? YieldColors.controlAccent : YieldColors.textSecondary),
                     destructiveOnHover: entry.isRunning,
                     size: compact ? 20 : YieldDimensions.timerButtonSize
                 ))
@@ -1049,7 +1048,7 @@ struct TaskEntryRowView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            // Compact entries sit on a tray and need no rule between them.
+            // Compact entries sit on the band and need no rule between them.
             Rectangle()
                 .fill(YieldColors.border)
                 .frame(height: compact ? 0 : 1)

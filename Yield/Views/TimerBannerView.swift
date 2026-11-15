@@ -10,6 +10,8 @@ struct TimerBannerView: View {
     let viewModel: TimeComparisonViewModel
     var onEditEntry: ((TimeEntryInfo) -> Void)? = nil
     var onDeleteEntry: ((TimeEntryInfo) -> Void)? = nil
+    /// Opens the new-timer form: the play button on System's idle bar.
+    var onStartTimer: (() -> Void)? = nil
 
     @State private var colonOn: Bool = true
     @State private var dotPulse: Bool = false
@@ -23,7 +25,15 @@ struct TimerBannerView: View {
     /// the ellipsis cross-fades to the Edit / Move / Delete icons.
     @State private var isActionZoneHovered: Bool = false
 
+    /// Editorial's resting strip: 16pt of the banner's gradient with no
+    /// timer in it.
     private let emptyHeight: CGFloat = 16
+
+    /// System: the bar is always there, at one height. With no timer
+    /// it shows an idle state instead of collapsing, so this place in
+    /// the panel is always occupied and the list below never moves
+    /// when a timer starts or stops.
+    private var isShown: Bool { hasTimer || refreshed }
 
     /// System theme: the hero layout below. Editorial keeps the banner
     /// exactly as it shipped.
@@ -170,7 +180,7 @@ struct TimerBannerView: View {
         ZStack(alignment: .top) {
             if refreshed {
                 // System: a flat wash, like the calendar bars above it.
-                Rectangle().fill(accentColor.opacity(0.07))
+                Rectangle().fill(hasTimer ? accentColor.opacity(0.07) : Color.clear)
             } else {
                 LinearGradient(
                     colors: [gradientColor, Color.clear],
@@ -180,9 +190,9 @@ struct TimerBannerView: View {
             }
 
             timerContent
-                .opacity(hasTimer ? 1 : 0)
+                .opacity(isShown ? 1 : 0)
                 .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { contentHeight = $0 }
-                .allowsHitTesting(hasTimer)
+                .allowsHitTesting(isShown)
                 // Gesture sits on `timerContent` (not the outer ZStack)
                 // so the gradient backdrop stays tap-through when the
                 // banner is in its empty-strip state.
@@ -196,15 +206,10 @@ struct TimerBannerView: View {
         // and the outer frame reflow inside the same context — a local
         // animation here would let the parent layout snap discretely
         // around a smooth banner.
-        .frame(height: hasTimer ? contentHeight : emptyHeight, alignment: .top)
+        .frame(height: isShown ? contentHeight : emptyHeight, alignment: .top)
         .clipped()
-        .overlay(alignment: .top) {
-            if refreshed && hasTimer {
-                Rectangle()
-                    .fill(YieldColors.border)
-                    .frame(height: 1)
-            }
-        }
+        // No rule on top: the header or a meeting bar above has already
+        // drawn it, and a second one made the line two points thick.
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(YieldColors.border)
@@ -253,7 +258,9 @@ struct TimerBannerView: View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let totalSeconds = computeTotalSeconds(at: timeline.date)
 
-            if refreshed {
+            if refreshed && !hasTimer {
+                idleContent
+            } else if refreshed {
                 heroContent(totalSeconds: totalSeconds)
             } else {
             HStack(spacing: 10) {
@@ -435,6 +442,59 @@ struct TimerBannerView: View {
         .padding(.leading, 16 + 3)
         .padding(.trailing, 16)
         .padding(.vertical, 12)
+    }
+
+    /// System's idle bar: the running bar's anatomy with nothing on
+    /// the clock. Same fonts, same paddings and the same button size as
+    /// `heroContent`, so the two are one height. The line under the
+    /// title says what today holds so far — the one fact worth showing
+    /// when nothing is running — and the play button opens the
+    /// new-timer form, the same place the header's "+ Timer" goes.
+    private var idleContent: some View {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("No timer running")
+                    .font(YieldFonts.titleMedium)
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .lineLimit(1)
+
+                Text(viewModel.totalTodayLogged > 0
+                     ? "\(viewModel.totalTodayLogged.formattedColon) logged today"
+                     : "Nothing logged today")
+                    .font(YieldFonts.rowSubtitle)
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text("0:00")
+                .font(YieldFonts.heroFigure)
+                .monospacedDigit()
+                .foregroundStyle(YieldStatusColors.unbooked)
+                .fixedSize()
+                .padding(.leading, 12)
+
+            Button {
+                onStartTimer?()
+            } label: {
+                Image(systemName: "play")
+                    .font(Self.heroGlyphFont)
+            }
+            .buttonStyle(TimerControlButtonStyle(
+                foregroundColor: YieldColors.controlAccent, size: 28
+            ))
+            .help("Start a timer")
+            .disabledWhenHarvestDown(viewModel.isHarvestDown)
+            .padding(.leading, 12)
+        }
+        .padding(.leading, 16 + 3)
+        .padding(.trailing, 16)
+        .padding(.vertical, 12)
+        // The running bar fills the height the slot offers (its hover
+        // zone is full-height), so it settles at the slot's 74pt. Fill
+        // it here too, or the idle bar would shrink to its text and the
+        // list would shift each time a timer started or stopped.
+        .frame(maxHeight: .infinity)
     }
 
     /// Outlined control glyphs for the System banner, a little larger

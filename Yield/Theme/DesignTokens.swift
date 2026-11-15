@@ -41,9 +41,25 @@ enum YieldColors {
     /// links, selectable calendar events. Distinct from `greenAccent`,
     /// which means "running / on track". Editorial has one green for
     /// both, so the two resolve to the same color there; System gives
-    /// controls the user's accent and keeps status on a fixed green —
-    /// see `System.greenAccent` for why.
+    /// controls the kit's blue and keeps status on a fixed green, so
+    /// a healthy project never borrows the color of a button.
     static var controlAccent: Color   { theme == .editorial ? Editorial.greenAccent : System.controlAccent }
+    /// A filled ("contained") button: its fill, its hover fill and the
+    /// label on it. Editorial's filled button is its green with the
+    /// label knocked out to the panel colour, as it always was.
+    static var controlFill: Color      { theme == .editorial ? Editorial.greenAccent : System.controlFill }
+    static var controlFillHover: Color { theme == .editorial ? Editorial.greenAccent : System.controlFillHover }
+    static var onControlFill: Color    { theme == .editorial ? Editorial.background : System.onControlFill }
+    /// A surface lifted off the panel (System). Editorial has no raised
+    /// surfaces; it resolves to the panel colour there.
+    static var raised: Color           { theme == .editorial ? Editorial.background : System.raised }
+    /// Shadow colour for raised surfaces (System).
+    static var shadow: Color           { theme == .editorial ? Color.black : System.shadow }
+    /// The band behind a client header (System). Editorial has no
+    /// client headers; it resolves to its ordinary surface there.
+    static var sectionBand: Color      { theme == .editorial ? Editorial.surfaceDefault : System.sectionBand }
+    /// Hover wash on a System list row.
+    static var rowHover: Color         { controlAccent.opacity(0.06) }
     static var controlAccentSubtle: Color { controlAccent.opacity(0.15) }
     static var controlAccentFaint: Color  { controlAccent.opacity(0.04) }
     static var controlAccentBorder: Color { controlAccent.opacity(0.15) }
@@ -121,39 +137,61 @@ enum YieldColors {
         )
     }
 
-    /// The System theme's palette: macOS's own semantic colors.
-    /// `labelColor`, `separatorColor`, `windowBackgroundColor` and
-    /// friends are already appearance-aware and Apple-tuned, and
-    /// controls take `controlAccentColor` — whatever the user chose in
-    /// System Settings — so the panel reads as a native control rather
-    /// than a themed one. Custom-tinted directions (slate, warm, high-
-    /// contrast) were tried and rejected; this is the opposite move.
+    /// The System theme's palette: the Material-X kit's colour styles.
+    ///
+    /// Light values are the kit's own, named beside each one. The kit
+    /// is light-only, so the dark column is derived from the same
+    /// ramps — a step or two lighter on a near-black surface — and is
+    /// this app's, not the kit's.
     enum System {
-        static let background = Color(nsColor: .windowBackgroundColor)
-        /// "Running / on track". A fixed green, deliberately *not* the
-        /// user's accent: over is red, paused is orange and unlinked is
-        /// pink, so an accent of any of those made a healthy project
-        /// look like a warning. These are systemGreen's own values —
-        /// its high-contrast variant on the light surface, where the
-        /// standard one is too pale to read as text.
-        static let greenAccent = dynamicColor(
-            light: NSColor(red: 0.141, green: 0.541, blue: 0.239, alpha: 1.0),  // #248A3D
-            dark:  NSColor(red: 0.188, green: 0.820, blue: 0.345, alpha: 1.0)   // #30D158
-        )
-        /// The user's accent color, for controls only.
-        static let controlAccent = Color(nsColor: .controlAccentColor)
-        static let idleFill = Color(nsColor: .secondaryLabelColor)
-        /// Paused / warning. Orange rather than system yellow, which is
-        /// too light to read as text on the light surface.
-        static let yellowAccent = Color(nsColor: .systemOrange)
-        static let border = Color(nsColor: .separatorColor)
-        static let buttonBorder = Color(nsColor: .tertiaryLabelColor)
-        static let textPrimary = Color(nsColor: .labelColor)
-        static let textSecondary = Color(nsColor: .secondaryLabelColor)
-        static let surfaceDefault = Color(nsColor: .quinaryLabel)
-        static let surfaceActive = Color(nsColor: .quaternaryLabelColor)
-        static let progressTrack = Color(nsColor: .quaternaryLabelColor)
-        static let onBackground = Color(nsColor: .labelColor)
+        private static func hex(_ v: UInt32, _ alpha: CGFloat = 1) -> NSColor {
+            NSColor(red: CGFloat((v >> 16) & 0xFF) / 255,
+                    green: CGFloat((v >> 8) & 0xFF) / 255,
+                    blue: CGFloat(v & 0xFF) / 255, alpha: alpha)
+        }
+
+        static let background = dynamicColor(light: hex(0xFFFFFF), dark: hex(0x121212))        // White
+        /// "Running / on track". Fixed, as before: status colours don't
+        /// follow the control colour.
+        static let greenAccent = dynamicColor(light: hex(0x1F8B24), dark: hex(0x52D858))       // Green / 05 · 03
+        /// Text and glyphs on controls, links, selected marks.
+        static let controlAccent = dynamicColor(light: hex(0x0F56B3), dark: hex(0x8AB9F6))     // Blue / 05 · 02
+        /// A contained button's fill, and the label that sits on it.
+        static let controlFill = dynamicColor(light: hex(0x0F56B3), dark: hex(0x1672EC))       // Blue / 05 · 04
+        static let controlFillHover = dynamicColor(light: hex(0x1672EC), dark: hex(0x5096F1))  // Blue / 04 · 03
+        static let onControlFill = dynamicColor(light: hex(0xC5DCFA), dark: hex(0xFFFFFF))     // Blue / 01
+        static let idleFill = dynamicColor(light: hex(0xA1A1A1), dark: hex(0x818181))          // Grey / 03 · 04
+        /// Paused / warning.
+        static let yellowAccent = dynamicColor(light: hex(0xBF710F), dark: hex(0xF2B05C))      // Orange / 05 · 03
+        /// The meeting bars' button: the bar's own orange at full
+        /// strength, with a dark label — the pairing the menu bar's
+        /// "nearly out" capsule uses. White on this orange is too faint.
+        static let attentionFill = dynamicColor(light: hex(0xED9526), dark: hex(0xF2B05C))       // Orange / 04 · 03
+        static let attentionFillHover = dynamicColor(light: hex(0xF2B05C), dark: hex(0xF6CA92))  // Orange / 03 · 02
+        static let onAttentionFill = dynamicColor(light: hex(0x3D2800), dark: hex(0x3D2800))
+        static let over = dynamicColor(light: hex(0xDA100B), dark: hex(0xF7716E))              // Red / 05 · 03
+        static let prospective = dynamicColor(light: hex(0xE1125E), dark: hex(0xF584AD))       // Pink / 04 · 02
+        static let unbooked = dynamicColor(light: hex(0xA1A1A1), dark: hex(0x616161))          // Grey / 03 · 05
+        static let border = dynamicColor(light: hex(0xE0E0E0), dark: hex(0xFFFFFF, 0.12))      // Grey / 01
+        static let buttonBorder = dynamicColor(light: hex(0xC0C0C0), dark: hex(0x616161))      // Grey / 02 · 05
+        static let textPrimary = dynamicColor(light: hex(0x000000), dark: hex(0xFFFFFF))       // Black
+        static let textSecondary = dynamicColor(light: hex(0x616161), dark: hex(0xC0C0C0))     // Grey / 05 · 02
+        /// The kit's "Light / Grey": Grey at half strength, the fill
+        /// behind shaded buttons, segment troughs and open projects.
+        static let surfaceDefault = dynamicColor(light: hex(0xE5E5E5, 0.5), dark: hex(0xFFFFFF, 0.07))
+        static let surfaceActive = dynamicColor(light: hex(0xE0E0E0), dark: hex(0xFFFFFF, 0.14))  // Grey / 01
+        /// Behind a client header: the same grey as `surfaceDefault`
+        /// at a little over half its strength, so an open project
+        /// under a header is still the darker of the two.
+        static let sectionBand = dynamicColor(light: hex(0xE5E5E5, 0.28), dark: hex(0xFFFFFF, 0.04))
+        static let progressTrack = dynamicColor(light: hex(0xE0E0E0), dark: hex(0xFFFFFF, 0.14))  // Grey / 01
+        static let onBackground = textPrimary
+        /// A surface lifted off the panel: the selected segment, a
+        /// raised card. White in the kit.
+        static let raised = dynamicColor(light: hex(0xFFFFFF), dark: hex(0x3A3A3A))
+        /// The kit's grey shadow colour (Grey / 05). Dark surfaces get
+        /// plain black; a grey shadow on near-black is invisible.
+        static let shadow = dynamicColor(light: hex(0x616161), dark: hex(0x000000))
     }
 }
 
@@ -284,16 +322,16 @@ enum YieldStatusColors {
 
     /// Over budget.
     static var over: Color {
-        theme == .editorial ? Editorial.over : Color(nsColor: .systemRed)
+        theme == .editorial ? Editorial.over : YieldColors.System.over
     }
     /// Unbooked status line.
     static var unbooked: Color {
-        theme == .editorial ? Editorial.unbooked : Color(nsColor: .tertiaryLabelColor)
+        theme == .editorial ? Editorial.unbooked : YieldColors.System.unbooked
     }
     /// Prospective / proposal-stage Forecast projects — booked but not
     /// yet linked to a Harvest project.
     static var prospective: Color {
-        theme == .editorial ? Editorial.prospective : Color(nsColor: .systemPink)
+        theme == .editorial ? Editorial.prospective : YieldColors.System.prospective
     }
     /// Warning amber — booked in Forecast, not a member in Harvest. The
     /// theme's yellow accent, so it matches the bars and the paused
@@ -326,6 +364,8 @@ enum YieldRadius {
     static var progressBar: CGFloat { theme.progressBarRadius }
     /// Buttons and header chips. See `YieldTheme.pillRadius`.
     static var pill: CGFloat { theme.pillRadius }
+    /// Icon-only buttons. See `YieldTheme.iconButtonRadius`.
+    static var iconButton: CGFloat { theme.iconButtonRadius }
 }
 
 // MARK: - Dimensions
@@ -345,6 +385,8 @@ enum YieldDimensions {
     /// Not a dimension, but it travels with the two above: the opacity
     /// a text button rests at before hover.
     static var buttonRestingOpacity: Double { theme.buttonRestingOpacity }
+    /// Letter-spacing on text-button labels. See `YieldTheme`.
+    static var buttonLabelTracking: CGFloat { theme.buttonLabelTracking }
     static var headerIconWidth: CGFloat { theme.headerIconWidth }
     /// Standard control height for inline form inputs — pickers,
     /// favorite-list buttons. Matches the dropdown's intrinsic hit

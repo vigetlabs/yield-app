@@ -61,14 +61,14 @@ struct WeekDayBarView: View {
                             fraction: barsShowLogged ? displayHours / dailyTarget : 0,
                             color: (day.isToday && isCurrent && isAnyTracking)
                                 ? YieldStatusColors.under
-                                : (day.isToday ? YieldColors.textPrimary : YieldColors.idleFill)
+                                : (day.isToday ? YieldColors.controlFill : YieldColors.idleFill)
                         )
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
-                .background(isFiltered ? YieldColors.surfaceActive : Color.clear)
+                .background(isFiltered ? (refreshed ? YieldColors.controlAccentSubtle : YieldColors.surfaceActive) : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
 
                 // Past/future weeks render the cell as a static label
@@ -113,7 +113,7 @@ struct WeekDayBarView: View {
                     // column lines up with the day bars beside it.
                     DayTargetBar(
                         fraction: barsShowLogged ? weekTotal / max(viewModel.weeklyHoursTarget, 1) : 0,
-                        color: YieldColors.textPrimary
+                        color: YieldColors.controlFill
                     )
                 }
             }
