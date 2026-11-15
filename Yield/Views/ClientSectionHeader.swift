@@ -1,13 +1,15 @@
 import SwiftUI
 
 /// Section header above a client's projects in the grouped list layout
-/// (System theme): the client name, in full-strength ink, on a tinted
-/// band that runs the width of the panel.
+/// (System theme): the client name on a tinted band that runs the
+/// width of the panel.
 ///
-/// As small grey capitals it was the quietest text in the list and
-/// got lost above the bold project names it was meant to group. The
-/// band gives it its own row, so the list reads as clients first and
-/// projects within them.
+/// The band is what makes the list scannable by client; the name on it
+/// is deliberately quiet — secondary ink at medium weight — and the
+/// band a little taller than its text needs, so the header separates
+/// groups without competing with the bold project names beneath it.
+/// (Bold, full-strength names on a tight band scanned well but left
+/// the list with no breathing room.)
 ///
 /// The band draws only its bottom rule: above it is always a rule
 /// already — the last row of the group before it, or the header or
@@ -23,12 +25,12 @@ struct ClientSectionHeader: View {
     var body: some View {
         Text(client)
             .font(YieldFonts.sectionHeader)
-            .foregroundStyle(YieldColors.textPrimary)
+            .foregroundStyle(YieldColors.textSecondary)
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 3 + 16)
             .padding(.trailing, 16)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .background(YieldColors.sectionBand)
             .overlay(alignment: .bottom) {
                 Rectangle()

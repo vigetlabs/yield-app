@@ -297,7 +297,9 @@ enum YieldTheme: String, CaseIterable {
     var sectionHeader: Font {
         switch self {
         case .editorial: return label(9, weight: .medium)
-        case .system:    return Self.manrope(12, .bold)
+        // Medium, not bold: the band behind it does the separating,
+        // so the name itself can stay quiet.
+        case .system:    return Self.manrope(12, .medium)
         }
     }
 

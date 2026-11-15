@@ -40,7 +40,7 @@ struct SettingsCardSectionHeader: View {
     }
 
     /// System: the band a client gets in the project list — the name
-    /// in full-strength ink on a tinted strip across the panel. It
+    /// in quiet secondary ink on a tinted strip across the panel. It
     /// rules itself off above and below: a section's last row draws no
     /// rule of its own, and the title bar above the first band leaves
     /// its rule to this one.
@@ -48,7 +48,7 @@ struct SettingsCardSectionHeader: View {
         HStack(spacing: 5) {
             Text(title)
                 .font(YieldFonts.sectionHeader)
-                .foregroundStyle(YieldColors.textPrimary)
+                .foregroundStyle(YieldColors.textSecondary)
             if let info {
                 Image(systemName: "info.circle")
                     .font(.system(size: 11))
@@ -59,7 +59,7 @@ struct SettingsCardSectionHeader: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, SettingsStyle.leading)
         .padding(.trailing, SettingsStyle.trailing)
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .background(YieldColors.sectionBand)
         .overlay(alignment: .top) {
             Rectangle().fill(YieldColors.border).frame(height: 1)
