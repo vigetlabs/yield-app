@@ -6,6 +6,9 @@ struct MenuBarHeaderView: View {
     /// Opens the new-timer form directly on the calendar event picker —
     /// the one-click "log a meeting" shortcut next to + Timer.
     var onOpenCalendarTimerForm: (() -> Void)? = nil
+    /// The list filter to return to when the chart toggle is switched
+    /// off (System theme, where the chart is a separate control).
+    @State private var lastListTab: TimeComparisonViewModel.ProjectTab = .recent
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,7 +44,16 @@ struct MenuBarHeaderView: View {
                 Spacer()
 
                 if !viewModel.isViewingOtherWeek {
-                    tabToggle
+                    if ThemeStore.shared.theme.usesRefreshedLayout {
+                        // System: "All / Booked" filters the list; the
+                        // chart is a different view of the week. One
+                        // segmented control for both made a filter and
+                        // a view switch look like three of a kind.
+                        listFilterToggle
+                        chartToggle
+                    } else {
+                        tabToggle
+                    }
                 }
 
                 // Only rendered when Google Calendar is connected — a
@@ -141,6 +153,49 @@ struct MenuBarHeaderView: View {
         .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
     }
 
+    /// System: the two list filters on their own. Neither is selected
+    /// while the chart is showing; picking one leaves the chart.
+    private var listFilterToggle: some View {
+        HStack(spacing: 0) {
+            ForEach([TimeComparisonViewModel.ProjectTab.recent, .forecasted], id: \.self) { tab in
+                let isSelected = viewModel.selectedTab == tab
+                Button {
+                    lastListTab = tab
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        viewModel.selectTab(tab)
+                    }
+                } label: {
+                    tabLabel(tab, isSelected: isSelected)
+                        .padding(.horizontal, 9)
+                        .frame(height: YieldDimensions.buttonHeight)
+                        .background(isSelected ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
+                }
+                .buttonStyle(.plain)
+                .help(tabHelp(tab))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+    }
+
+    /// System: the chart as its own toggle. Pressing it again returns
+    /// to whichever list filter was showing before.
+    private var chartToggle: some View {
+        let isChart = viewModel.selectedTab == .chart
+        return HeaderIconButton(
+            systemImage: "chart.xyaxis.line",
+            help: isChart ? "Back to the project list" : "Weekly time chart",
+            isSelected: isChart
+        ) {
+            if !isChart, viewModel.selectedTab != .chart {
+                lastListTab = viewModel.selectedTab
+            }
+            withAnimation(.easeInOut(duration: 0.22)) {
+                viewModel.selectTab(isChart ? lastListTab : .chart)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+    }
+
     @ViewBuilder
     private func tabLabel(_ tab: TimeComparisonViewModel.ProjectTab, isSelected: Bool) -> some View {
         switch tab {
@@ -212,6 +267,9 @@ struct MenuBarHeaderView: View {
 struct HeaderIconButton: View {
     let systemImage: String
     let help: String
+    /// Draws the button in its "on" state — for toggles such as the
+    /// System header's chart switch. Off by default.
+    var isSelected: Bool = false
     let action: () -> Void
     @State private var isHovered = false
 
@@ -219,9 +277,9 @@ struct HeaderIconButton: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(YieldColors.textSecondary)
+                .foregroundStyle(isSelected ? YieldColors.textPrimary : YieldColors.textSecondary)
                 .frame(width: YieldDimensions.headerIconWidth, height: YieldDimensions.buttonHeight)
-                .background(isHovered ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
+                .background((isHovered || isSelected) ? YieldColors.surfaceActive : YieldColors.surfaceDefault)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

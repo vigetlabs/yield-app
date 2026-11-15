@@ -205,7 +205,7 @@ struct WeeklyAreaChart: View {
                     .font(YieldFonts.label(10, weight: .semibold))
                     .foregroundStyle(YieldColors.textPrimary)
                 Spacer(minLength: 12)
-                Text(dayTotal(day).formattedHoursMinutes)
+                Text(ThemeStore.shared.theme.duration(dayTotal(day)))
                     .font(YieldFonts.mono(10, weight: .medium))
                     .foregroundStyle(YieldColors.textPrimary)
             }
@@ -217,7 +217,7 @@ struct WeeklyAreaChart: View {
                         .foregroundStyle(YieldColors.textSecondary)
                         .lineLimit(1)
                     Spacer(minLength: 12)
-                    Text(h.formattedHoursMinutes)
+                    Text(ThemeStore.shared.theme.duration(h))
                         .font(YieldFonts.mono(10))
                         .foregroundStyle(YieldColors.textSecondary)
                 }

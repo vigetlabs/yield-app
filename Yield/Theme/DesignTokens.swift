@@ -37,6 +37,22 @@ enum YieldColors {
     static var buttonBorder: Color    { theme == .editorial ? Editorial.buttonBorder : System.buttonBorder }
     static var greenBorder: Color     { greenAccent.opacity(0.15) }
     static var greenBorderActive: Color { greenAccent.opacity(0.3) }
+    /// The color of things you click: filled and tinted buttons, text
+    /// links, selectable calendar events. Distinct from `greenAccent`,
+    /// which means "running / on track". Editorial has one green for
+    /// both, so the two resolve to the same color there; System gives
+    /// controls the user's accent and keeps status on a fixed green —
+    /// see `System.greenAccent` for why.
+    static var controlAccent: Color   { theme == .editorial ? Editorial.greenAccent : System.controlAccent }
+    static var controlAccentSubtle: Color { controlAccent.opacity(0.15) }
+    static var controlAccentFaint: Color  { controlAccent.opacity(0.04) }
+    static var controlAccentBorder: Color { controlAccent.opacity(0.15) }
+    static var controlAccentBorderActive: Color { controlAccent.opacity(0.3) }
+    /// Progress fill for a booked project nobody is timing right now.
+    /// Editorial fills every bar green, as it always has. System keeps
+    /// color for the running project and for over-budget, so the row
+    /// you're on is the one that stands out.
+    static var idleFill: Color        { theme == .editorial ? Editorial.greenAccent : System.idleFill }
     static var textPrimary: Color     { theme == .editorial ? Editorial.textPrimary : System.textPrimary }
     static var textSecondary: Color   { theme == .editorial ? Editorial.textSecondary : System.textSecondary }
     static var surfaceDefault: Color  { theme == .editorial ? Editorial.surfaceDefault : System.surfaceDefault }
@@ -105,18 +121,28 @@ enum YieldColors {
         )
     }
 
-    /// The System theme's palette: macOS's own semantic colors, nothing
-    /// custom. `labelColor`, `separatorColor`, `windowBackgroundColor`
-    /// and friends are already appearance-aware and Apple-tuned, and
-    /// the accent is `controlAccentColor` — whatever the user chose in
+    /// The System theme's palette: macOS's own semantic colors.
+    /// `labelColor`, `separatorColor`, `windowBackgroundColor` and
+    /// friends are already appearance-aware and Apple-tuned, and
+    /// controls take `controlAccentColor` — whatever the user chose in
     /// System Settings — so the panel reads as a native control rather
     /// than a themed one. Custom-tinted directions (slate, warm, high-
     /// contrast) were tried and rejected; this is the opposite move.
     enum System {
         static let background = Color(nsColor: .windowBackgroundColor)
-        /// The user's accent color. Carries "on track" and the running
-        /// timer, the way selection and progress do elsewhere on macOS.
-        static let greenAccent = Color(nsColor: .controlAccentColor)
+        /// "Running / on track". A fixed green, deliberately *not* the
+        /// user's accent: over is red, paused is orange and unlinked is
+        /// pink, so an accent of any of those made a healthy project
+        /// look like a warning. These are systemGreen's own values —
+        /// its high-contrast variant on the light surface, where the
+        /// standard one is too pale to read as text.
+        static let greenAccent = dynamicColor(
+            light: NSColor(red: 0.141, green: 0.541, blue: 0.239, alpha: 1.0),  // #248A3D
+            dark:  NSColor(red: 0.188, green: 0.820, blue: 0.345, alpha: 1.0)   // #30D158
+        )
+        /// The user's accent color, for controls only.
+        static let controlAccent = Color(nsColor: .controlAccentColor)
+        static let idleFill = Color(nsColor: .secondaryLabelColor)
         /// Paused / warning. Orange rather than system yellow, which is
         /// too light to read as text on the light surface.
         static let yellowAccent = Color(nsColor: .systemOrange)

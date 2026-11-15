@@ -6,40 +6,57 @@ struct MenuBarFooterView: View {
 
     var body: some View {
         HStack {
-            Button {
-                openBugReport()
-            } label: {
-                Image(systemName: "ladybug.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(YieldColors.textSecondary)
+            if ThemeStore.shared.theme.usesRefreshedLayout {
+                // System: the same round, padded button the header uses.
+                // The bare 11pt glyph was a small target beside them.
+                HeaderIconButton(systemImage: "ladybug.fill", help: "Report a bug") {
+                    openBugReport()
+                }
+                .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+            } else {
+                Button {
+                    openBugReport()
+                } label: {
+                    Image(systemName: "ladybug.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(YieldColors.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .help("Report a bug")
             }
-            .buttonStyle(.plain)
-            .help("Report a bug")
 
             Spacer()
 
-            Menu {
-                Button("Refresh") {
-                    Task { await viewModel.refresh() }
+            if ThemeStore.shared.theme.usesRefreshedLayout {
+                // System: the gear as a round, padded button matching
+                // the header's, with the menu's own chrome hidden.
+                Menu {
+                    menuItems
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .frame(width: YieldDimensions.headerIconWidth, height: YieldDimensions.buttonHeight)
+                        .background(YieldColors.surfaceDefault)
+                        .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
+                        .contentShape(Rectangle())
                 }
-                .disabled(viewModel.isLoading)
-
-                Button("Settings...") {
-                    onOpenSettings()
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("Refresh, Settings, Quit")
+            } else {
+                Menu {
+                    menuItems
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 12))
+                        .foregroundStyle(YieldColors.textSecondary)
                 }
-
-                Divider()
-
-                Button("Quit Yield") {
-                    NSApplication.shared.terminate(nil)
-                }
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 12))
-                    .foregroundStyle(YieldColors.textSecondary)
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -61,6 +78,24 @@ struct MenuBarFooterView: View {
     /// and the local log path. Without this, every report arrives
     /// blank and we have to ask the user for these details — most
     /// will skip filing.
+    @ViewBuilder
+    private var menuItems: some View {
+        Button("Refresh") {
+            Task { await viewModel.refresh() }
+        }
+        .disabled(viewModel.isLoading)
+
+        Button("Settings…") {
+            onOpenSettings()
+        }
+
+        Divider()
+
+        Button("Quit Yield") {
+            NSApplication.shared.terminate(nil)
+        }
+    }
+
     private func openBugReport() {
         let appVersion = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "?"
         let buildNumber = (Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "?"

@@ -159,6 +159,7 @@ final class ThemeSnapshotTests: XCTestCase {
                     ClientSectionHeader(client: group.client)
                     ForEach(group.projects) { project in
                         ProjectRowView<GroupedRowLayout>(project: project, effectiveLoggedHours: project.loggedHours, visibleEntries: [])
+                            .separatorInset(project.id != group.projects.last?.id)
                     }
                 }
             }
@@ -188,6 +189,76 @@ final class ThemeSnapshotTests: XCTestCase {
             NSApp.appearance = NSAppearance(named: appearance)
             try Self.write(Self.header(bannerVM).environment(\.colorScheme, scheme),
                            to: outDir.appendingPathComponent("header-system-\(suffix).png"))
+        }
+        // Last, so nothing above it changes order.
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            let footer = MenuBarFooterView(viewModel: bannerVM, onOpenSettings: {})
+                .frame(width: YieldDimensions.panelWidth)
+                .background(YieldColors.background)
+                .environment(\.colorScheme, scheme)
+            try Self.write(footer, to: outDir.appendingPathComponent("footer-system-\(suffix).png"))
+        }
+        // Drawer entries, which no other render opens: one running now,
+        // one finished earlier today, one from an earlier day.
+        let today = DateHelpers.dateFormatter.string(from: Date())
+        let monday = DateHelpers.weekDays(starting: DateHelpers.currentWeekBounds().start)[0].str
+        let drawerEntries = [
+            TimeEntryInfo(id: 11, harvestProjectId: 1, taskId: 100, taskName: "FED", hours: 1.17, date: today,
+                          isRunning: true, notes: "Homepage hero + nav", timerStartedAt: Date()),
+            TimeEntryInfo(id: 12, harvestProjectId: 1, taskId: 101, taskName: "Design review", hours: 0.75, date: today,
+                          isRunning: false, notes: "Round two comps", timerStartedAt: nil),
+            TimeEntryInfo(id: 13, harvestProjectId: 1, taskId: 102, taskName: "Project management", hours: 2.5,
+                          date: monday == today ? today : monday, isRunning: false, notes: nil, timerStartedAt: nil),
+        ]
+        let drawerProject = ProjectStatus(
+            id: "drawer", clientName: "GEICO [GCO]", projectName: "Development Extension", projectCode: "03",
+            bookedHours: 18, loggedHours: 4.42, todayHours: 1.92, isTracking: true, harvestProjectId: 1,
+            todayEntryId: 11, lastTaskId: 100, timeEntries: drawerEntries, forecastNotes: nil
+        )
+        let nextProject = Self.groupedFixtures.first { !$0.isTracking } ?? Self.groupedFixtures[0]
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            // The real row, opened, with a closed row after it — so the
+            // render shows how the drawer attaches and where it ends.
+            let drawer = VStack(spacing: 0) {
+                ProjectRowView<GroupedRowLayout>(
+                    project: drawerProject, effectiveLoggedHours: drawerProject.loggedHours,
+                    visibleEntries: drawerEntries, startsExpanded: true
+                )
+                ProjectRowView<GroupedRowLayout>(
+                    project: nextProject, effectiveLoggedHours: nextProject.loggedHours, visibleEntries: []
+                )
+            }
+            .frame(width: YieldDimensions.panelWidth)
+            .background(YieldColors.background)
+            .environment(\.colorScheme, scheme)
+            try Self.write(drawer, to: outDir.appendingPathComponent("drawer-system-\(suffix).png"))
+        }
+
+        // The banner's awkward case: a long task, long notes and a long
+        // project name — to see what truncates and what doesn't.
+        let longVM = Self.makeBannerViewModel()
+        if let p = longVM.projectStatuses.first {
+            let entries = p.timeEntries.map {
+                TimeEntryInfo(id: $0.id, harvestProjectId: $0.harvestProjectId, taskId: $0.taskId,
+                              taskName: "Front-End Development & QA", hours: $0.hours, date: $0.date,
+                              isRunning: $0.isRunning,
+                              notes: "Homepage hero, global navigation, footer and the campaign landing template",
+                              timerStartedAt: $0.timerStartedAt)
+            }
+            longVM._setStateForTesting(projectStatuses: [ProjectStatus(
+                id: p.id, clientName: "Government Employees Insurance Company",
+                projectName: "BOATUS.com Website Redesign and Replatform, Phase Two", projectCode: "04",
+                bookedHours: 8, loggedHours: 9.5, todayHours: p.todayHours, isTracking: p.isTracking,
+                harvestProjectId: p.harvestProjectId, todayEntryId: p.todayEntryId, lastTaskId: p.lastTaskId,
+                timeEntries: entries, forecastNotes: p.forecastNotes
+            )])
+        }
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            try Self.write(Self.banner(longVM).environment(\.colorScheme, scheme),
+                           to: outDir.appendingPathComponent("banner-long-system-\(suffix).png"))
         }
     }
 

@@ -1057,7 +1057,7 @@ final class TimeComparisonViewModel {
     /// "10:48 left" for a positive remainder, "0:40 over" for a
     /// negative one. Rounds to the minute first so a remainder of a few
     /// seconds either way reads "0:00 left" rather than "0:00 over".
-    static func formatLeft(_ remaining: Double) -> String {
+    nonisolated static func formatLeft(_ remaining: Double) -> String {
         let minutes = Int((remaining * 60).rounded())
         let magnitude = (Double(abs(minutes)) / 60).formattedColon
         return minutes < 0 ? "\(magnitude) over" : "\(magnitude) left"

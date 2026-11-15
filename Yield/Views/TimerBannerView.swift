@@ -362,84 +362,114 @@ struct TimerBannerView: View {
 
     // MARK: - Hero layout (System theme)
 
-    /// The banner as the panel's hero: task name as the title, client
-    /// and project beneath it in mixed case, notes on a third line; the
-    /// elapsed figure large in the accent color; circular controls. The
-    /// reveal zone, context menu, dot pulse and colon blink are the
-    /// shared ones.
+    /// The banner does three things and no more: says what's being
+    /// timed, shows how long, and offers pause and stop.
+    ///
+    ///     [04] BOATUS.com Website Redesign              1:10   ⏸ ⏹
+    ///     FED · Homepage hero + nav
+    ///
+    /// Project as the title (code in secondary ink, as in the list),
+    /// task and notes as one subtitle line, the elapsed figure, the
+    /// controls. Earlier passes also put the client, the time left on
+    /// the booking and a budget bar in here, and it stopped being
+    /// readable at a glance. Those all still exist one row away: the
+    /// running project's row in the list sits under its client header
+    /// and carries the bar and the time left, and the menu bar shows
+    /// the budget too. The client is also in the title's tooltip.
+    ///
+    /// The "started at" tooltip is on the elapsed figure. The reveal
+    /// zone, context menu and colon blink are the shared ones.
     private func heroContent(totalSeconds: Int) -> some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(accentColor)
-                    .frame(width: 7, height: 7)
-                    .scaleEffect(dotPulse ? 1.25 : 1.0)
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                heroTitle
+                    .font(YieldFonts.titleMedium)
+                    .lineLimit(1)
+                    .help(contextLabel)
 
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 5) {
-                        Text(taskName)
-                            .font(YieldFonts.titleMedium)
-                            .foregroundStyle(YieldColors.textPrimary)
-                            .lineLimit(1)
-
-                        if !timerStartedTooltip.isEmpty {
-                            Image(systemName: "info.circle")
-                                .font(.system(size: 10))
-                                .foregroundStyle(YieldColors.textSecondary)
-                                .help(timerStartedTooltip)
-                        }
-                    }
-
-                    Text(contextLabel)
-                        .font(YieldFonts.label(10))
-                        .foregroundStyle(YieldColors.textSecondary)
-                        .lineLimit(1)
-
-                    detailLine
-                }
+                heroSubtitle
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Same trailing cluster as Editorial: figure, reveal zone,
-            // then the controls that never move.
-            HStack(spacing: 0) {
-                timerDisplay(totalSeconds: totalSeconds, font: YieldFonts.heroFigure)
-
-                actionRevealZone
-
-                HStack(spacing: 8) {
-                    Button {
-                        Task {
-                            if isActive {
-                                await viewModel.pauseTimer()
-                            } else {
-                                await viewModel.resumeTimer()
-                            }
-                        }
-                    } label: {
-                        Image(systemName: isActive ? "pause.fill" : "play.fill")
-                    }
-                    .buttonStyle(TimerControlButtonStyle(
-                        foregroundColor: accentColor, size: 28
-                    ))
-                    .disabledWhenHarvestDown(viewModel.isHarvestDown)
-
-                    Button {
-                        Task { await viewModel.stopBannerTimer() }
-                    } label: {
-                        Image(systemName: "stop.fill")
-                    }
-                    .buttonStyle(TimerControlButtonStyle(
-                        foregroundColor: YieldColors.textSecondary,
-                        destructiveOnHover: true, size: 28
-                    ))
-                    .disabledWhenHarvestDown(viewModel.isHarvestDown)
-                }
+            timerDisplay(totalSeconds: totalSeconds, font: YieldFonts.heroFigure)
+                .fixedSize()
+                .help(timerStartedTooltip)
                 .padding(.leading, 12)
+
+            actionRevealZone
+
+            HStack(spacing: 8) {
+                Button {
+                    Task {
+                        if isActive {
+                            await viewModel.pauseTimer()
+                        } else {
+                            await viewModel.resumeTimer()
+                        }
+                    }
+                } label: {
+                    Image(systemName: isActive ? "pause" : "play")
+                        .font(Self.heroGlyphFont)
+                }
+                .buttonStyle(TimerControlButtonStyle(
+                    foregroundColor: accentColor, size: 28
+                ))
+                .disabledWhenHarvestDown(viewModel.isHarvestDown)
+
+                Button {
+                    Task { await viewModel.stopBannerTimer() }
+                } label: {
+                    Image(systemName: "stop")
+                        .font(Self.heroGlyphFont)
+                }
+                .buttonStyle(TimerControlButtonStyle(
+                    foregroundColor: YieldColors.textSecondary,
+                    destructiveOnHover: true, size: 28
+                ))
+                .disabledWhenHarvestDown(viewModel.isHarvestDown)
             }
+            .padding(.leading, 12)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        // Lines the text up with the project names in the list below,
+        // which sit behind a 3pt edge line.
+        .padding(.leading, 16 + 3)
+        .padding(.trailing, 16)
+        .padding(.vertical, 12)
+    }
+
+    /// Outlined control glyphs for the System banner, a little larger
+    /// than the filled ones the button style defaults to — an outline
+    /// needs the room to read as a shape inside its tinted disc.
+    private static let heroGlyphFont = Font.system(size: 13, weight: .semibold)
+
+    /// Project name with its Forecast code in secondary ink — the same
+    /// treatment the list rows give it.
+    private var heroTitle: Text {
+        let code = viewModel.trackingProject?.projectCode ?? viewModel.pausedState?.projectCode
+        let bare = viewModel.trackingProject?.projectName ?? viewModel.pausedState?.projectName ?? ""
+        let name = Text(bare).foregroundStyle(YieldColors.textPrimary)
+        guard let code, !code.isEmpty else { return name }
+        return Text("[\(code)] ").foregroundStyle(YieldColors.textSecondary) + name
+    }
+
+    /// "Task · notes" in one secondary line. A calendar-sourced timer
+    /// keeps its glyph and the same tooltip Editorial's detail line has.
+    private var heroSubtitle: some View {
+        let source = viewModel.calendarSourceForCurrentTimer
+        let notes = detailLineText(source: source)
+        return HStack(alignment: .firstTextBaseline, spacing: 4) {
+            if source != nil {
+                Image(systemName: "calendar")
+                    .font(.system(size: 10))
+                    .foregroundStyle(YieldColors.textSecondary)
+            }
+            Text(notes.map { "\(taskName) · \($0)" } ?? taskName)
+                .font(YieldFonts.rowSubtitle)
+                .foregroundStyle(YieldColors.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .help(detailLineTooltip(source: source))
     }
 
     // MARK: - Overflow Action Reveal
@@ -559,7 +589,9 @@ struct TimerBannerView: View {
         let h = totalMinutes / 60
         let m = totalMinutes % 60
         HStack(spacing: 0) {
-            Text(String(format: "%02d", h))
+            // System writes hours the way the rest of the panel does
+            // ("1:10"); a leading zero made it read as minutes:seconds.
+            Text(String(format: refreshed ? "%d" : "%02d", h))
             Text(":")
                 .opacity(isActive && !colonOn ? 0.0 : 1.0)
             Text(String(format: "%02d", m))

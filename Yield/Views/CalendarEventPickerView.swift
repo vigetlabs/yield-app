@@ -161,7 +161,7 @@ struct CalendarEventPickerView: View {
             // half the time.
             Button("Back", action: onCancel)
                 .buttonStyle(.plain)
-                .foregroundStyle(YieldColors.greenAccent)
+                .foregroundStyle(YieldColors.controlAccent)
                 .font(YieldFonts.label(11, weight: .medium))
         }
         .frame(maxWidth: .infinity, alignment: .center)
@@ -183,7 +183,7 @@ struct CalendarEventPickerView: View {
                 Task { await loadEvents() }
             }
             .buttonStyle(.plain)
-            .foregroundStyle(YieldColors.greenAccent)
+            .foregroundStyle(YieldColors.controlAccent)
             .font(YieldFonts.label(11, weight: .medium))
         }
         .frame(maxWidth: .infinity, alignment: .center)
@@ -487,7 +487,7 @@ private struct EventBlockView: View {
             // Accent rail — stronger while the event is happening,
             // mirroring the project rows' status line.
             RoundedRectangle(cornerRadius: 1.5)
-                .fill(YieldColors.greenAccent.opacity(isHappening ? 1 : 0.45))
+                .fill(YieldColors.controlAccent.opacity(isHappening ? 1 : 0.45))
                 .frame(width: 3)
                 .frame(maxHeight: .infinity)
 
@@ -514,12 +514,12 @@ private struct EventBlockView: View {
         .background(
             RoundedRectangle(cornerRadius: 5)
                 .fill(isHovered
-                    ? YieldColors.greenSubtle
-                    : (isHappening ? YieldColors.greenSubtle : YieldColors.greenFaint))
+                    ? YieldColors.controlAccentSubtle
+                    : (isHappening ? YieldColors.controlAccentSubtle : YieldColors.controlAccentFaint))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 5)
-                .strokeBorder(YieldColors.greenBorder, lineWidth: 1)
+                .strokeBorder(YieldColors.controlAccentBorder, lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onHover { hovering in

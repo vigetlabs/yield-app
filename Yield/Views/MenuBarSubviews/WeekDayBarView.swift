@@ -14,6 +14,17 @@ struct WeekDayBarView: View {
         let liveOffset = (isCurrent && isAnyTracking) ? viewModel.elapsedOffset : 0
         let days = viewModel.displayedDailyHours
         let weekTotal = days.reduce(0) { $0 + $1.hours } + liveOffset
+        // System: empty days read as a dash rather than "0:00" at the
+        // same weight as real numbers, each day gets a small bar
+        // against the daily target, and the labels are a point larger.
+        let refreshed = ThemeStore.shared.theme.usesRefreshedLayout
+        let dailyTarget = DateHelpers.dailyHours(fromWeekly: viewModel.weeklyHoursTarget)
+        // The bars mean *logged* time against the target, always. In a
+        // future week the numbers above them are scheduled hours, and
+        // filling a bar from those made a booked day look like a
+        // finished one — so there the tracks stay empty (kept, not
+        // hidden, so the strip doesn't change height between weeks).
+        let barsShowLogged = viewModel.weekOffset <= 0
 
         HStack(spacing: 0) {
             ForEach(days) { day in
@@ -23,7 +34,7 @@ struct WeekDayBarView: View {
                 let cell = VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 3) {
                         Text(day.dayLabel)
-                            .font(YieldFonts.label(9, weight: (day.isToday || isFiltered) ? .semibold : .medium))
+                            .font(YieldFonts.label(refreshed ? 10 : 9, weight: (day.isToday || isFiltered) ? .semibold : .medium))
                             .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
                         if day.isLocked {
                             Image(systemName: "lock.fill")
@@ -34,7 +45,7 @@ struct WeekDayBarView: View {
                     }
 
                     HStack(spacing: 2) {
-                        Text(formatDayHours(displayHours))
+                        Text(refreshed && displayHours <= 0 ? "–" : formatDayHours(displayHours))
                             .font(YieldFonts.mono(10, weight: (day.isToday || isFiltered) ? .medium : .regular))
                             .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
 
@@ -43,6 +54,15 @@ struct WeekDayBarView: View {
                                 .font(.system(size: 7))
                                 .foregroundStyle(YieldColors.greenAccent)
                         }
+                    }
+
+                    if refreshed {
+                        DayTargetBar(
+                            fraction: barsShowLogged ? displayHours / dailyTarget : 0,
+                            color: (day.isToday && isCurrent && isAnyTracking)
+                                ? YieldStatusColors.under
+                                : (day.isToday ? YieldColors.textPrimary : YieldColors.idleFill)
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -72,14 +92,36 @@ struct WeekDayBarView: View {
             // Week total — doubles as "clear filter" when a day is filtered.
             let totalCell = VStack(alignment: .trailing, spacing: 4) {
                 Text("Week")
-                    .font(YieldFonts.label(9, weight: .semibold))
+                    .font(YieldFonts.label(refreshed ? 10 : 9, weight: .semibold))
                     .foregroundStyle(YieldColors.textSecondary)
 
-                Text(formatDayHours(weekTotal))
-                    .font(YieldFonts.mono(10, weight: .medium))
-                    .foregroundStyle(YieldColors.textPrimary)
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(formatDayHours(weekTotal))
+                        .font(YieldFonts.mono(10, weight: .medium))
+                        .foregroundStyle(YieldColors.textPrimary)
+
+                    if refreshed {
+                        // Written the way the rows are: total / target.
+                        Text("/ " + formatDayHours(viewModel.weeklyHoursTarget))
+                            .font(YieldFonts.mono(10))
+                            .foregroundStyle(YieldColors.textSecondary)
+                    }
+                }
+
+                if refreshed {
+                    // The week against the weekly target, so the total
+                    // column lines up with the day bars beside it.
+                    DayTargetBar(
+                        fraction: barsShowLogged ? weekTotal / max(viewModel.weeklyHoursTarget, 1) : 0,
+                        color: YieldColors.textPrimary
+                    )
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            // System: the cell takes the width its "total / target"
+            // needs and the seven days share the rest; an equal eighth
+            // of the strip is too narrow for the pair.
+            .fixedSize(horizontal: refreshed, vertical: false)
+            .frame(maxWidth: refreshed ? nil : .infinity, alignment: .trailing)
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
 
@@ -100,4 +142,25 @@ struct WeekDayBarView: View {
     }
 
     private func formatDayHours(_ hours: Double) -> String { hours.formattedColon }
+}
+
+/// A small bar showing hours against a target — the System day strip's
+/// version of the menu bar's week-bars style. Fills and stops at the
+/// target; the number above it carries any excess.
+private struct DayTargetBar: View {
+    let fraction: Double
+    let color: Color
+
+    private static let width: CGFloat = 30
+    private static let height: CGFloat = 3
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Capsule().fill(YieldColors.progressTrack)
+            Capsule()
+                .fill(color)
+                .frame(width: Self.width * CGFloat(min(max(fraction, 0), 1)))
+        }
+        .frame(width: Self.width, height: Self.height)
+    }
 }

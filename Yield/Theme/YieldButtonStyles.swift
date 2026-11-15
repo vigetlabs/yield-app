@@ -8,11 +8,13 @@ struct GreenFilledButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(YieldFonts.labelButton)
-            .foregroundStyle(YieldColors.background)
+            // System: white on the accent, as every filled macOS button
+            // is. Editorial knocks the label out to the panel color.
+            .foregroundStyle(ThemeStore.shared.theme.usesRefreshedLayout ? Color.white : YieldColors.background)
             .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
             .padding(.vertical, 4)
             .frame(height: YieldDimensions.buttonHeight)
-            .background(YieldColors.greenAccent)
+            .background(YieldColors.controlAccent)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
             .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
             .onHover { hovering in
@@ -29,15 +31,15 @@ struct GreenOutlinedButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(YieldFonts.labelButton)
-            .foregroundStyle(YieldColors.greenAccent)
+            .foregroundStyle(YieldColors.controlAccent)
             .padding(.horizontal, YieldDimensions.buttonHorizontalPadding)
             .padding(.vertical, 4)
             .frame(height: YieldDimensions.buttonHeight)
-            .background(isHovered ? YieldColors.greenSubtle : YieldColors.greenFaint)
+            .background(isHovered ? YieldColors.controlAccentSubtle : YieldColors.controlAccentFaint)
             .clipShape(RoundedRectangle(cornerRadius: YieldRadius.pill))
             .overlay(
                 RoundedRectangle(cornerRadius: YieldRadius.pill)
-                    .strokeBorder(isHovered ? YieldColors.greenBorderActive : YieldColors.greenBorder, lineWidth: 1)
+                    .strokeBorder(isHovered ? YieldColors.controlAccentBorderActive : YieldColors.controlAccentBorder, lineWidth: 1)
             )
             .opacity(configuration.isPressed ? 0.6 : isHovered ? 1.0 : YieldDimensions.buttonRestingOpacity)
             .onHover { hovering in
@@ -165,4 +167,18 @@ extension ButtonStyle where Self == RedOutlinedButtonStyle {
 
 extension ButtonStyle where Self == BorderedButtonStyle {
     static var yieldBordered: BorderedButtonStyle { BorderedButtonStyle() }
+}
+
+extension View {
+    /// The one action on a meeting bar. Editorial: the tinted outline
+    /// it has always been. System: filled, so the bar has an obvious
+    /// primary button now that the band behind it is neutral.
+    @ViewBuilder
+    func meetingBarButtonStyle() -> some View {
+        if ThemeStore.shared.theme.usesRefreshedLayout {
+            buttonStyle(.greenFilled)
+        } else {
+            buttonStyle(.greenOutlined)
+        }
+    }
 }

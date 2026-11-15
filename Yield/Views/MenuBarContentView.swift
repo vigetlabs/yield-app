@@ -350,6 +350,7 @@ struct MenuBarContentView: View {
                     ClientSectionHeader(client: group.client)
                     ForEach(group.projects) { project in
                         projectRow(GroupedRowLayout.self, for: project)
+                            .separatorInset(project.id != group.projects.last?.id)
                     }
                 }
             } else {
@@ -549,6 +550,7 @@ struct MenuBarContentView: View {
                     ClientSectionHeader(client: group.client)
                     ForEach(group.projects) { project in
                         pastWeekRow(GroupedRowLayout.self, for: project, weekStart: weekStart)
+                            .separatorInset(project.id != group.projects.last?.id)
                     }
                 }
             } else {
@@ -745,7 +747,7 @@ struct ServiceErrorRow: View {
                                     .font(.system(size: compact ? 8 : 9))
                             }
                             .font(YieldFonts.label(compact ? 10 : 11, weight: .medium))
-                            .foregroundStyle(YieldColors.greenAccent)
+                            .foregroundStyle(YieldColors.controlAccent)
                         }
                         .buttonStyle(.plain)
                     }

@@ -33,6 +33,13 @@ protocol ProjectRowLayout {
     @ViewBuilder static func leftColumn(_ ctx: ProjectRowHeaderContext) -> LeftColumn
     /// Time / progress side; the row wraps it in the hover-action zone.
     @ViewBuilder static func timeColumn(_ ctx: ProjectRowHeaderContext) -> TimeColumn
+    /// Color of the 3pt line on the row's leading edge. `.clear` keeps
+    /// the slot (and the row's alignment) without drawing anything.
+    static func statusLineColor(_ project: ProjectStatus) -> Color
+    /// Whether the expanded drawer is drawn as an inset tray with
+    /// one-line entries (System) rather than as full-width rows in the
+    /// list (Editorial).
+    static var usesTrayDrawer: Bool { get }
 }
 
 // MARK: - Editorial (the original layout)
@@ -41,6 +48,22 @@ protocol ProjectRowLayout {
 /// label and progress bar on the right. Byte-for-byte the row's
 /// original header columns, moved here unchanged.
 enum EditorialRowLayout: ProjectRowLayout {
+
+    static var usesTrayDrawer: Bool { false }
+
+    /// - Clear: project has no booking (Harvest-only tracked time)
+    /// - Pink: prospective / proposal-stage (booked but no Harvest link)
+    /// - Amber: booked but the user isn't a member of the Harvest
+    ///   project (the warning badge by the name carries the detail)
+    /// - White: normal booked project
+    static func statusLineColor(_ project: ProjectStatus) -> Color {
+        guard project.isForecasted else { return .clear }
+        switch project.harvestLinkState {
+        case .prospective: return YieldStatusColors.prospective
+        case .unassigned:  return YieldStatusColors.warning
+        case .linked:      return YieldColors.onBackground.opacity(0.7)
+        }
+    }
 
     static func leftColumn(_ ctx: ProjectRowHeaderContext) -> some View {
         // Left: client, name, remaining
@@ -146,18 +169,27 @@ enum EditorialRowLayout: ProjectRowLayout {
 /// + bar on the right.
 enum GroupedRowLayout: ProjectRowLayout {
 
+    /// Full-width entry rows on the list's own background read as more
+    /// list items. A recessed, inset panel reads as something that slid
+    /// out from under the project it belongs to.
+    static var usesTrayDrawer: Bool { true }
+
+    /// The edge line means exactly one thing here: this is the project
+    /// the clock is running on. "Booked" is already said by the
+    /// "/ 10:00" beside the figure, and the unlinked states by their
+    /// icon and subtitle, so those no longer get a line — a grey stripe
+    /// on nearly every row was decoration. Marking the running row on
+    /// the edge, rather than with a dot before its name, also keeps
+    /// every project name on the same left margin.
+    static func statusLineColor(_ project: ProjectStatus) -> Color {
+        project.isTracking ? YieldStatusColors.under : .clear
+    }
+
     static func leftColumn(_ ctx: ProjectRowHeaderContext) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 7) {
-                if ctx.project.isTracking {
-                    Circle()
-                        .fill(YieldColors.greenAccent)
-                        .frame(width: 6, height: 6)
-                }
-
-                Text(ctx.project.displayName)
+                title(ctx.project)
                     .font(YieldFonts.titleMedium)
-                    .foregroundStyle(YieldColors.textPrimary)
                     .lineLimit(1)
 
                 HarvestLinkIcon(
@@ -174,12 +206,43 @@ enum GroupedRowLayout: ProjectRowLayout {
                 }
             }
 
-            let subtitle = subtitle(ctx)
-            Text(subtitle.text)
-                .font(YieldFonts.rowSubtitle)
-                .foregroundStyle(subtitle.color)
-                .lineLimit(1)
+            if ctx.project.isForecasted {
+                let subtitle = subtitle(ctx)
+                Text(subtitle.text)
+                    .font(YieldFonts.rowSubtitle)
+                    .foregroundStyle(subtitle.color)
+                    .lineLimit(1)
+            } else {
+                unbookedTag
+            }
         }
+    }
+
+    /// The project name, with its Forecast code — "[12]" — in secondary
+    /// ink. Same text as `displayName`; the code is a reference number,
+    /// and at full weight it competed with the name it's attached to.
+    private static func title(_ project: ProjectStatus) -> Text {
+        let name = Text(project.projectName).foregroundStyle(YieldColors.textPrimary)
+        guard let code = project.projectCode, !code.isEmpty else { return name }
+        return Text("[\(code)] ").foregroundStyle(YieldColors.textSecondary) + name
+    }
+
+    /// What tells booked from unbooked in the "All" list. Booked is the
+    /// norm, so the mark goes on the exception: time tracked against a
+    /// project with no booking this week. It sits on the subtitle line,
+    /// at the left margin, so the tags line up and can be picked out by
+    /// running an eye down the edge — the job the old stripe did,
+    /// without a line on every booked row. A filled shape rather than
+    /// more grey text, so it reads as a mark, not a sentence.
+    private static var unbookedTag: some View {
+        Text("Unbooked")
+            .font(YieldFonts.rowSubtitle.weight(.medium))
+            .foregroundStyle(YieldColors.textSecondary)
+            .lineLimit(1)
+            .padding(.horizontal, 6)
+            .background(YieldColors.surfaceActive)
+            .clipShape(Capsule())
+            .help("Not booked in Forecast this week")
     }
 
     static func timeColumn(_ ctx: ProjectRowHeaderContext) -> some View {
@@ -190,16 +253,19 @@ enum GroupedRowLayout: ProjectRowLayout {
                 if ctx.project.harvestLinkState == .prospective {
                     // Nothing can be logged against it, so an empty
                     // fill would be a lie. A dashed outline reads as
-                    // "placeholder".
+                    // "placeholder". Neutral, not pink: the icon and
+                    // the subtitle already say what's wrong, and this
+                    // only has to hold the column's rhythm.
                     Capsule()
                         .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                        .foregroundStyle(YieldStatusColors.prospective.opacity(0.6))
+                        .foregroundStyle(YieldColors.buttonBorder)
                         .frame(width: YieldDimensions.progressBarWidth, height: YieldDimensions.progressBarHeight)
                 } else {
                     ProgressBarView(
                         logged: ctx.effectiveLoggedHours,
                         booked: ctx.project.bookedHours,
-                        dayLogged: ctx.dayFilteredHours
+                        dayLogged: ctx.dayFilteredHours,
+                        emphasized: ctx.project.isTracking
                     )
                 }
             }
@@ -210,8 +276,9 @@ enum GroupedRowLayout: ProjectRowLayout {
     /// nothing to count down — the states that used to be a bare
     /// colored stripe.
     private static func subtitle(_ ctx: ProjectRowHeaderContext) -> (text: String, color: Color) {
+        // Unbooked rows show `unbookedTag` instead and never reach here.
         guard ctx.project.isForecasted else {
-            return ("Not booked in Forecast", YieldColors.textSecondary)
+            return ("Unbooked", YieldColors.textSecondary)
         }
         switch ctx.project.harvestLinkState {
         case .prospective:
@@ -221,11 +288,9 @@ enum GroupedRowLayout: ProjectRowLayout {
         case .linked:
             // Over budget is a signal and keeps its color. On track is
             // the normal case on every booked row, so it reads in
-            // secondary ink — the bar fill and the stripe already carry
-            // the accent, and a column of accent-colored 10pt text was
-            // too much.
+            // secondary ink.
             let remaining = ctx.project.bookedHours - ctx.effectiveLoggedHours
-            return (RowFormat.remainingLabel(remaining),
+            return (RowFormat.remainingShort(remaining),
                     remaining < 0 ? YieldStatusColors.over : YieldColors.textSecondary)
         }
     }
@@ -236,28 +301,28 @@ enum GroupedRowLayout: ProjectRowLayout {
     private static func figure(_ ctx: ProjectRowHeaderContext) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             if let dayHours = ctx.dayFilteredHours {
-                Text(RowFormat.hoursMinutes(dayHours))
+                Text(RowFormat.colon(dayHours))
                     .font(YieldFonts.figureLarge)
                     .foregroundStyle(YieldColors.textPrimary)
-                Text("/ " + RowFormat.hoursMinutes(ctx.effectiveLoggedHours))
+                Text("/ " + RowFormat.colon(ctx.effectiveLoggedHours))
                     .font(YieldFonts.figureDenominator)
                     .foregroundStyle(YieldColors.textSecondary)
             } else if ctx.project.isForecasted && ctx.project.harvestLinkState == .prospective {
                 Text("—")
                     .font(YieldFonts.figureLarge)
                     .foregroundStyle(YieldColors.textSecondary)
-                Text("/ " + RowFormat.hoursOnly(ctx.project.bookedHours))
+                Text("/ " + RowFormat.colon(ctx.project.bookedHours))
                     .font(YieldFonts.figureDenominator)
                     .foregroundStyle(YieldColors.textSecondary)
             } else if ctx.project.isForecasted {
-                Text(RowFormat.hoursMinutes(ctx.effectiveLoggedHours))
+                Text(RowFormat.colon(ctx.effectiveLoggedHours))
                     .font(YieldFonts.figureLarge)
                     .foregroundStyle(YieldColors.textPrimary)
-                Text("/ " + RowFormat.hoursOnly(ctx.project.bookedHours))
+                Text("/ " + RowFormat.colon(ctx.project.bookedHours))
                     .font(YieldFonts.figureDenominator)
                     .foregroundStyle(YieldColors.textSecondary)
             } else {
-                Text(RowFormat.hoursMinutes(ctx.effectiveLoggedHours))
+                Text(RowFormat.colon(ctx.effectiveLoggedHours))
                     .font(YieldFonts.figureLarge)
                     .foregroundStyle(YieldColors.textPrimary)
             }
@@ -275,6 +340,18 @@ enum RowFormat {
 
     static func hoursOnly(_ hours: Double) -> String {
         "\(Int(hours))h"
+    }
+
+    /// System theme: "6:30", matching the menu bar and the day strip.
+    static func colon(_ hours: Double) -> String {
+        Swift.abs(hours).formattedColon
+    }
+
+    /// System theme: "3:30 left" / "1:30 over". No "this week" — every
+    /// row in the list is this week — and the same wording as the menu
+    /// bar's "Time left" text.
+    static func remainingShort(_ remaining: Double) -> String {
+        TimeComparisonViewModel.formatLeft(remaining)
     }
 
     static func remainingLabel(_ remaining: Double) -> String {

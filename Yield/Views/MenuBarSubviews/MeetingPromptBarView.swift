@@ -66,7 +66,7 @@ struct MeetingPromptBarView: View {
                     } label: {
                         Text(startLabel(now: now))
                     }
-                    .buttonStyle(.greenOutlined)
+                    .meetingBarButtonStyle()
                     .disabledWhenHarvestDown(viewModel.isHarvestDown)
 
                     // Per-event dismiss — quiet for the rest of the day.
@@ -103,7 +103,9 @@ struct MeetingPromptBarView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, ThemeStore.shared.theme.usesRefreshedLayout ? 12 : 10)
-            .background(YieldColors.yellowFaint)
+            // System: a plain band. The orange disc is the cue; tinting
+            // the whole bar turned muddy brown in dark mode.
+            .background(ThemeStore.shared.theme.usesRefreshedLayout ? YieldColors.surfaceDefault : YieldColors.yellowFaint)
         }
         .overlay(alignment: .top) {
             // System: bands are hairlined on both edges.

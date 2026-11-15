@@ -51,10 +51,21 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
     /// Week-wide flag: any project logged weekend time this week, so the
     /// day-grid bar renders all seven days rather than just Mon–Fri.
     var weekHasWeekendActivity: Bool = false
+    /// Draw the row's bottom hairline inset to the text margins rather
+    /// than edge to edge. The System list sets it on every row but the
+    /// last of a client group, so a client's projects read as one
+    /// group and the full-width lines fall between clients.
+    var separatorInset: Bool = false
     /// User's weekly-hours target, read here so the drawer's day grid
     /// can size each cell to the daily target (weekly ÷ 5).
     @AppStorage(DefaultsKey.weeklyHoursTarget) private var weeklyHoursTarget = 40
-    @State private var isExpanded: Bool = false
+    /// Open the drawer on first render. For previews and snapshot
+    /// renders, which can't click the row; the app never sets it.
+    var startsExpanded: Bool = false
+    /// The user's toggle, once they've made one. Nil means "whatever
+    /// `startsExpanded` says".
+    @State private var expandedOverride: Bool? = nil
+    private var isExpanded: Bool { expandedOverride ?? startsExpanded }
     @State private var isHovered: Bool = false
     /// True while the cursor is over the row's right-side zone
     /// (time / progress / actions). Drives the second stage of the
@@ -72,7 +83,8 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let tray = Layout.usesTrayDrawer
+        return VStack(alignment: .leading, spacing: 0) {
             // Header. When there are no entries to expand into (booked-
             // only forecast projects, past-week rows without logged
             // time), render as a plain view rather than a disabled
@@ -91,7 +103,7 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
             if hasEntries {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        isExpanded.toggle()
+                        expandedOverride = !isExpanded
                     }
                 } label: {
                     header
@@ -107,7 +119,7 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
             // project's time entries. Always in the view tree so the container
             // can animate between 0 and natural height; clipped() hides
             // overflow so contents reveal top-to-bottom as the height grows.
-            VStack(spacing: 0) {
+            drawerChrome(VStack(spacing: 0) {
                 if project.isForecasted || !visibleEntries.isEmpty {
                     SegmentedProgressBarView(
                         // Always the full week's entries so every day's
@@ -126,10 +138,14 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
                     // so the bar aligns with the rows below it. Top padding
                     // doubled (20) so there's room for the hover tooltip to
                     // float above the bar without being clipped.
-                    .padding(.leading, 32)
-                    .padding(.trailing, 16)
-                    .padding(.top, 20)
-                    .padding(.bottom, 10)
+                    // Tray: 12pt from the tray's top and sides, the same
+                    // inset the entries below it keep — 8 here plus the
+                    // tray's own 4. (The bar's tooltip is a system one
+                    // and needs no room reserved.)
+                    .padding(.leading, tray ? 8 : 32)
+                    .padding(.trailing, tray ? 8 : 16)
+                    .padding(.top, tray ? 12 : 20)
+                    .padding(.bottom, tray ? 6 : 10)
                 }
 
                 ForEach(visibleEntries) { entry in
@@ -151,10 +167,11 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
                         },
                         onMoveTime: {
                             onMoveEntry?(entry)
-                        }
+                        },
+                        compact: tray
                     )
                 }
-            }
+            })
             .frame(maxHeight: isExpanded ? .infinity : 0, alignment: .top)
             .clipped()
             // Clipped content still captures hit tests in SwiftUI, so collapsed
@@ -167,6 +184,8 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
             Rectangle()
                 .fill(YieldColors.border)
                 .frame(height: 1)
+                .padding(.leading, separatorInset ? 19 : 0)
+                .padding(.trailing, separatorInset ? 16 : 0)
         }
         // Clip the row's content to its own bounds so that during
         // list-level height transitions (e.g. switching tabs / weeks
@@ -182,10 +201,55 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
         .onChange(of: visibleEntries.isEmpty) { _, isEmpty in
             if isEmpty, isExpanded {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    isExpanded = false
+                    expandedOverride = false
                 }
             }
         }
+    }
+
+    /// The drawer's container. Editorial: nothing — its entries are
+    /// full-width rows. Tray layouts: a recessed, rounded panel inset
+    /// from the row's edges, so the entries read as belonging to the
+    /// project above them rather than as more rows in the list. The
+    /// row's edge line (green on the running project) carries on down
+    /// the drawer's side, tying the two together.
+    ///
+    /// Even all the way round: the tray sits 14pt in from the panel's
+    /// left and right edges and 14pt above the row's bottom rule —
+    /// 14 because that is the space the header above it already ends
+    /// in, so the tray needs no top margin of its own — and its
+    /// contents sit 12pt inside it on every side.
+    @ViewBuilder
+    private func drawerChrome<Content: View>(_ content: Content) -> some View {
+        if Layout.usesTrayDrawer {
+            content
+                // Entries pad themselves by 8 horizontally and 5
+                // vertically (their hover highlight needs the room), so
+                // these bring the tray's inner margin up to 12.
+                .padding(.horizontal, 4)
+                .padding(.bottom, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: YieldRadius.card)
+                        .fill(YieldColors.surfaceDefault)
+                )
+                .padding(.horizontal, 14)
+                .padding(.bottom, 14)
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(Layout.statusLineColor(project))
+                        .frame(width: 3)
+                }
+        } else {
+            content
+        }
+    }
+
+    /// Builder-style setter for `separatorInset`, so the list can set
+    /// it on a row its shared construction helper already built.
+    func separatorInset(_ inset: Bool) -> Self {
+        var copy = self
+        copy.separatorInset = inset
+        return copy
     }
 
     // MARK: - Project Header
@@ -431,30 +495,15 @@ struct ProjectRowView<Layout: ProjectRowLayout>: View {
 
     private var statusLine: some View {
         Rectangle()
-            .fill(statusLineColor)
+            .fill(Layout.statusLineColor(project))
             .frame(width: 3)
             .frame(maxHeight: .infinity)
-    }
-
-    /// Color of the leading status line.
-    /// - Clear: project has no booking (Harvest-only tracked time)
-    /// - Pink: prospective / proposal-stage (booked but no Harvest link)
-    /// - Amber: booked but the user isn't a member of the Harvest
-    ///   project (the warning badge by the name carries the detail)
-    /// - White: normal booked project
-    private var statusLineColor: Color {
-        guard project.isForecasted else { return .clear }
-        switch project.harvestLinkState {
-        case .prospective: return YieldStatusColors.prospective
-        case .unassigned:  return YieldStatusColors.warning
-        case .linked:      return YieldColors.onBackground.opacity(0.7)
-        }
     }
 }
 
 // Shared hours:minutes formatter used by ProjectRowView and TaskEntryRowView
 private func formatHM(_ hours: Double) -> String {
-    Swift.abs(hours).formattedHoursMinutes
+    ThemeStore.shared.theme.duration(Swift.abs(hours))
 }
 
 // MARK: - Progress Bar
@@ -466,6 +515,11 @@ struct ProgressBarView: View {
     /// dims to 50% and a full-opacity overlay shows the day's portion of
     /// the week so far.
     var dayLogged: Double? = nil
+    /// False draws an on-track fill in `idleFill` rather than the
+    /// status green. The System list passes `isTracking`, so only the
+    /// running project's bar is colored; over-budget is red either way.
+    /// Defaults to true — the original, always-green behavior.
+    var emphasized: Bool = true
 
     private var ratio: Double {
         guard booked > 0 else { return 0 }
@@ -475,7 +529,8 @@ struct ProgressBarView: View {
     private var isOver: Bool { ratio > 1.0 }
 
     private var barColor: Color {
-        isOver ? YieldStatusColors.over : YieldStatusColors.under
+        if isOver { return YieldStatusColors.over }
+        return emphasized ? YieldStatusColors.under : YieldColors.idleFill
     }
 
     /// Normalized fill: when over, the "booked" portion shrinks to show overage visually.
@@ -724,6 +779,10 @@ struct TaskEntryRowView: View {
     var onCopyToToday: (() -> Void)? = nil
     /// Today's entries only: move some of this entry's time elsewhere.
     var onMoveTime: (() -> Void)? = nil
+    /// One line — task, then notes in secondary ink — on a tray, with
+    /// no hairline between entries and a smaller timer button. The
+    /// System drawer; Editorial keeps the two-line row.
+    var compact: Bool = false
     @State private var isHovered: Bool = false
     /// Second stage of the past-entry quick-action reveal: true when
     /// the cursor is specifically over the trailing action zone (not
@@ -735,6 +794,9 @@ struct TaskEntryRowView: View {
         if let notes = entry.notes, !notes.isEmpty { return true }
         return false
     }
+
+    /// Width of the "Now" / "Today" / "Mon" column in compact entries.
+    private static let compactDayWidth: CGFloat = 42
 
     var body: some View {
         // Parse the entry's date once per body pass and derive both
@@ -754,24 +816,39 @@ struct TaskEntryRowView: View {
         return HStack(spacing: 0) {
             // Task details + time info (double-click to edit)
             HStack {
-                VStack(alignment: .leading, spacing: hasNotes ? 6 : 0) {
-                    Text(entry.taskName)
+                if compact {
+                    // Task, then notes, as one truncating line: the
+                    // notes are what gives way when space is short.
+                    (Text(entry.taskName)
                         .font(YieldFonts.titleSmall)
                         .foregroundStyle(YieldColors.textPrimary)
+                     + Text(hasNotes ? "  ·  \(entry.notes ?? "")" : "")
+                        .font(YieldFonts.rowSubtitle)
+                        .foregroundStyle(YieldColors.textSecondary))
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(width: 226, alignment: .leading)
-
-                    if let notes = entry.notes, !notes.isEmpty {
-                        Text(notes)
-                            .font(YieldFonts.labelNote)
-                            .foregroundStyle(YieldColors.textSecondary)
+                } else {
+                    VStack(alignment: .leading, spacing: hasNotes ? 6 : 0) {
+                        Text(entry.taskName)
+                            .font(YieldFonts.titleSmall)
+                            .foregroundStyle(YieldColors.textPrimary)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                            .tracking(0.36)
+                            .frame(width: 226, alignment: .leading)
+
+                        if let notes = entry.notes, !notes.isEmpty {
+                            Text(notes)
+                                .font(YieldFonts.labelNote)
+                                .foregroundStyle(YieldColors.textSecondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                // The letter-spacing was tuned for Editorial's
+                                // DM Sans italic; the system font doesn't want it.
+                                .tracking(ThemeStore.shared.theme.usesRefreshedLayout ? 0 : 0.36)
+                        }
                     }
+                    .frame(width: 268, alignment: .leading)
                 }
-                .frame(width: 268, alignment: .leading)
 
                 Spacer()
 
@@ -790,10 +867,16 @@ struct TaskEntryRowView: View {
                         Text("Now")
                             .font(YieldFonts.monoXS)
                             .foregroundStyle(YieldColors.greenAccent)
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal, ThemeStore.shared.theme.usesRefreshedLayout ? 6 : 4)
                             .padding(.vertical, 2)
                             .background(YieldColors.greenDim)
-                            .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+                            // System: a capsule, like every other control there.
+                            .clipShape(RoundedRectangle(cornerRadius: ThemeStore.shared.theme.usesRefreshedLayout
+                                ? YieldRadius.pill : YieldRadius.button))
+                            // Compact: badge and day label share a
+                            // column width so the times line up above
+                            // one another.
+                            .frame(minWidth: compact ? Self.compactDayWidth : nil, alignment: .trailing)
                     } else {
                         Text(formatDayLabel(for: parsedDate))
                             .font(YieldFonts.monoXS)
@@ -805,6 +888,7 @@ struct TaskEntryRowView: View {
                             // padding — it needs it for its background pill.)
                             .padding(.leading, 4)
                             .padding(.vertical, 2)
+                            .frame(minWidth: compact ? Self.compactDayWidth : nil, alignment: .trailing)
                     }
                 }
             }
@@ -853,13 +937,19 @@ struct TaskEntryRowView: View {
                 }
 
                 Button(action: { onToggleTimer?() }) {
-                    Image(systemName: entry.isRunning ? "stop.fill" : "play.fill")
-                        .font(.system(size: 10))
+                    // System: outlined glyphs, matching the banner's controls.
+                    Image(systemName: ThemeStore.shared.theme.usesCircularControls
+                        ? (entry.isRunning ? "stop" : "play")
+                        : (entry.isRunning ? "stop.fill" : "play.fill"))
+                        .font(ThemeStore.shared.theme.usesCircularControls
+                            ? .system(size: 11, weight: .semibold)
+                            : .system(size: 10))
                 }
                 .buttonStyle(TimerControlButtonStyle(
                     borderColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.buttonBorder,
                     foregroundColor: entry.isRunning ? YieldColors.greenAccent : YieldColors.textSecondary,
-                    destructiveOnHover: entry.isRunning
+                    destructiveOnHover: entry.isRunning,
+                    size: compact ? 20 : YieldDimensions.timerButtonSize
                 ))
                 .disabledWhenHarvestDown(isHarvestDown)
                 .padding(.leading, 8)
@@ -900,11 +990,14 @@ struct TaskEntryRowView: View {
                     .allowsHitTesting(isActionZoneHovered)
                     .help("Continue today")
                 }
-                .frame(width: (isHovered || isActionZoneHovered) ? 22 : 0, alignment: .trailing)
+                // Compact: the slot is always reserved, at the play/stop
+                // button's width, so past-day entries keep their times
+                // and day labels in the same columns as today's.
+                .frame(width: compact ? 20 : ((isHovered || isActionZoneHovered) ? 22 : 0), alignment: .trailing)
                 .clipped()
                 // 8pt gap before the zone, but only while it has width — keeps
                 // the day-label column flush right when the zone is collapsed.
-                .padding(.leading, (isHovered || isActionZoneHovered) ? 8 : 0)
+                .padding(.leading, (compact || isHovered || isActionZoneHovered) ? 8 : 0)
                 // Grow the hit area to full row height so the cursor
                 // doesn't fall out of the zone above/below the icon,
                 // matching the header's action-zone behavior.
@@ -917,10 +1010,7 @@ struct TaskEntryRowView: View {
                 }
             }
         }
-        .padding(.leading, 32)
-        .padding(.trailing, 16)
-        .padding(.vertical, 12)
-        .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
+        .modifier(EntryRowChrome(compact: compact, isHovered: isHovered))
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
         }
@@ -959,9 +1049,10 @@ struct TaskEntryRowView: View {
             }
         }
         .overlay(alignment: .bottom) {
+            // Compact entries sit on a tray and need no rule between them.
             Rectangle()
                 .fill(YieldColors.border)
-                .frame(height: 1)
+                .frame(height: compact ? 0 : 1)
         }
     }
 
@@ -981,5 +1072,31 @@ struct TaskEntryRowView: View {
         guard let date else { return entry.date }
         if Calendar.current.isDateInToday(date) { return "Today" }
         return Self.dayFormatter.string(from: date)
+    }
+}
+
+/// Padding and hover fill for a drawer entry. The two branches are
+/// separate on purpose: the full-width one is the original modifier
+/// chain, untouched, so Editorial's drawer can't drift.
+private struct EntryRowChrome: ViewModifier {
+    let compact: Bool
+    let isHovered: Bool
+
+    func body(content: Content) -> some View {
+        if compact {
+            content
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(isHovered ? YieldColors.surfaceActive : Color.clear)
+                )
+        } else {
+            content
+                .padding(.leading, 32)
+                .padding(.trailing, 16)
+                .padding(.vertical, 12)
+                .background(isHovered ? YieldColors.surfaceDefault : Color.clear)
+        }
     }
 }

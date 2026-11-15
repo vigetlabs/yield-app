@@ -182,7 +182,9 @@ enum YieldTheme: String, CaseIterable {
     var labelTimeRemaining: Font {
         switch self {
         case .editorial: return label(9)
-        case .system:    return .system(size: 10)
+        // 11pt: macOS's own size for supporting text. 10pt in
+        // secondary grey was hard going.
+        case .system:    return .system(size: 11)
         }
     }
 
@@ -190,7 +192,7 @@ enum YieldTheme: String, CaseIterable {
     var labelNote: Font {
         switch self {
         case .editorial: return labelItalic(9)
-        case .system:    return .system(size: 10).italic()
+        case .system:    return .system(size: 11).italic()
         }
     }
 
@@ -198,7 +200,7 @@ enum YieldTheme: String, CaseIterable {
     var labelButton: Font {
         switch self {
         case .editorial: return label(10, weight: .semibold)
-        case .system:    return .system(size: 10.5, weight: .semibold)
+        case .system:    return .system(size: 11, weight: .semibold)
         }
     }
 
@@ -214,7 +216,7 @@ enum YieldTheme: String, CaseIterable {
     var monoXS: Font {
         switch self {
         case .editorial: return mono(10)
-        case .system:    return .system(size: 10.5).monospacedDigit()
+        case .system:    return .system(size: 11).monospacedDigit()
         }
     }
 
@@ -265,6 +267,19 @@ enum YieldTheme: String, CaseIterable {
         switch self {
         case .editorial: return monoMedium
         case .system:    return .system(size: 22, weight: .medium).monospacedDigit()
+        }
+    }
+
+    // MARK: - Durations
+
+    /// How a span of hours is written in the panel. Editorial keeps its
+    /// "6h 30m"; System uses "6:30", the form the menu bar, the day
+    /// strip and Harvest itself already use, so one number doesn't
+    /// appear three different ways in the same window.
+    func duration(_ hours: Double) -> String {
+        switch self {
+        case .editorial: return hours.formattedHoursMinutes
+        case .system:    return hours.formattedColon
         }
     }
 
