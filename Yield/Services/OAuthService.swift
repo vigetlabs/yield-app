@@ -131,51 +131,61 @@ final class OAuthService {
             // handler is already on the main actor — say so, rather
             // than hop to it and reorder the reply.
             MainActor.assumeIsolated {
-                guard let self, let data, let requestString = String(data: data, encoding: .utf8) else {
+                guard let self else {
                     connection.cancel()
                     return
                 }
-
-                // Parse the GET request line for the URL path and query
-                guard let firstLine = requestString.components(separatedBy: "\r\n").first,
-                      let urlString = firstLine.components(separatedBy: " ").dropFirst().first,
-                      let url = URL(string: "http://localhost\(urlString)"),
-                      let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-                    self.sendResponse(connection: connection, body: "Invalid request.")
-                    return
-                }
-
-                let code = components.queryItems?.first(where: { $0.name == "code" })?.value
-                let scope = components.queryItems?.first(where: { $0.name == "scope" })?.value ?? ""
-
-                guard let code else {
-                    self.sendResponse(connection: connection, body: "No authorization code received. You can close this tab.")
-                    return
-                }
-
-                // Send success response immediately
-                self.sendResponse(connection: connection, body: "Signed in to Yield! You can close this tab.")
-                self.stopLocalServer()
-
-                // Parse scope for account IDs (may or may not be present)
-                self.parseAndStoreAccountIds(from: scope)
-                Task { @MainActor in
-                    do {
-                        try await self.exchangeCodeForToken(code: code)
-
-                        // If scope didn't include account IDs, fetch them from the API
-                        if self.harvestAccountId == nil || self.forecastAccountId == nil {
-                            try await self.fetchAccountIds()
-                        }
-
-                        await self.fetchUserName()
-                    } catch {
-                        self.authError = "Failed to exchange authorization code: \(error.localizedDescription)"
-                    }
-                    self.isAuthenticating = false
-                    await AppState.shared.viewModel.refresh()
-                }
+                self.handleRequest(data, on: connection)
             }
+        }
+    }
+
+    /// Answer the browser's redirect to the local callback server and
+    /// finish the sign-in with the code it carries.
+    private func handleRequest(_ data: Data?, on connection: NWConnection) {
+        guard let data, let requestString = String(data: data, encoding: .utf8) else {
+            connection.cancel()
+            return
+        }
+
+        // Parse the GET request line for the URL path and query
+        guard let firstLine = requestString.components(separatedBy: "\r\n").first,
+              let urlString = firstLine.components(separatedBy: " ").dropFirst().first,
+              let url = URL(string: "http://localhost\(urlString)"),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            self.sendResponse(connection: connection, body: "Invalid request.")
+            return
+        }
+
+        let code = components.queryItems?.first(where: { $0.name == "code" })?.value
+        let scope = components.queryItems?.first(where: { $0.name == "scope" })?.value ?? ""
+
+        guard let code else {
+            self.sendResponse(connection: connection, body: "No authorization code received. You can close this tab.")
+            return
+        }
+
+        // Send success response immediately
+        self.sendResponse(connection: connection, body: "Signed in to Yield! You can close this tab.")
+        self.stopLocalServer()
+
+        // Parse scope for account IDs (may or may not be present)
+        self.parseAndStoreAccountIds(from: scope)
+        Task { @MainActor in
+            do {
+                try await self.exchangeCodeForToken(code: code)
+
+                // If scope didn't include account IDs, fetch them from the API
+                if self.harvestAccountId == nil || self.forecastAccountId == nil {
+                    try await self.fetchAccountIds()
+                }
+
+                await self.fetchUserName()
+            } catch {
+                self.authError = "Failed to exchange authorization code: \(error.localizedDescription)"
+            }
+            self.isAuthenticating = false
+            await AppState.shared.viewModel.refresh()
         }
     }
 

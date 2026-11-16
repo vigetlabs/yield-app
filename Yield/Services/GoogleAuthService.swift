@@ -171,58 +171,68 @@ final class GoogleAuthService {
             // handler is already on the main actor — say so, rather
             // than hop to it and reorder the reply.
             MainActor.assumeIsolated {
-                guard let self, let data, let requestString = String(data: data, encoding: .utf8) else {
+                guard let self else {
                     connection.cancel()
                     return
                 }
-
-                // Parse the GET request line for the URL path and query.
-                // Google's redirect target is `/google/callback`; ignore
-                // any other path (e.g. a Harvest callback that somehow
-                // raced its way into our listener — shouldn't happen, but
-                // defensive).
-                guard let firstLine = requestString.components(separatedBy: "\r\n").first,
-                      let urlString = firstLine.components(separatedBy: " ").dropFirst().first,
-                      let url = URL(string: "http://localhost\(urlString)"),
-                      let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-                    self.sendResponse(connection: connection, body: "Invalid request.")
-                    return
-                }
-
-                // Surface user-cancelled flows ("error=access_denied") cleanly.
-                if let errorParam = components.queryItems?.first(where: { $0.name == "error" })?.value {
-                    self.sendResponse(connection: connection, body: "Sign-in cancelled. You can close this tab.")
-                    self.stopLocalServer()
-                    Task { @MainActor in
-                        self.authError = errorParam == "access_denied"
-                            ? "Sign-in was cancelled."
-                            : "Sign-in failed: \(errorParam)"
-                        self.isAuthenticating = false
-                    }
-                    return
-                }
-
-                let code = components.queryItems?.first(where: { $0.name == "code" })?.value
-
-                guard let code else {
-                    self.sendResponse(connection: connection, body: "No authorization code received. You can close this tab.")
-                    return
-                }
-
-                // Send success response immediately
-                self.sendResponse(connection: connection, body: "Connected Google Calendar to Yield! You can close this tab.")
-                self.stopLocalServer()
-
-                Task { @MainActor in
-                    do {
-                        try await self.exchangeCodeForToken(code: code)
-                        await self.fetchUserEmail()
-                    } catch {
-                        self.authError = "Failed to exchange authorization code: \(error.localizedDescription)"
-                    }
-                    self.isAuthenticating = false
-                }
+                self.handleRequest(data, on: connection)
             }
+        }
+    }
+
+    /// Answer the browser's redirect to the local callback server and
+    /// finish the sign-in with the code it carries.
+    private func handleRequest(_ data: Data?, on connection: NWConnection) {
+        guard let data, let requestString = String(data: data, encoding: .utf8) else {
+            connection.cancel()
+            return
+        }
+
+        // Parse the GET request line for the URL path and query.
+        // Google's redirect target is `/google/callback`; ignore
+        // any other path (e.g. a Harvest callback that somehow
+        // raced its way into our listener — shouldn't happen, but
+        // defensive).
+        guard let firstLine = requestString.components(separatedBy: "\r\n").first,
+              let urlString = firstLine.components(separatedBy: " ").dropFirst().first,
+              let url = URL(string: "http://localhost\(urlString)"),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            self.sendResponse(connection: connection, body: "Invalid request.")
+            return
+        }
+
+        // Surface user-cancelled flows ("error=access_denied") cleanly.
+        if let errorParam = components.queryItems?.first(where: { $0.name == "error" })?.value {
+            self.sendResponse(connection: connection, body: "Sign-in cancelled. You can close this tab.")
+            self.stopLocalServer()
+            Task { @MainActor in
+                self.authError = errorParam == "access_denied"
+                    ? "Sign-in was cancelled."
+                    : "Sign-in failed: \(errorParam)"
+                self.isAuthenticating = false
+            }
+            return
+        }
+
+        let code = components.queryItems?.first(where: { $0.name == "code" })?.value
+
+        guard let code else {
+            self.sendResponse(connection: connection, body: "No authorization code received. You can close this tab.")
+            return
+        }
+
+        // Send success response immediately
+        self.sendResponse(connection: connection, body: "Connected Google Calendar to Yield! You can close this tab.")
+        self.stopLocalServer()
+
+        Task { @MainActor in
+            do {
+                try await self.exchangeCodeForToken(code: code)
+                await self.fetchUserEmail()
+            } catch {
+                self.authError = "Failed to exchange authorization code: \(error.localizedDescription)"
+            }
+            self.isAuthenticating = false
         }
     }
 

@@ -15,7 +15,9 @@ enum MenuBarGraphicRenderer {
     /// items are given.
     static let capsuleHeight: CGFloat = 21
     private static let spacing: CGFloat = 4
-    private static let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+    /// The menu bar item's text face — the label, and the meeting
+    /// countdown beside it.
+    static let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
 
     /// Colors tuned for the menu bar rather than borrowed from the
     /// app's theme: theme colors resolve against the app's appearance,
@@ -444,5 +446,21 @@ enum MenuBarGraphicRenderer {
         ctx.restoreGState()
         ctx.setFillColor(color.cgColor)
         ctx.fillEllipse(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
+    }
+}
+
+extension NSImage {
+    /// The image's shape filled with `color`: SF Symbols draw in their
+    /// own ink, so tinting one means filling through it as a mask.
+    func tinted(with color: NSColor) -> NSImage {
+        let source = self
+        return NSImage(size: size, flipped: false) { rect in
+            guard let ctx = NSGraphicsContext.current?.cgContext,
+                  let mask = source.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return false }
+            ctx.clip(to: rect, mask: mask)
+            ctx.setFillColor(color.cgColor)
+            ctx.fill(rect)
+            return true
+        }
     }
 }

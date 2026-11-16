@@ -40,18 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
         AppLocationCheck.checkAndPrompt()
 
         // Register defaults so @AppStorage and UserDefaults agree on initial values
-        UserDefaults.standard.register(defaults: [
-            DefaultsKey.idleDetectionEnabled: true,
-            DefaultsKey.idleMinutes: 10,
-            DefaultsKey.menuBarLabelMode: MenuBarLabelMode.projectTime.rawValue,
-            DefaultsKey.menuBarStyle: MenuBarStyle.default.rawValue,
-            DefaultsKey.meetingCountdownMode: MeetingCountdownMode.default.rawValue,
-            DefaultsKey.meetingCountdownTitleLength: MeetingCountdown.defaultTitleLength,
-            DefaultsKey.appearanceMode: AppearanceMode.default.rawValue,
-            DefaultsKey.uiTheme: YieldTheme.default.rawValue,
-            DefaultsKey.timerChangeHUDEnabled: true,
-            DefaultsKey.weeklyHoursTarget: 40,
-        ])
+        UserDefaults.standard.register(defaults: PreferencesReset.defaults)
 
         Task { @MainActor in
             await NotificationPermission.shared.requestAndRefresh()
@@ -280,16 +269,14 @@ struct YieldApp: App {
             image = renderMenuBarImage(label: label, icon: icon, mode: mode)
         }
         if let meeting {
-            image = MenuBarMeetingSegment.append(
-                meeting, to: image, template: graphic == nil, isDark: key.isDark
-            )
+            image = MenuBarMeetingSegment.append(meeting, to: image, isDark: key.isDark)
         }
         Self.cache = (key, image)
         return image
     }
 
     private func renderMenuBarImage(label: String, icon: TimeComparisonViewModel.MenuBarIcon, mode: MenuBarLabelMode) -> NSImage {
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+        let font = MenuBarGraphicRenderer.font
         let textColor = NSColor.black
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
 
@@ -382,14 +369,7 @@ struct YieldApp: App {
             }
 
             // Tint the icon to match text color
-            let tintedIcon = NSImage(size: iconSize, flipped: false) { iconRect in
-                guard let ctx = NSGraphicsContext.current?.cgContext,
-                      let cgImage = iconBase.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return false }
-                ctx.clip(to: iconRect, mask: cgImage)
-                ctx.setFillColor(textColor.cgColor)
-                ctx.fill(iconRect)
-                return true
-            }
+            let tintedIcon = iconBase.tinted(with: textColor)
 
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             ctx.saveGState()

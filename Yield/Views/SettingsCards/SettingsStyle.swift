@@ -114,56 +114,114 @@ extension View {
 /// Settings row that binds a string-backed enum to a `DropdownPicker`.
 /// The picker is keyed by `Int` tags so we use each case's `allCases`
 /// index as the id.
-@MainActor
-func settingsEnumPickerRow<T: RawRepresentable>(
-    icon: String,
-    label: String,
-    cases: [T],
-    selectedRawValue: String,
-    title: (T) -> String,
-    onSelect: @escaping (String) -> Void
-) -> some View where T.RawValue == String {
+struct SettingsEnumPickerRow<T: RawRepresentable>: View where T.RawValue == String {
+    let icon: String
+    let label: String
+    let cases: [T]
+    let selectedRawValue: String
     // `title` was `KeyPath<T, String>` until a launch crash on
     // macOS 14.6.1 (`EXC_BREAKPOINT` in `AnyKeyPath` equality)
     // pushed us off generic-context KeyPaths — closures avoid
     // the runtime's KeyPath cache.
-    let items = cases.enumerated().map { (id: $0.offset, title: title($0.element)) }
-    let selectedId = cases.firstIndex { $0.rawValue == selectedRawValue } ?? 0
+    let title: (T) -> String
+    let onSelect: (String) -> Void
 
-    return HStack(spacing: 8) {
-        Image(systemName: icon)
-            .settingsRowIcon()
-        Text(label)
-            .font(YieldFonts.settingsLabel())
-            .foregroundStyle(YieldColors.textPrimary)
-        Spacer()
-        DropdownPicker(
-            label: label,
-            placeholder: "Select",
-            items: items,
-            selectedId: selectedId
-        ) { id in
-            guard cases.indices.contains(id) else { return }
-            onSelect(cases[id].rawValue)
+    var body: some View {
+        let items = cases.enumerated().map { (id: $0.offset, title: title($0.element)) }
+        let selectedId = cases.firstIndex { $0.rawValue == selectedRawValue } ?? 0
+
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .settingsRowIcon()
+            Text(label)
+                .font(YieldFonts.settingsLabel())
+                .foregroundStyle(YieldColors.textPrimary)
+            Spacer()
+            DropdownPicker(
+                label: label,
+                placeholder: "Select",
+                items: items,
+                selectedId: selectedId
+            ) { id in
+                guard cases.indices.contains(id) else { return }
+                onSelect(cases[id].rawValue)
+            }
+            .frame(width: YieldDimensions.settingsRowControlWidth)
         }
-        .frame(width: YieldDimensions.settingsRowControlWidth)
+        .settingsRowPadding()
     }
-    .settingsRowPadding()
 }
 
 /// Icon, label, and a switch.
-@MainActor
-func settingsToggleRow(icon: String, label: String, isOn: Binding<Bool>) -> some View {
-    HStack(spacing: 8) {
-        Image(systemName: icon)
-            .settingsRowIcon()
-        Text(label)
-            .font(YieldFonts.settingsLabel())
-            .foregroundStyle(YieldColors.textPrimary)
-        Spacer()
-        // Labelled for VoiceOver; `settingsSwitch` hides it visually.
-        Toggle(label, isOn: isOn)
-            .settingsSwitch()
+struct SettingsToggleRow: View {
+    let icon: String
+    let label: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .settingsRowIcon()
+            Text(label)
+                .font(YieldFonts.settingsLabel())
+                .foregroundStyle(YieldColors.textPrimary)
+            Spacer()
+            // Labelled for VoiceOver; `settingsSwitch` hides it visually.
+            Toggle(label, isOn: $isOn)
+                .settingsSwitch()
+        }
+        .settingsRowPadding()
     }
-    .settingsRowPadding()
+}
+
+/// A row that does something when clicked: icon, label, an optional
+/// value, and a chevron.
+struct SettingsActionRow: View {
+    let icon: String
+    let label: String
+    var detail: String? = nil
+    let help: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .settingsRowIcon()
+                Text(label)
+                    .font(YieldFonts.settingsLabel())
+                    .foregroundStyle(YieldColors.textPrimary)
+                Spacer()
+                if let detail {
+                    Text(detail)
+                        .font(YieldFonts.settingsCaption)
+                        .foregroundStyle(YieldColors.textSecondary)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(YieldColors.textSecondary.opacity(0.5))
+            }
+            .settingsRowPadding()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+}
+
+extension View {
+    /// The small bordered box a number is typed into (idle minutes,
+    /// weekly hours, title length). Apply to a `TextField`.
+    func settingsNumberField(width: CGFloat) -> some View {
+        self
+            .font(YieldFonts.settingsValue)
+            .foregroundStyle(YieldColors.textPrimary)
+            .textFieldStyle(.plain)
+            .frame(width: width)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 3)
+            .background(YieldColors.background)
+            .yieldBorder(radius: YieldRadius.button)
+    }
 }

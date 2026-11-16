@@ -522,11 +522,9 @@ struct TimerBannerView: View {
     /// the same wording the post-meeting bar opens with.
     private var heroSubtitle: some View {
         let source = viewModel.calendarSourceForCurrentTimer
-        // With a meeting attached the notes stand alone (the schedule
-        // is carried separately); otherwise as Editorial words them.
-        let notes = source == nil
-            ? detailLineText(source: nil)
-            : (entryNotes ?? source?.eventTitle)
+        // The notes stand alone here — the schedule is carried
+        // separately, at the end of the line.
+        let notes = entryNotes ?? source?.eventTitle
         let ended = source.map { Date() >= $0.eventEnd } ?? false
         return HStack(alignment: .firstTextBaseline, spacing: 4) {
             if source != nil {

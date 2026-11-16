@@ -482,7 +482,7 @@ private struct EventBlockView: View {
         let start = Self.timeFormatter.string(from: event.start)
         let end = Self.timeFormatter.string(from: event.end)
         let (h, m) = event.durationHours.roundedHM
-        let duration = h == 0 ? "\(m)m" : (m == 0 ? "\(h)h" : "\(h)h \(m)m")
+        let duration = MeetingCountdown.span(minutes: h * 60 + m)
         return "\(start) \u{2013} \(end) (\(duration))"
     }
 

@@ -45,11 +45,11 @@ enum DefaultsKey {
     /// shown. Like `meetingPromptsEnabled`: default on, only surfaced
     /// in Settings while Google Calendar is connected.
     static let postMeetingRemindersEnabled = "postMeetingRemindersEnabled"
+
+    // MARK: - User data
     /// The running timer's link to the calendar event it was started
     /// from (JSON). See `MeetingTimerLinkStore`.
     static let meetingTimerLink = "meetingTimerLink"
-
-    // MARK: - User data
     static let favorites = "favorites"
     /// Cap-bounded `[normalizedTitle: (projectId, taskId, lastUsedAt)]`
     /// map used to pre-fill the new-timer form when a calendar event

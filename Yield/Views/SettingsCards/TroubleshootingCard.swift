@@ -20,27 +20,11 @@ struct TroubleshootingCard: View {
 
             SettingsRowDivider()
 
-            // Reveal logs in Finder — utility row for attaching
-            // logs to a bug report.
-            Button {
-                LogStore.shared.revealInFinder()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .settingsRowIcon()
-                    Text("Reveal Logs in Finder")
-                        .font(YieldFonts.settingsLabel())
-                        .foregroundStyle(YieldColors.textPrimary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(YieldColors.textSecondary.opacity(0.5))
-                }
-                .settingsRowPadding()
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help("Open ~/Library/Logs/Yield in Finder so you can attach logs to a bug report")
+            SettingsActionRow(
+                icon: "doc.text.magnifyingglass",
+                label: "Reveal Logs in Finder",
+                help: "Open ~/Library/Logs/Yield in Finder so you can attach logs to a bug report"
+            ) { LogStore.shared.revealInFinder() }
 
             SettingsRowDivider()
 
@@ -61,7 +45,7 @@ struct TroubleshootingCard: View {
                 )
                 .settingsBlockPadding()
             } else {
-                actionRow(
+                SettingsActionRow(
                     icon: "arrow.counterclockwise",
                     label: "Reset Preferences",
                     help: "Puts every setting back to its default. Your sign-ins, favorites and muted meetings are kept."
@@ -83,7 +67,7 @@ struct TroubleshootingCard: View {
                 )
                 .settingsBlockPadding()
             } else {
-                actionRow(
+                SettingsActionRow(
                     icon: "calendar.badge.minus",
                     label: "Forget Remembered Meetings",
                     detail: rememberedCount == 0 ? "None" : "\(rememberedCount)",
@@ -132,39 +116,6 @@ struct TroubleshootingCard: View {
             .help("Reload everything from Harvest and Forecast, and your calendar from Google")
         }
         .settingsRowPadding()
-    }
-
-    /// A row that does something when clicked, with an optional value
-    /// before the chevron.
-    private func actionRow(
-        icon: String,
-        label: String,
-        detail: String? = nil,
-        help: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .settingsRowIcon()
-                Text(label)
-                    .font(YieldFonts.settingsLabel())
-                    .foregroundStyle(YieldColors.textPrimary)
-                Spacer()
-                if let detail {
-                    Text(detail)
-                        .font(YieldFonts.settingsCaption)
-                        .foregroundStyle(YieldColors.textSecondary)
-                }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(YieldColors.textSecondary.opacity(0.5))
-            }
-            .settingsRowPadding()
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(help)
     }
 
     /// "just now", "2 min ago", "1 hr ago", or "never".

@@ -145,14 +145,17 @@ final class MeetingCountdownTests: XCTestCase {
     // MARK: - Drawing
 
     func test_segment_widensTheImage_andKeepsATemplateATemplate() {
-        let base = NSImage(size: NSSize(width: 40, height: 18), flipped: false) { _ in true }
         let status = MenuBarMeetingStatus(text: "in 12m")
-        let template = MenuBarMeetingSegment.append(status, to: base, template: true, isDark: false)
+
+        let templateBase = NSImage(size: NSSize(width: 40, height: 18), flipped: false) { _ in true }
+        templateBase.isTemplate = true
+        let template = MenuBarMeetingSegment.append(status, to: templateBase, isDark: false)
         XCTAssertGreaterThan(template.size.width, 40)
         XCTAssertEqual(template.size.height, 18)
         XCTAssertTrue(template.isTemplate)
 
-        let colored = MenuBarMeetingSegment.append(status, to: base, template: false, isDark: true)
+        let coloredBase = NSImage(size: NSSize(width: 40, height: 18), flipped: false) { _ in true }
+        let colored = MenuBarMeetingSegment.append(status, to: coloredBase, isDark: true)
         XCTAssertFalse(colored.isTemplate)
     }
 
@@ -160,9 +163,6 @@ final class MeetingCountdownTests: XCTestCase {
     /// a light and a dark bar, for looking at. Opt in with
     /// `TEST_RUNNER_YIELD_MENUBAR_PREVIEW_DIR=/some/dir`.
     func test_writePreviewSheet() throws {
-        guard let dir = ProcessInfo.processInfo.environment["YIELD_MENUBAR_PREVIEW_DIR"] else {
-            throw XCTSkip("Set YIELD_MENUBAR_PREVIEW_DIR to write the preview sheet")
-        }
         var running = MenuBarGraphicState()
         running.timer = .running; running.tone = .onPace; running.progress = 0.33
         running.weekFractions = [1, 0.94, 1, 0.55, 0]; running.todayIndex = 3
@@ -175,46 +175,34 @@ final class MeetingCountdownTests: XCTestCase {
             ("Overrun", running, .init(text: "ended 12m ago", tone: .overrun)),
             ("Time only", running, .init(text: "in 1h 22m")),
         ]
-        let styles: [MenuBarStyle] = [.capsule, .ring]
-        let labelWidth: CGFloat = 96, cellWidth: CGFloat = 268, rowHeight: CGFloat = 30, scale: CGFloat = 3
-        let size = NSSize(width: labelWidth + cellWidth * CGFloat(styles.count * 2), height: rowHeight * CGFloat(rows.count))
-        let rep = try XCTUnwrap(NSBitmapImageRep(
-            bitmapDataPlanes: nil, pixelsWide: Int(size.width * scale), pixelsHigh: Int(size.height * scale),
-            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
-        ))
-        rep.size = size
-        let context = try XCTUnwrap(NSGraphicsContext(bitmapImageRep: rep))
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = context
-        NSColor.white.setFill()
-        NSRect(origin: .zero, size: size).fill()
-        for (r, row) in rows.enumerated() {
-            let y = size.height - rowHeight * CGFloat(r + 1)
-            (row.name as NSString).draw(
-                at: NSPoint(x: 6, y: y + 8),
-                withAttributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.black]
+        try MenuBarPreviewSheet.write(
+            named: "menubar-meetings.png",
+            rowNames: rows.map(\.name),
+            styles: [.capsule, .ring],
+            labelWidth: 96,
+            cellWidth: 268
+        ) { row, style, dark in
+            let base = MenuBarGraphicRenderer.render(
+                style: style, label: "5:12 / 16:00", state: rows[row].state, labelMode: .projectTime, isDark: dark
             )
-            for (s, style) in styles.enumerated() {
-                for (d, dark) in [false, true].enumerated() {
-                    let x = labelWidth + cellWidth * CGFloat(s * 2 + d)
-                    let cell = NSRect(x: x + 1, y: y + 1, width: cellWidth - 2, height: rowHeight - 2)
-                    (dark ? MenuBarGraphicRenderer.Palette.hex(0x2A2A2E) : MenuBarGraphicRenderer.Palette.hex(0xE7E4DD)).setFill()
-                    cell.fill()
-                    let base = MenuBarGraphicRenderer.render(
-                        style: style, label: "5:12 / 16:00", state: row.state, labelMode: .projectTime, isDark: dark
-                    )
-                    let image = MenuBarMeetingSegment.append(row.status, to: base, template: false, isDark: dark)
-                    image.draw(in: NSRect(
-                        x: cell.minX + 8, y: cell.midY - image.size.height / 2,
-                        width: image.size.width, height: image.size.height
-                    ))
-                }
-            }
+            return MenuBarMeetingSegment.append(rows[row].status, to: base, isDark: dark)
         }
-        NSGraphicsContext.restoreGraphicsState()
-        let png = try XCTUnwrap(rep.representation(using: .png, properties: [:]))
-        let url = URL(fileURLWithPath: dir).appendingPathComponent("menubar-meetings.png")
-        try png.write(to: url)
+    }
+
+    // MARK: - On the view model
+
+    /// The view model derives the status from what it holds; nothing
+    /// has to tell it to recompute.
+    @MainActor
+    func test_viewModel_derivesTheStatus_fromItsEventsAndSetting() {
+        let vm = TimeComparisonViewModel()
+        vm._setStateForTesting(
+            cachedCalendarEvents: [event("Standup", startsIn: 10)],
+            meetingCountdownMode: .titleAndTime
+        )
+        XCTAssertEqual(vm.menuBarMeetingStatus(now: now)?.text, "Standup in 10m")
+
+        vm._setStateForTesting(meetingCountdownMode: .off)
+        XCTAssertNil(vm.menuBarMeetingStatus(now: now))
     }
 }

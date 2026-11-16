@@ -219,9 +219,6 @@ final class MenuBarGraphicTests: XCTestCase {
     /// light and a dark bar, for looking at. Opt in with
     /// `TEST_RUNNER_YIELD_MENUBAR_PREVIEW_DIR=/some/dir xcodebuild test …`.
     func test_writePreviewSheet() throws {
-        guard let dir = ProcessInfo.processInfo.environment["YIELD_MENUBAR_PREVIEW_DIR"] else {
-            throw XCTSkip("Set YIELD_MENUBAR_PREVIEW_DIR to write the preview sheet")
-        }
         let week = [1, 0.94, 1, 0.55, 0]
         func state(_ configure: (inout MenuBarGraphicState) -> Void) -> MenuBarGraphicState {
             var s = MenuBarGraphicState()
@@ -244,44 +241,14 @@ final class MenuBarGraphicTests: XCTestCase {
             ("Current timer", "1:24", .currentTimer, state { $0.timer = .running; $0.tone = .onPace; $0.progress = 0.33 }),
             ("Loading", "", .timeLeft, MenuBarGraphicState()),
         ]
-        let styles: [MenuBarStyle] = [.ring, .capsule, .weekBars]
-        let labelWidth: CGFloat = 120, cellWidth: CGFloat = 132, rowHeight: CGFloat = 30, scale: CGFloat = 3
-        let size = NSSize(width: labelWidth + cellWidth * CGFloat(styles.count * 2), height: rowHeight * CGFloat(rows.count))
-        let rep = try XCTUnwrap(NSBitmapImageRep(
-            bitmapDataPlanes: nil, pixelsWide: Int(size.width * scale), pixelsHigh: Int(size.height * scale),
-            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
-        ))
-        rep.size = size
-        let context = try XCTUnwrap(NSGraphicsContext(bitmapImageRep: rep))
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = context
-        NSColor.white.setFill()
-        NSRect(origin: .zero, size: size).fill()
-        for (r, row) in rows.enumerated() {
-            let y = size.height - rowHeight * CGFloat(r + 1)
-            (row.name as NSString).draw(
-                at: NSPoint(x: 6, y: y + 8),
-                withAttributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.black]
-            )
-            for (s, style) in styles.enumerated() {
-                for (d, dark) in [false, true].enumerated() {
-                    let x = labelWidth + cellWidth * CGFloat(s * 2 + d)
-                    let cell = NSRect(x: x + 1, y: y + 1, width: cellWidth - 2, height: rowHeight - 2)
-                    (dark ? MenuBarGraphicRenderer.Palette.hex(0x2A2A2E) : MenuBarGraphicRenderer.Palette.hex(0xE7E4DD)).setFill()
-                    cell.fill()
-                    let image = render(style, row.label, row.state, mode: row.mode, dark: dark)
-                    image.draw(in: NSRect(
-                        x: cell.minX + 8, y: cell.midY - image.size.height / 2,
-                        width: image.size.width, height: image.size.height
-                    ))
-                }
-            }
+        try MenuBarPreviewSheet.write(
+            named: "menubar-styles.png",
+            rowNames: rows.map(\.name),
+            styles: [.ring, .capsule, .weekBars],
+            labelWidth: 120,
+            cellWidth: 132
+        ) { row, style, dark in
+            render(style, rows[row].label, rows[row].state, mode: rows[row].mode, dark: dark)
         }
-        NSGraphicsContext.restoreGraphicsState()
-        let png = try XCTUnwrap(rep.representation(using: .png, properties: [:]))
-        let url = URL(fileURLWithPath: dir).appendingPathComponent("menubar-styles.png")
-        try png.write(to: url)
-        print("Wrote menu bar preview sheet to \(url.path)")
     }
 }

@@ -8,23 +8,26 @@ import Foundation
 /// left alone; so is Launch at Login, which macOS holds rather than
 /// these defaults.
 enum PreferencesReset {
-    /// The keys behind the controls in Settings. A new preference has
-    /// to be added here to be reset — `PreferencesResetTests` checks
-    /// the list against what must survive.
-    static let keys: [String] = [
-        DefaultsKey.appearanceMode,
-        DefaultsKey.uiTheme,
-        DefaultsKey.menuBarLabelMode,
-        DefaultsKey.menuBarStyle,
-        DefaultsKey.meetingCountdownMode,
-        DefaultsKey.meetingCountdownTitleLength,
-        DefaultsKey.idleDetectionEnabled,
-        DefaultsKey.idleMinutes,
-        DefaultsKey.timerChangeHUDEnabled,
-        DefaultsKey.weeklyHoursTarget,
-        DefaultsKey.meetingPromptsEnabled,
-        DefaultsKey.postMeetingRemindersEnabled,
+    /// Every setting in Settings and its default. The one list: the
+    /// app registers it at launch, so `@AppStorage` and `UserDefaults`
+    /// agree on initial values, and a reset removes exactly these keys
+    /// — a preference added here is registered and resettable at once.
+    static let defaults: [String: Any] = [
+        DefaultsKey.appearanceMode: AppearanceMode.default.rawValue,
+        DefaultsKey.uiTheme: YieldTheme.default.rawValue,
+        DefaultsKey.menuBarLabelMode: MenuBarLabelMode.projectTime.rawValue,
+        DefaultsKey.menuBarStyle: MenuBarStyle.default.rawValue,
+        DefaultsKey.meetingCountdownMode: MeetingCountdownMode.default.rawValue,
+        DefaultsKey.meetingCountdownTitleLength: MeetingCountdown.defaultTitleLength,
+        DefaultsKey.idleDetectionEnabled: true,
+        DefaultsKey.idleMinutes: 10,
+        DefaultsKey.timerChangeHUDEnabled: true,
+        DefaultsKey.weeklyHoursTarget: 40,
+        DefaultsKey.meetingPromptsEnabled: true,
+        DefaultsKey.postMeetingRemindersEnabled: true,
     ]
+
+    static var keys: [String] { Array(defaults.keys) }
 
     /// Removing a key (rather than writing its default) lets the
     /// registered defaults and each `@AppStorage`'s own default take

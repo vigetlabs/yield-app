@@ -118,10 +118,10 @@ struct SettingsCardStack: View {
             // the calendar, how it tracks, the two lists, and last the
             // things you only reach for when something looks wrong.
             AccountCard(oAuthService: oAuthService, onDismiss: onDismiss)
-            AboutCard()
-            PreferencesCard(section: .display)
+            GeneralCard()
+            DisplayCard()
             GoogleCalendarCard()
-            PreferencesCard(section: .tracking)
+            TrackingCard()
             FavoritesCard(allProjects: allProjects, isLoadingProjects: isLoadingProjects)
             MutedMeetingsCard()
             TroubleshootingCard()

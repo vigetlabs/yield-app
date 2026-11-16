@@ -303,20 +303,47 @@ final class PostMeetingReminderTests: XCTestCase {
 
         // Relaunch: a new view model reading the same store, 35 minutes
         // on — the meeting ended 15 minutes ago, over the threshold.
+        // The link is picked up as the first load lands, so there is
+        // data to judge it against.
         let later = now.addingTimeInterval(35 * 60)
         let second = makeVM()
+        second._setStateForTesting(projectStatuses: first.projectStatuses)
         second.restoreMeetingLink(now: later)
         XCTAssertEqual(second.calendarSourcedTimer?.entryId, 7)
 
-        // Before the first refresh lands nothing is running. That is
-        // not the timer having stopped.
-        second.updatePostMeetingReminder(now: later)
-        XCTAssertNotNil(second.calendarSourcedTimer)
-
-        second._setStateForTesting(projectStatuses: first.projectStatuses)
-        second.detectExternalTimerChange()   // what a refresh runs
         second.updatePostMeetingReminder(now: later)
         XCTAssertEqual(second.activePostMeetingReminder?.eventId, "evt-1")
+    }
+
+    /// The production path: nothing calls `restoreMeetingLink` by hand
+    /// — the first refresh to land does, then judges the link against
+    /// what it loaded.
+    func test_firstRefreshAfterRelaunch_restoresTheLink_andBindsIt() {
+        // Saved by the previous launch, not yet bound to an entry.
+        let event = CalendarEvent(
+            id: "evt-1", summary: "Design Review",
+            start: Date().addingTimeInterval(-10 * 60), end: Date().addingTimeInterval(20 * 60)
+        )
+        makeVM().noteCalendarSourcedTimer(event: event, projectId: 500, taskId: 100)
+
+        let relaunched = makeVM()
+        XCTAssertNil(relaunched.calendarSourcedTimer, "nothing is restored before there is data")
+
+        let running = HarvestTimeEntry(
+            id: 7, hours: 0.2, spentDate: DateHelpers.dateFormatter.string(from: Date()), isRunning: true,
+            updatedAt: "2026-05-06T00:00:00Z", notes: nil, isLocked: nil, approvalStatus: nil,
+            timerStartedAt: nil,
+            project: HarvestProjectRef(id: 500, name: "Project", code: nil),
+            client: nil, task: nil,
+            taskAssignment: HarvestTaskAssignmentRef(id: 999, task: HarvestTaskRef(id: 100, name: "Task"))
+        )
+        relaunched.applyRefreshedData(
+            entries: [running], bookedByForecastProject: [:], projectMap: [:],
+            clientMap: [:], timeOffBlock: nil, notesByForecastProject: [:]
+        )
+        XCTAssertEqual(relaunched.calendarSourcedTimer?.eventId, "evt-1")
+        XCTAssertEqual(relaunched.calendarSourcedTimer?.entryId, 7)
+        XCTAssertEqual(relaunched.calendarSourceForCurrentTimer?.eventId, "evt-1")
     }
 
     func test_restore_thenFirstLoadShowsNoTimer_dropsAnEndedLink() {

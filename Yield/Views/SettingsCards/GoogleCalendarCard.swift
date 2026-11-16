@@ -62,7 +62,7 @@ struct GoogleCalendarCard: View {
                 // Meeting-start timer prompts: when an event begins,
                 // Yield nudges (notification + a bar above the timer)
                 // to start or switch a timer for it.
-                settingsToggleRow(
+                SettingsToggleRow(
                     icon: "calendar.badge.clock",
                     label: "Meeting timer prompts",
                     isOn: $meetingPromptsEnabled
@@ -75,7 +75,7 @@ struct GoogleCalendarCard: View {
                 // calendar event is still running past the event's end
                 // (by the idle-detection threshold), Yield nudges to
                 // move the overage.
-                settingsToggleRow(
+                SettingsToggleRow(
                     icon: "calendar.badge.exclamationmark",
                     label: "Post-meeting reminders",
                     isOn: $postMeetingRemindersEnabled
@@ -163,7 +163,7 @@ struct GoogleCalendarCard: View {
     // MARK: - Menu bar meetings
 
     private var meetingCountdownRow: some View {
-        settingsEnumPickerRow(
+        SettingsEnumPickerRow(
             icon: "hourglass",
             label: "Menu bar meetings",
             cases: MeetingCountdownMode.allCases,
@@ -191,15 +191,7 @@ struct GoogleCalendarCard: View {
                 .help("Show fewer characters")
 
             TextField("", value: $meetingTitleLength, format: .number)
-                .font(YieldFonts.settingsValue)
-                .foregroundStyle(YieldColors.textPrimary)
-                .textFieldStyle(.plain)
-                .frame(width: SettingsStyle.refreshed ? 34 : 26)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 3)
-                .background(YieldColors.background)
-                .yieldBorder(radius: YieldRadius.button)
+                .settingsNumberField(width: SettingsStyle.refreshed ? 34 : 26)
                 .onChange(of: meetingTitleLength) { _, newValue in
                     let clamped = MeetingCountdown.clampedTitleLength(newValue)
                     if clamped != newValue { meetingTitleLength = clamped }

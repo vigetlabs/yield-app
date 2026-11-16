@@ -2,14 +2,14 @@ import ServiceManagement
 import SwiftUI
 
 /// The app itself: launch at login, and version + check-for-updates.
-struct AboutCard: View {
+struct GeneralCard: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsCardSectionHeader("General")
 
-            settingsToggleRow(
+            SettingsToggleRow(
                 icon: "sunrise",
                 label: "Launch at Login",
                 isOn: $launchAtLogin

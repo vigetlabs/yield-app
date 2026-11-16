@@ -992,8 +992,9 @@ struct NewTimerFormView: View {
         }
         onDismiss()
         await viewModel.startNewTimer(projectId: projectId, taskId: taskId, hours: hours, notes: notesToSend)
-        // Arm the post-meeting overage reminder — after the start, so
-        // the reminder's next tick sees the timer actually running.
+        // Link the timer to its meeting — after the start, so the link
+        // binds to the entry the start just created rather than to
+        // whatever was running on this project and task before it.
         if let event = sourcedCalendarEvent {
             viewModel.noteCalendarSourcedTimer(event: event, projectId: projectId, taskId: taskId)
         }

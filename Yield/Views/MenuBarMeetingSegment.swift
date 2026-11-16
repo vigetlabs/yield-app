@@ -10,19 +10,20 @@ enum MenuBarMeetingSegment {
     /// the gaps inside either, so they read as two things.
     private static let leadingGap: CGFloat = 9
     private static let glyphGap: CGFloat = 4
-    private static let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+    private static let font = MenuBarGraphicRenderer.font
 
-    /// - Parameters:
-    ///   - template: the base is a template image (the classic style).
-    ///     The result stays one, drawn in black, and macOS colors it;
-    ///     the tones then differ only by glyph.
-    ///   - isDark: which ink the bar needs. Ignored for a template.
+    /// A template base (the classic style) stays a template: the
+    /// countdown is drawn in black, macOS colors it, and the tones
+    /// then differ only by glyph.
+    ///
+    /// - Parameter isDark: which ink the bar needs. Ignored for a
+    ///   template.
     static func append(
         _ status: MenuBarMeetingStatus,
         to base: NSImage,
-        template: Bool,
         isDark: Bool
     ) -> NSImage {
+        let template = base.isTemplate
         let color: NSColor
         if template {
             color = .black
@@ -57,16 +58,7 @@ enum MenuBarMeetingSegment {
                     x: x, y: (height - glyphSize.height) / 2,
                     width: glyphSize.width, height: glyphSize.height
                 )
-                // Tint by filling through the symbol's own mask.
-                let tinted = NSImage(size: glyphSize, flipped: false) { glyphRect in
-                    guard let ctx = NSGraphicsContext.current?.cgContext,
-                          let mask = glyph.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return false }
-                    ctx.clip(to: glyphRect, mask: mask)
-                    ctx.setFillColor(color.cgColor)
-                    ctx.fill(glyphRect)
-                    return true
-                }
-                tinted.draw(in: rect)
+                glyph.tinted(with: color).draw(in: rect)
                 x += glyphSize.width + glyphGap
             }
 

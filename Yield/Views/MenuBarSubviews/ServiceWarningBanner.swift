@@ -47,37 +47,38 @@ struct RetryLoadButton: View {
     let compact: Bool
 
     var body: some View {
-        if compact {
-            Button {
-                Task { await viewModel.refresh() }
-            } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 8, weight: .semibold))
-                    Text("Try again")
+        Group {
+            if compact {
+                Button(action: retry) {
+                    label(iconSize: 8, spacing: 3)
+                        .font(YieldFonts.label(10, weight: .medium))
+                        .foregroundStyle(YieldColors.controlAccent)
+                        .fixedSize()
+                        .contentShape(Rectangle())
                 }
-                .font(YieldFonts.label(10, weight: .medium))
-                .foregroundStyle(YieldColors.controlAccent)
-                .fixedSize()
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isLoading)
-            .help("Reload from Harvest and Forecast")
-        } else {
-            Button {
-                Task { await viewModel.refresh() }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 9, weight: .semibold))
-                    Text("Try again")
+                .buttonStyle(.plain)
+                .help("Reload from Harvest and Forecast")
+            } else {
+                Button(action: retry) {
+                    label(iconSize: 9, spacing: 5)
                 }
+                .buttonStyle(.yieldBordered)
+                .font(ThemeStore.shared.theme.usesRefreshedLayout ? YieldFonts.labelButton : YieldFonts.label(10, weight: .medium))
+                .padding(.top, 4)
             }
-            .buttonStyle(.yieldBordered)
-            .font(ThemeStore.shared.theme.usesRefreshedLayout ? YieldFonts.labelButton : YieldFonts.label(10, weight: .medium))
-            .disabled(viewModel.isLoading)
-            .padding(.top, 4)
+        }
+        .disabled(viewModel.isLoading)
+    }
+
+    private func retry() {
+        Task { await viewModel.refresh() }
+    }
+
+    private func label(iconSize: CGFloat, spacing: CGFloat) -> some View {
+        HStack(spacing: spacing) {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: iconSize, weight: .semibold))
+            Text("Try again")
         }
     }
 }

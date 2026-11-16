@@ -466,7 +466,6 @@ final class TimeComparisonViewModel {
             lastTrackingProjectCode = currentProject?.projectCode
             lastTrackingTaskName = currentEntry?.taskName
             hasSeenInitialTrackingState = true
-            meetingLinkAwaitsFirstLoad = false
         }
 
         // Skip the very first refresh — discovering an existing running
@@ -544,7 +543,7 @@ final class TimeComparisonViewModel {
         projectCode: String?,
         taskName: String?
     ) {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        if RuntimeEnvironment.isRunningTests { return }
         // Respect the user's preference (registered default: true).
         guard UserDefaults.standard.bool(forKey: DefaultsKey.timerChangeHUDEnabled) else { return }
         // Suppressed while the panel is open — the user is already
@@ -882,7 +881,6 @@ final class TimeComparisonViewModel {
     init() {
         Self.migrateLegacyHarvestTokenIfNeeded()
         reloadDefaults()
-        restoreMeetingLink()
         // Re-mirror on every UserDefaults write. The handler guards
         // each property against no-op writes so identical values
         // don't fire spurious `@Observable` notifications, even
@@ -936,53 +934,49 @@ final class TimeComparisonViewModel {
         let newMode = MenuBarLabelMode(rawValue: rawMode) ?? .projectTime
         if newMode != menuBarLabelMode { menuBarLabelMode = newMode }
 
-        // The countdown's own setting lives in defaults: re-judge it
-        // whenever they change.
-        updateMenuBarMeetingStatus()
+        let newCountdownMode = MeetingCountdownMode(
+            rawValue: UserDefaults.standard.string(forKey: DefaultsKey.meetingCountdownMode) ?? ""
+        ) ?? .default
+        if newCountdownMode != meetingCountdownMode { meetingCountdownMode = newCountdownMode }
+
+        let storedLength = UserDefaults.standard.integer(forKey: DefaultsKey.meetingCountdownTitleLength)
+        let newLength = storedLength > 0 ? storedLength : MeetingCountdown.defaultTitleLength
+        if newLength != meetingCountdownTitleLength { meetingCountdownTitleLength = newLength }
     }
 
     // MARK: - Menu bar meeting countdown
 
+    /// The countdown's two settings, mirrored from UserDefaults by
+    /// `reloadDefaults` like the menu bar's other settings.
+    private(set) var meetingCountdownMode: MeetingCountdownMode = .default
+    private(set) var meetingCountdownTitleLength = MeetingCountdown.defaultTitleLength
+
+    /// Touched by the 30-second tick. The countdown's wording depends
+    /// on the clock, which nothing observes; reading this where the
+    /// countdown is derived is what makes the menu bar re-read it as
+    /// time passes.
+    private var calendarClock = Date()
+
     /// What the menu bar says about the calendar beside the timer
-    /// graphic, or nil for nothing. Stored rather than computed: its
-    /// wording depends on the clock, and the menu bar only redraws
-    /// when something observable changes. `updateMenuBarMeetingStatus`
-    /// re-derives it on the 30-second tick and whenever its inputs
-    /// change, and assigns only when the text actually differs.
-    private(set) var menuBarMeetingStatus: MenuBarMeetingStatus? = nil
-
-    /// Setting seam: production reads the user's choice; tests inject
-    /// a fixed mode so the real preference can't leak in.
-    @ObservationIgnored var meetingCountdownMode: () -> MeetingCountdownMode = {
-        MeetingCountdownMode(
-            rawValue: UserDefaults.standard.string(forKey: DefaultsKey.meetingCountdownMode) ?? ""
-        ) ?? .default
+    /// graphic, or nil for nothing. Derived on each read from the
+    /// event cache, the meeting link and the two settings — so it
+    /// follows any of them changing without being told to.
+    var menuBarMeetingStatus: MenuBarMeetingStatus? {
+        _ = calendarClock
+        return menuBarMeetingStatus(now: Date())
     }
 
-    /// "Shorten titles to": same seam shape as the mode.
-    @ObservationIgnored var meetingCountdownTitleLength: () -> Int = {
-        let stored = UserDefaults.standard.integer(forKey: DefaultsKey.meetingCountdownTitleLength)
-        return stored > 0 ? stored : MeetingCountdown.defaultTitleLength
-    }
-
-    @MainActor
-    func updateMenuBarMeetingStatus(now: Date = Date()) {
-        let mode = meetingCountdownMode()
-        var status: MenuBarMeetingStatus? = nil
-        if mode != .off {
+    func menuBarMeetingStatus(now: Date) -> MenuBarMeetingStatus? {
+        MeetingCountdown.status(
+            events: cachedCalendarEvents ?? [],
+            now: now,
+            mode: meetingCountdownMode,
             // A timer that was started from a meeting and is still
             // running after it — the link's own end time, so this
             // works even when the calendar cache has gone stale.
-            let overrunSince = calendarSourceForCurrentTimer?.eventEnd
-            status = MeetingCountdown.status(
-                events: cachedCalendarEvents ?? [],
-                now: now,
-                mode: mode,
-                overrunSince: overrunSince,
-                titleLength: meetingCountdownTitleLength()
-            )
-        }
-        if status != menuBarMeetingStatus { menuBarMeetingStatus = status }
+            overrunSince: calendarSourceForCurrentTimer?.eventEnd,
+            titleLength: meetingCountdownTitleLength
+        )
     }
 
     var menuBarLabel: String {
@@ -1325,7 +1319,7 @@ final class TimeComparisonViewModel {
             Task { @MainActor in
                 self?.updateMeetingPrompt()
                 self?.updatePostMeetingReminder()
-                self?.updateMenuBarMeetingStatus()
+                self?.calendarClock = Date()
             }
         }
 
@@ -1422,11 +1416,9 @@ final class TimeComparisonViewModel {
         meetingPromptDismissedIds.removeAll()
         meetingPromptNotifiedIds.removeAll()
         calendarSourcedTimer = nil
-        meetingLinkAwaitsFirstLoad = false
         activePostMeetingReminder = nil
         postMeetingDismissedIds.removeAll()
         postMeetingNotifiedIds.removeAll()
-        menuBarMeetingStatus = nil
         notifiedProjectIds.removeAll()
         trackingSessionBaseline.removeAll()
         currentWeekStart = nil
@@ -1848,10 +1840,8 @@ final class TimeComparisonViewModel {
         let newSourceHours = max(0, available - moved)
 
         let todayString = DateHelpers.dateFormatter.string(from: Date())
-        let existingDest = projectStatuses
-            .first(where: { $0.harvestProjectId == projectId })?
-            .timeEntries
-            .filter { $0.taskId == taskId && $0.date == todayString && $0.id != move.sourceEntryId }
+        let existingDest = entries(projectId: projectId, taskId: taskId, on: todayString)
+            .filter { $0.id != move.sourceEntryId }
             .max(by: { $0.id < $1.id })
 
         // Final state by mode; a switch is re-marked below once the
@@ -1981,7 +1971,6 @@ final class TimeComparisonViewModel {
         guard AppState.shared.googleAuthService.isAuthenticated else {
             cachedCalendarEvents = nil
             calendarEventsFetchedAt = nil
-            updateMenuBarMeetingStatus()
             return
         }
         guard calendarCacheIsStale else { return }
@@ -1989,7 +1978,6 @@ final class TimeComparisonViewModel {
         // Fresh events can open (or close) a prompt window — a meeting
         // added minutes ago should prompt on this same cycle.
         updateMeetingPrompt()
-        updateMenuBarMeetingStatus()
     }
 
     // MARK: - Meeting-start timer prompts
@@ -2085,15 +2073,8 @@ final class TimeComparisonViewModel {
         guard !meetingPromptDismissedIds.contains(event.id) else { return false }
         guard !mutedMeetingsStore.isMuted(title: event.summary) else { return false }
 
-        if let entry = trackingEntry {
-            if calendarSourceForCurrentTimer?.eventId == event.id {
-                return false
-            }
-            if Self.notes(entry.notes, carry: event.summary) {
-                return false
-            }
-        }
-        return true
+        guard calendarSourceForCurrentTimer?.eventId != event.id else { return false }
+        return !Self.notes(trackingEntry?.notes, carry: event.summary)
     }
 
     /// True when the prompt's meeting belongs on the timer that is
@@ -2224,7 +2205,7 @@ final class TimeComparisonViewModel {
         // again while the start is in flight — and a 1:1 that ended a
         // while ago would announce "timer still running" in the moment
         // its successor takes over. The link binds to the entry as soon
-        // as the start shows up running (`liveMeetingLink`).
+        // as the start shows up running (`reconcileMeetingLink`).
         noteCalendarSourcedTimer(event: event, projectId: memory.projectId, taskId: memory.taskId)
 
         // Built directly (not via `startTimerMove()` → `pendingTimerMove`)
@@ -2253,6 +2234,15 @@ final class TimeComparisonViewModel {
         return true
     }
 
+    /// The entries logged to a project and task on one day — the pool
+    /// "one entry per task per day" is chosen from.
+    func entries(projectId: Int, taskId: Int, on date: String) -> [TimeEntryInfo] {
+        projectStatuses
+            .first(where: { $0.harvestProjectId == projectId })?
+            .timeEntries
+            .filter { $0.taskId == taskId && $0.date == date } ?? []
+    }
+
     /// Start timing `projectId`/`taskId` on today's entry for that pair
     /// when there is one, adding `notes` on a new line; create an entry
     /// only when there isn't. One entry per task per day is what the
@@ -2265,10 +2255,7 @@ final class TimeComparisonViewModel {
     @MainActor
     func startOrJoinTimer(projectId: Int, taskId: Int, notes: String?) async {
         let today = DateHelpers.dateFormatter.string(from: Date())
-        let candidates = projectStatuses
-            .first(where: { $0.harvestProjectId == projectId })?
-            .timeEntries
-            .filter { $0.taskId == taskId && $0.date == today } ?? []
+        let candidates = entries(projectId: projectId, taskId: taskId, on: today)
         guard let existing = candidates.first(where: { $0.isRunning })
                 ?? candidates.max(by: { $0.id < $1.id }),
               let (harvestService, _) = makeServices() else {
@@ -2319,7 +2306,7 @@ final class TimeComparisonViewModel {
     /// under XCTest like the other notification senders.
     @MainActor
     private func sendMeetingStartNotification(for event: CalendarEvent) {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        if RuntimeEnvironment.isRunningTests { return }
         let content = UNMutableNotificationContent()
         content.title = "Meeting started"
         content.body = meetingPromptJoinsRunningTimer
@@ -2365,8 +2352,14 @@ final class TimeComparisonViewModel {
 
         /// Whether `entry` is the one this link is tied to.
         func matches(_ entry: TimeEntryInfo) -> Bool {
-            if let entryId { return entry.id == entryId }
-            return entry.harvestProjectId == projectId && entry.taskId == taskId
+            matches(entryId: entry.id, projectId: entry.harvestProjectId, taskId: entry.taskId)
+        }
+
+        /// The rule itself: the bound entry if there is one, otherwise
+        /// the project and task the start landed on.
+        func matches(entryId id: Int, projectId: Int?, taskId: Int?) -> Bool {
+            if let entryId { return id == entryId }
+            return projectId == self.projectId && taskId == self.taskId
         }
 
         /// The event's intended length in decimal hours — shown in the
@@ -2388,17 +2381,17 @@ final class TimeComparisonViewModel {
     /// suite; the shared store keeps nothing under XCTest.
     @ObservationIgnored var meetingLinkStore: MeetingTimerLinkStore = .shared
 
-    /// True from a restore until the first refresh has landed. Before
-    /// then "nothing is running" only means nothing has loaded, and
-    /// must not be read as the meeting's timer having stopped.
-    @ObservationIgnored private var meetingLinkAwaitsFirstLoad = false
-
     /// A restored link older than this is dropped unread — the meeting
     /// was hours ago and whatever is running now isn't it.
     static let meetingLinkMaxAge: TimeInterval = 12 * 3600
 
-    /// Pick the saved link back up at launch. Internal so tests can
-    /// call it after swapping in a scratch store.
+    /// Pick the saved link back up after a relaunch. Called as the
+    /// first load lands, not at init: until there is data, "nothing is
+    /// running" only means nothing has loaded, and a link restored
+    /// earlier would have to be shielded from being judged against
+    /// that. Nothing reads the link before then — every use of it
+    /// needs a running entry. Internal so tests can call it after
+    /// swapping in a scratch store.
     @MainActor
     func restoreMeetingLink(now: Date = Date()) {
         guard let link = meetingLinkStore.load() else { return }
@@ -2408,7 +2401,6 @@ final class TimeComparisonViewModel {
         }
         if link.reminderSettled { postMeetingDismissedIds.insert(link.eventId) }
         if link.reminderNotified { postMeetingNotifiedIds.insert(link.eventId) }
-        meetingLinkAwaitsFirstLoad = true
         calendarSourcedTimer = link
     }
 
@@ -2418,7 +2410,8 @@ final class TimeComparisonViewModel {
     private(set) var activePostMeetingReminder: CalendarSourcedTimer? = nil
 
     /// Events whose reminder was dismissed (the bar's × or acting on
-    /// it) — session-scoped like the meeting-prompt dismissals.
+    /// it). Held for the session; the live link carries its own
+    /// `reminderSettled` so a relaunch reseeds this for it.
     private var postMeetingDismissedIds: Set<String> = []
 
     /// Events whose overage notification already fired — once per event.
@@ -2457,13 +2450,12 @@ final class TimeComparisonViewModel {
             projectId: projectId,
             taskId: taskId
         )
-        // The start has committed and refreshed, so the running entry
-        // is normally the one it produced: tie the link to it now. If
-        // the refresh failed, `liveMeetingLink` binds on a later tick.
+        // If the entry the start produced is already the one running,
+        // tie the link to it now. Otherwise `reconcileMeetingLink`
+        // binds it when that entry shows up.
         if let entry = trackingEntry, link.matches(entry) {
             link.entryId = entry.id
         }
-        meetingLinkAwaitsFirstLoad = false
         calendarSourcedTimer = link
     }
 
@@ -2479,15 +2471,15 @@ final class TimeComparisonViewModel {
         return source
     }
 
-    /// The link, if the running timer is the entry it is tied to.
-    /// Binds the entry id the first time that entry is seen, and lets
-    /// go of the link once it can no longer matter.
+    /// Bring the link up to date with what is running: bind the entry
+    /// id the first time that entry is seen, and let go of the link
+    /// once it can no longer matter. `calendarSourceForCurrentTimer`
+    /// is the read side.
     ///
     /// The entry not running used to end the link on the spot, and one
-    /// bad tick — a pause, a refresh that failed after the start, the
-    /// moment before the first load — ended it for good. Now three
-    /// cases wait instead, for as long as the meeting is still on:
-    /// - nothing has loaded yet after a relaunch
+    /// bad tick — a pause, or a refresh that failed after the start —
+    /// ended it for good. Now two cases wait instead, for as long as
+    /// the meeting is still on:
     /// - the entry was paused here (a pause says "I'll be back")
     /// - the entry hasn't been seen running yet (the start's refresh
     ///   failed; it binds when the entry shows up)
@@ -2500,29 +2492,27 @@ final class TimeComparisonViewModel {
     /// entry id says *which* entry; the stop is what says the meeting
     /// part of it is over.
     @MainActor
-    private func liveMeetingLink(now: Date) -> CalendarSourcedTimer? {
-        guard let link = calendarSourcedTimer else { return nil }
+    private func reconcileMeetingLink(now: Date) {
+        guard let link = calendarSourcedTimer else { return }
         if let entry = trackingEntry, link.matches(entry) {
             if link.entryId == nil { calendarSourcedTimer?.entryId = entry.id }
-            return calendarSourcedTimer
+            return
         }
-        if meetingLinkAwaitsFirstLoad { return nil }
-        let paused = link.entryId != nil && pausedState?.entryId == link.entryId
-        let notSeenYet = link.entryId == nil
-        if (paused || notSeenYet), now < link.eventEnd { return nil }
+        let waiting = link.entryId == nil || pausedState?.entryId == link.entryId
+        if waiting, now < link.eventEnd { return }
         calendarSourcedTimer = nil
-        return nil
     }
 
     /// Re-evaluate whether the post-meeting reminder should be showing.
-    /// Runs on the 30s soft-refresh cadence. Fires the overage
-    /// notification once per event.
+    /// Runs on the 30-second tick and as each refresh lands. Fires the
+    /// overage notification once per event.
     @MainActor
     func updatePostMeetingReminder(now: Date = Date()) {
         // The meeting's own entry must be the one running. Stopped,
         // paused, or switched — externally or in-app — means there's
         // nothing to remind about right now.
-        guard let source = liveMeetingLink(now: now) else {
+        reconcileMeetingLink(now: now)
+        guard let source = calendarSourceForCurrentTimer else {
             clearPostMeetingReminder()
             return
         }
@@ -2536,8 +2526,9 @@ final class TimeComparisonViewModel {
         // over-running timer too), the reminder stays quiet and its
         // notification is deferred. It surfaces on a later tick if the
         // prompt passes or is dismissed with the overage still live.
-        // `updateMeetingPrompt` runs earlier on the same tick, so the
-        // prompt state read here is current.
+        // On the tick `updateMeetingPrompt` runs just before this, so
+        // the prompt state read here is current; after a refresh it is
+        // at most one tick old.
         guard postMeetingRemindersEnabled(),
               activeMeetingPrompt == nil,
               !postMeetingDismissedIds.contains(source.eventId) else {
@@ -2578,13 +2569,10 @@ final class TimeComparisonViewModel {
     /// round-trip `commitTimerMove` wraps around it.
     @MainActor
     func settlePostMeetingReminderForMove(_ move: PendingTimerMove) {
-        guard let source = calendarSourcedTimer else { return }
-        if let entryId = source.entryId {
-            guard move.sourceEntryId == entryId else { return }
-        } else {
-            guard move.sourceProjectId == source.projectId,
-                  move.sourceTaskId == source.taskId else { return }
-        }
+        guard let source = calendarSourcedTimer,
+              source.matches(entryId: move.sourceEntryId,
+                             projectId: move.sourceProjectId,
+                             taskId: move.sourceTaskId) else { return }
         postMeetingDismissedIds.insert(source.eventId)
         calendarSourcedTimer?.reminderSettled = true
         clearPostMeetingReminder()
@@ -2613,7 +2601,7 @@ final class TimeComparisonViewModel {
     /// the panel bar carries the Move action; this catches the eye.
     @MainActor
     private func sendPostMeetingNotification(for source: CalendarSourcedTimer) {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        if RuntimeEnvironment.isRunningTests { return }
         let content = UNMutableNotificationContent()
         content.title = "Meeting ended — timer still running"
         content.body = "\(source.eventTitle) is over. Open Yield to move the extra time."
@@ -2661,7 +2649,7 @@ final class TimeComparisonViewModel {
         // No-op under XCTest so unit tests can drive
         // `checkBookedHoursReached` without scheduling real
         // user-visible notifications.
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        if RuntimeEnvironment.isRunningTests { return }
         let content = UNMutableNotificationContent()
         content.title = "Time's up!"
         let hours = project.bookedHours == project.bookedHours.rounded()
@@ -3572,13 +3560,17 @@ final class TimeComparisonViewModel {
                 stopElapsedTimer()
             }
 
+            // First load after a relaunch: pick the saved meeting link
+            // back up, now that there is data to judge it against.
+            if !hasSeenInitialTrackingState, calendarSourcedTimer == nil {
+                restoreMeetingLink()
+            }
             detectExternalTimerChange()
             // Re-judge the meeting link against what just loaded, not
             // up to 30 seconds later: a stop followed straight away by
             // a restart of the same entry must not slip between ticks
             // and carry the meeting along with it.
             updatePostMeetingReminder()
-            updateMenuBarMeetingStatus()
     }
 
     /// Lightweight refresh: fetches today's time entries only, merges with cached
@@ -4081,8 +4073,10 @@ extension TimeComparisonViewModel {
         calendarSourcedTimer: CalendarSourcedTimer? = nil,
         idleAlertState: IdleAlertState? = nil,
         lastUpdated: Date? = nil,
-        serviceErrors: [ServiceError]? = nil
+        serviceErrors: [ServiceError]? = nil,
+        meetingCountdownMode: MeetingCountdownMode? = nil
     ) {
+        if let meetingCountdownMode { self.meetingCountdownMode = meetingCountdownMode }
         if let serviceErrors { self.serviceErrors = serviceErrors }
         if let lastUpdated { self.lastUpdated = lastUpdated }
         if let pausedState { self.pausedState = pausedState }

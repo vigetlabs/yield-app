@@ -15,9 +15,7 @@ final class MeetingTimerLinkStore {
     /// and a view model built by any test would otherwise overwrite a
     /// live link. Tests that cover persistence pass a scratch suite.
     static let shared = MeetingTimerLinkStore(
-        defaults: ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
-            ? .standard
-            : nil
+        defaults: RuntimeEnvironment.isRunningTests ? nil : .standard
     )
 
     private let defaults: UserDefaults?
