@@ -18,6 +18,12 @@ enum DefaultsKey {
     /// Selected `MenuBarStyle` raw value — which graphic the menu bar
     /// item draws. `menuBarLabelMode` (the text) is a separate axis.
     static let menuBarStyle = "menuBarStyle"
+    /// `MeetingCountdownMode` raw value: whether the menu bar shows the
+    /// next meeting beside the timer graphic, with or without titles.
+    static let meetingCountdownMode = "meetingCountdownMode"
+    /// How many characters of a meeting's title the menu bar countdown
+    /// shows before cutting it with an ellipsis.
+    static let meetingCountdownTitleLength = "meetingCountdownTitleLength"
     static let idleDetectionEnabled = "idleDetectionEnabled"
     static let idleMinutes = "idleMinutes"
     /// Whether externally-triggered timer starts/stops (e.g. from the

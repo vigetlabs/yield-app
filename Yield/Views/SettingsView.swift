@@ -113,15 +113,14 @@ struct SettingsCardStack: View {
         // System: the sections are bands that run edge to edge, so
         // there is no gap between them and no margin around them.
         VStack(spacing: SettingsStyle.refreshed ? 0 : 12) {
-            AboutCard()
-            // Account + Calendar stack full-width. They were
-            // 50/50 side-by-side, but the Calendar card's
-            // content (prompt toggle, connect states) outgrew
-            // the Account card and the mismatched heights read
-            // as broken.
+            // Account leads: nothing else works until Harvest is
+            // connected. Then the app's own housekeeping, how it looks,
+            // the calendar, how it tracks, and the two lists last.
             AccountCard(oAuthService: oAuthService, onDismiss: onDismiss)
+            AboutCard()
+            PreferencesCard(section: .display)
             GoogleCalendarCard()
-            PreferencesCard()
+            PreferencesCard(section: .tracking)
             FavoritesCard(allProjects: allProjects, isLoadingProjects: isLoadingProjects)
             MutedMeetingsCard()
         }

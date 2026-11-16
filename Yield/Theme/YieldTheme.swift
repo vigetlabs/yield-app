@@ -2,7 +2,7 @@ import AppKit
 import Observation
 import SwiftUI
 
-/// The app's selectable look. Settings → Preferences → Theme.
+/// The app's selectable look. Settings → Display → Theme.
 ///
 /// A theme owns the *typography and metrics* — font families, the
 /// sizes behind each preset, row heights, corner radii. The color

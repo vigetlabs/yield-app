@@ -108,3 +108,62 @@ extension View {
         }
     }
 }
+
+// MARK: - Shared rows
+
+/// Settings row that binds a string-backed enum to a `DropdownPicker`.
+/// The picker is keyed by `Int` tags so we use each case's `allCases`
+/// index as the id.
+@MainActor
+func settingsEnumPickerRow<T: RawRepresentable>(
+    icon: String,
+    label: String,
+    cases: [T],
+    selectedRawValue: String,
+    title: (T) -> String,
+    onSelect: @escaping (String) -> Void
+) -> some View where T.RawValue == String {
+    // `title` was `KeyPath<T, String>` until a launch crash on
+    // macOS 14.6.1 (`EXC_BREAKPOINT` in `AnyKeyPath` equality)
+    // pushed us off generic-context KeyPaths — closures avoid
+    // the runtime's KeyPath cache.
+    let items = cases.enumerated().map { (id: $0.offset, title: title($0.element)) }
+    let selectedId = cases.firstIndex { $0.rawValue == selectedRawValue } ?? 0
+
+    return HStack(spacing: 8) {
+        Image(systemName: icon)
+            .settingsRowIcon()
+        Text(label)
+            .font(YieldFonts.settingsLabel())
+            .foregroundStyle(YieldColors.textPrimary)
+        Spacer()
+        DropdownPicker(
+            label: label,
+            placeholder: "Select",
+            items: items,
+            selectedId: selectedId
+        ) { id in
+            guard cases.indices.contains(id) else { return }
+            onSelect(cases[id].rawValue)
+        }
+        .frame(width: YieldDimensions.settingsRowControlWidth)
+    }
+    .settingsRowPadding()
+}
+
+/// Icon, label, and a switch.
+@MainActor
+func settingsToggleRow(icon: String, label: String, isOn: Binding<Bool>) -> some View {
+    HStack(spacing: 8) {
+        Image(systemName: icon)
+            .settingsRowIcon()
+        Text(label)
+            .font(YieldFonts.settingsLabel())
+            .foregroundStyle(YieldColors.textPrimary)
+        Spacer()
+        // Labelled for VoiceOver; `settingsSwitch` hides it visually.
+        Toggle(label, isOn: isOn)
+            .settingsSwitch()
+    }
+    .settingsRowPadding()
+}

@@ -16,6 +16,11 @@ struct GoogleCalendarCard: View {
     /// Post-meeting overage reminders — the bookend nudge when a
     /// calendar-started timer is still running past the event's end.
     @AppStorage(DefaultsKey.postMeetingRemindersEnabled) private var postMeetingRemindersEnabled = true
+    /// The menu bar's next-meeting countdown, and how much of a title it
+    /// keeps. Here rather than with the menu bar's other settings: they
+    /// are about the calendar, and only exist while it is connected.
+    @AppStorage(DefaultsKey.meetingCountdownMode) private var meetingCountdownMode: String = MeetingCountdownMode.default.rawValue
+    @AppStorage(DefaultsKey.meetingCountdownTitleLength) private var meetingTitleLength = MeetingCountdown.defaultTitleLength
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -57,18 +62,12 @@ struct GoogleCalendarCard: View {
                 // Meeting-start timer prompts: when an event begins,
                 // Yield nudges (notification + a bar above the timer)
                 // to start or switch a timer for it.
-                HStack(spacing: 10) {
-                    Image(systemName: "calendar.badge.clock")
-                        .settingsRowIcon(size: 11)
-                    Text("Meeting timer prompts")
-                        .font(YieldFonts.settingsLabel(weight: .medium))
-                        .foregroundStyle(YieldColors.textPrimary)
-                        .help("When a calendar event starts, Yield offers to start a timer for it — including moving the minutes since the event began off the running timer.")
-                    Spacer()
-                    Toggle("Meeting timer prompts", isOn: $meetingPromptsEnabled)
-                        .settingsSwitch()
-                }
-                .settingsRowPadding()
+                settingsToggleRow(
+                    icon: "calendar.badge.clock",
+                    label: "Meeting timer prompts",
+                    isOn: $meetingPromptsEnabled
+                )
+                .help("When a calendar event starts, Yield offers to start a timer for it — including moving the minutes since the event began off the running timer.")
 
                 SettingsRowDivider()
 
@@ -76,20 +75,26 @@ struct GoogleCalendarCard: View {
                 // calendar event is still running past the event's end
                 // (by the idle-detection threshold), Yield nudges to
                 // move the overage.
-                HStack(spacing: 10) {
-                    Image(systemName: "calendar.badge.exclamationmark")
-                        .settingsRowIcon(size: 11)
-                    Text("Post-meeting reminders")
-                        .font(YieldFonts.settingsLabel(weight: .medium))
-                        .foregroundStyle(YieldColors.textPrimary)
-                        .help("When a timer you started from a calendar event keeps running past the event's end, Yield offers to move the extra time to another timer.")
-                    Spacer()
-                    Toggle("Post-meeting reminders", isOn: $postMeetingRemindersEnabled)
-                        .settingsSwitch()
-                }
-                .settingsRowPadding()
+                settingsToggleRow(
+                    icon: "calendar.badge.exclamationmark",
+                    label: "Post-meeting reminders",
+                    isOn: $postMeetingRemindersEnabled
+                )
+                .help("When a timer you started from a calendar event keeps running past the event's end, Yield offers to move the extra time to another timer.")
 
                 SettingsRowDivider()
+
+                // Next meeting beside the timer graphic
+                meetingCountdownRow
+
+                SettingsRowDivider()
+
+                // Only titles get shortened — nothing to tune without them.
+                if meetingCountdownMode == MeetingCountdownMode.titleAndTime.rawValue {
+                    meetingTitleLengthRow
+
+                    SettingsRowDivider()
+                }
 
                 if showGoogleDisconnectConfirm {
                     InlineConfirmationRow(
@@ -153,5 +158,78 @@ struct GoogleCalendarCard: View {
             }
         }
         .settingsCard()
+    }
+
+    // MARK: - Menu bar meetings
+
+    private var meetingCountdownRow: some View {
+        settingsEnumPickerRow(
+            icon: "hourglass",
+            label: "Menu bar meetings",
+            cases: MeetingCountdownMode.allCases,
+            selectedRawValue: meetingCountdownMode,
+            title: { $0.label }
+        ) { meetingCountdownMode = $0 }
+        .help("Shows your next meeting in the menu bar and counts down to it. In a meeting it shows how long is left; if a meeting's timer is still running afterwards, how long ago it ended. Time only leaves titles out, for screen sharing.")
+    }
+
+    /// "Shorten titles to [−] 20 [+] characters": how much of a meeting's
+    /// title the menu bar keeps. The buttons step by five; the field
+    /// takes any number in range for finer tuning.
+    private var meetingTitleLengthRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "textformat.size")
+                .settingsRowIcon()
+
+            Text("Shorten titles to")
+                .font(YieldFonts.settingsLabel())
+                .foregroundStyle(YieldColors.textPrimary)
+
+            Spacer()
+
+            titleLengthStepButton("minus", by: -MeetingCountdown.titleLengthStep)
+                .help("Show fewer characters")
+
+            TextField("", value: $meetingTitleLength, format: .number)
+                .font(YieldFonts.settingsValue)
+                .foregroundStyle(YieldColors.textPrimary)
+                .textFieldStyle(.plain)
+                .frame(width: SettingsStyle.refreshed ? 34 : 26)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 3)
+                .background(YieldColors.background)
+                .yieldBorder(radius: YieldRadius.button)
+                .onChange(of: meetingTitleLength) { _, newValue in
+                    let clamped = MeetingCountdown.clampedTitleLength(newValue)
+                    if clamped != newValue { meetingTitleLength = clamped }
+                }
+
+            titleLengthStepButton("plus", by: MeetingCountdown.titleLengthStep)
+                .help("Show more characters")
+
+            Text("characters")
+                .font(YieldFonts.settingsCaption)
+                .foregroundStyle(YieldColors.textSecondary)
+        }
+        .settingsRowPadding()
+    }
+
+    private func titleLengthStepButton(_ symbol: String, by delta: Int) -> some View {
+        let target = MeetingCountdown.clampedTitleLength(meetingTitleLength + delta)
+        return Button {
+            meetingTitleLength = target
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(YieldColors.textSecondary)
+                .frame(width: 22, height: 22)
+                .background(YieldColors.background)
+                .yieldBorder(radius: YieldRadius.button)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(target == meetingTitleLength)
+        .opacity(target == meetingTitleLength ? 0.4 : 1)
     }
 }

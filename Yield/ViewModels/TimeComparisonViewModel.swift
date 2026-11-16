@@ -935,6 +935,54 @@ final class TimeComparisonViewModel {
             ?? MenuBarLabelMode.projectTime.rawValue
         let newMode = MenuBarLabelMode(rawValue: rawMode) ?? .projectTime
         if newMode != menuBarLabelMode { menuBarLabelMode = newMode }
+
+        // The countdown's own setting lives in defaults: re-judge it
+        // whenever they change.
+        updateMenuBarMeetingStatus()
+    }
+
+    // MARK: - Menu bar meeting countdown
+
+    /// What the menu bar says about the calendar beside the timer
+    /// graphic, or nil for nothing. Stored rather than computed: its
+    /// wording depends on the clock, and the menu bar only redraws
+    /// when something observable changes. `updateMenuBarMeetingStatus`
+    /// re-derives it on the 30-second tick and whenever its inputs
+    /// change, and assigns only when the text actually differs.
+    private(set) var menuBarMeetingStatus: MenuBarMeetingStatus? = nil
+
+    /// Setting seam: production reads the user's choice; tests inject
+    /// a fixed mode so the real preference can't leak in.
+    @ObservationIgnored var meetingCountdownMode: () -> MeetingCountdownMode = {
+        MeetingCountdownMode(
+            rawValue: UserDefaults.standard.string(forKey: DefaultsKey.meetingCountdownMode) ?? ""
+        ) ?? .default
+    }
+
+    /// "Shorten titles to": same seam shape as the mode.
+    @ObservationIgnored var meetingCountdownTitleLength: () -> Int = {
+        let stored = UserDefaults.standard.integer(forKey: DefaultsKey.meetingCountdownTitleLength)
+        return stored > 0 ? stored : MeetingCountdown.defaultTitleLength
+    }
+
+    @MainActor
+    func updateMenuBarMeetingStatus(now: Date = Date()) {
+        let mode = meetingCountdownMode()
+        var status: MenuBarMeetingStatus? = nil
+        if mode != .off {
+            // A timer that was started from a meeting and is still
+            // running after it — the link's own end time, so this
+            // works even when the calendar cache has gone stale.
+            let overrunSince = calendarSourceForCurrentTimer?.eventEnd
+            status = MeetingCountdown.status(
+                events: cachedCalendarEvents ?? [],
+                now: now,
+                mode: mode,
+                overrunSince: overrunSince,
+                titleLength: meetingCountdownTitleLength()
+            )
+        }
+        if status != menuBarMeetingStatus { menuBarMeetingStatus = status }
     }
 
     var menuBarLabel: String {
@@ -1277,6 +1325,7 @@ final class TimeComparisonViewModel {
             Task { @MainActor in
                 self?.updateMeetingPrompt()
                 self?.updatePostMeetingReminder()
+                self?.updateMenuBarMeetingStatus()
             }
         }
 
@@ -1377,6 +1426,7 @@ final class TimeComparisonViewModel {
         activePostMeetingReminder = nil
         postMeetingDismissedIds.removeAll()
         postMeetingNotifiedIds.removeAll()
+        menuBarMeetingStatus = nil
         notifiedProjectIds.removeAll()
         trackingSessionBaseline.removeAll()
         currentWeekStart = nil
@@ -1921,6 +1971,7 @@ final class TimeComparisonViewModel {
         guard AppState.shared.googleAuthService.isAuthenticated else {
             cachedCalendarEvents = nil
             calendarEventsFetchedAt = nil
+            updateMenuBarMeetingStatus()
             return
         }
         guard calendarCacheIsStale else { return }
@@ -1928,6 +1979,7 @@ final class TimeComparisonViewModel {
         // Fresh events can open (or close) a prompt window — a meeting
         // added minutes ago should prompt on this same cycle.
         updateMeetingPrompt()
+        updateMenuBarMeetingStatus()
     }
 
     // MARK: - Meeting-start timer prompts
@@ -3516,6 +3568,7 @@ final class TimeComparisonViewModel {
             // a restart of the same entry must not slip between ticks
             // and carry the meeting along with it.
             updatePostMeetingReminder()
+            updateMenuBarMeetingStatus()
     }
 
     /// Lightweight refresh: fetches today's time entries only, merges with cached
@@ -4020,6 +4073,7 @@ extension TimeComparisonViewModel {
         lastUpdated: Date? = nil,
         serviceErrors: [ServiceError]? = nil
     ) {
+        if let serviceErrors { self.serviceErrors = serviceErrors }
         if let lastUpdated { self.lastUpdated = lastUpdated }
         if let pausedState { self.pausedState = pausedState }
         if let idleAlertState { self.idleAlertState = idleAlertState }
@@ -4054,4 +4108,3 @@ extension TimeComparisonViewModel {
     @MainActor
     var _notifiedProjectIdsForTesting: Set<String> { notifiedProjectIds }
 }
-        if let serviceErrors { self.serviceErrors = serviceErrors }

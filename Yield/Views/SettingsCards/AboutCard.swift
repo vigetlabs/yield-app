@@ -1,10 +1,33 @@
+import ServiceManagement
 import SwiftUI
 
-/// Version + check-for-updates + reveal-logs row.
+/// The app itself: launch at login, version + check-for-updates, and
+/// reveal-logs.
 struct AboutCard: View {
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsCardSectionHeader("About")
+            SettingsCardSectionHeader("General")
+
+            settingsToggleRow(
+                icon: "sunrise",
+                label: "Launch at Login",
+                isOn: $launchAtLogin
+            )
+            .onChange(of: launchAtLogin) { _, newValue in
+                do {
+                    if newValue {
+                        try SMAppService.mainApp.register()
+                    } else {
+                        try SMAppService.mainApp.unregister()
+                    }
+                } catch {
+                    launchAtLogin = SMAppService.mainApp.status == .enabled
+                }
+            }
+
+            SettingsRowDivider()
 
             // Version + Check for Updates inline so the action sits
             // alongside the info it acts on.

@@ -45,6 +45,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
             DefaultsKey.idleMinutes: 10,
             DefaultsKey.menuBarLabelMode: MenuBarLabelMode.projectTime.rawValue,
             DefaultsKey.menuBarStyle: MenuBarStyle.default.rawValue,
+            DefaultsKey.meetingCountdownMode: MeetingCountdownMode.default.rawValue,
+            DefaultsKey.meetingCountdownTitleLength: MeetingCountdown.defaultTitleLength,
             DefaultsKey.appearanceMode: AppearanceMode.default.rawValue,
             DefaultsKey.uiTheme: YieldTheme.default.rawValue,
             DefaultsKey.timerChangeHUDEnabled: true,
@@ -204,6 +206,8 @@ struct YieldApp: App {
         var graphic: MenuBarGraphicState? = nil
         var style: MenuBarStyle = .classic
         var isDark: Bool = false
+        /// The meeting countdown appended after the graphic, if any.
+        var meeting: MenuBarMeetingStatus? = nil
     }
 
     /// Process-global cache for the composed menu bar image. SwiftUI re-runs
@@ -247,7 +251,12 @@ struct YieldApp: App {
             if !state.isTimeOff || state.isStale { graphic = state }
         }
 
+        // Reading it here makes the label closure depend on it, so the
+        // item redraws as the countdown ticks.
+        let meeting = viewModel.menuBarMeetingStatus
+
         var key = MenuBarImageKey(label: label, icon: icon, mode: mode)
+        key.meeting = meeting
         if let graphic {
             MenuBarAppearance.shared.attachIfNeeded()
             key.graphic = graphic
@@ -258,7 +267,7 @@ struct YieldApp: App {
             return cached.image
         }
 
-        let image: NSImage
+        var image: NSImage
         if let graphic {
             image = MenuBarGraphicRenderer.render(
                 style: style,
@@ -269,6 +278,11 @@ struct YieldApp: App {
             )
         } else {
             image = renderMenuBarImage(label: label, icon: icon, mode: mode)
+        }
+        if let meeting {
+            image = MenuBarMeetingSegment.append(
+                meeting, to: image, template: graphic == nil, isDark: key.isDark
+            )
         }
         Self.cache = (key, image)
         return image
