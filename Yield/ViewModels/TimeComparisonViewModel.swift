@@ -967,14 +967,16 @@ final class TimeComparisonViewModel {
     }
 
     func menuBarMeetingStatus(now: Date) -> MenuBarMeetingStatus? {
-        MeetingCountdown.status(
+        // A timer that was started from a meeting and is still running
+        // after it — the link's own title and end time, so this works
+        // even when the calendar cache has gone stale.
+        let linked = calendarSourceForCurrentTimer
+        return MeetingCountdown.status(
             events: cachedCalendarEvents ?? [],
             now: now,
             mode: meetingCountdownMode,
-            // A timer that was started from a meeting and is still
-            // running after it — the link's own end time, so this
-            // works even when the calendar cache has gone stale.
-            overrunSince: calendarSourceForCurrentTimer?.eventEnd,
+            overrunSince: linked?.eventEnd,
+            overrunTitle: linked?.eventTitle ?? "",
             titleLength: meetingCountdownTitleLength
         )
     }
@@ -1114,6 +1116,7 @@ final class TimeComparisonViewModel {
         var state = MenuBarGraphicState()
         state.isStale = !serviceErrors.isEmpty || hasConnectivityError
         state.meetingDue = activeMeetingPrompt != nil
+        state.meetingTimerRunning = calendarSourceForCurrentTimer != nil
         guard lastUpdated != nil else { return state }
 
         if let tracking = projectStatuses.first(where: { $0.isTracking }) {

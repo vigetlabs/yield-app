@@ -63,6 +63,15 @@ struct MenuBarGraphicState: Equatable {
     /// A calendar meeting is in its prompt window, waiting to be
     /// logged.
     var meetingDue = false
+    /// The running timer is tied to a meeting — started from one and
+    /// still on its entry.
+    var meetingTimerRunning = false
+
+    /// The blue dot on the graphic: a meeting wants a timer, or has
+    /// one. The dot, not coloured text, is the menu bar's meeting
+    /// signal — a small solid shape holds up on a translucent bar
+    /// where tinted text doesn't.
+    var showsMeetingBadge: Bool { meetingDue || meetingTimerRunning }
     /// Monday…Friday, each day's logged hours as a 0...1 fraction of
     /// the daily target.
     var weekFractions: [Double] = []

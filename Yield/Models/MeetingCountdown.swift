@@ -68,7 +68,7 @@ enum MeetingCountdown {
     /// - Parameters:
     ///   - events: today's events (any order).
     ///   - overrunSince: the end of the meeting whose timer is still
-    ///     running, if there is one.
+    ///     running, if there is one — and `overrunTitle`, its name.
     ///   - titleLength: characters of the title to keep.
     ///
     /// Every event counts, whatever kind it is — a focus block is as
@@ -80,6 +80,7 @@ enum MeetingCountdown {
         now: Date,
         mode: MeetingCountdownMode,
         overrunSince: Date? = nil,
+        overrunTitle: String = "",
         titleLength: Int = defaultTitleLength
     ) -> MenuBarMeetingStatus? {
         guard mode != .off else { return nil }
@@ -90,8 +91,16 @@ enum MeetingCountdown {
             .filter { $0.start > now }
             .min(by: { $0.start < $1.start })
 
+        /// "Design review " ahead of the time, when titles are shown.
+        func titled(_ name: String, _ time: String) -> String {
+            let title = shortTitle(name, limit: titleLength)
+            return (mode == .titleAndTime && !title.isEmpty) ? "\(title) \(time)" : time
+        }
+
         if let current {
-            var text = "ends in \(until(current.end, from: now))"
+            // Named, like an upcoming one: "ends in 50m" on its own
+            // doesn't say what is ending.
+            var text = titled(current.summary, "ends in \(until(current.end, from: now))")
             if let next, next.start.timeIntervalSince(now) <= nextMentionWindow {
                 text += " · next in \(until(next.start, from: now))"
             }
@@ -105,14 +114,17 @@ enum MeetingCountdown {
         // meeting that is merely later, but not one about to begin.
         if let overrunSince, now >= overrunSince, !nextIsImminent {
             let minutes = max(1, Int(now.timeIntervalSince(overrunSince) / 60))
-            return MenuBarMeetingStatus(text: "ended \(span(minutes: minutes)) ago", tone: .overrun)
+            return MenuBarMeetingStatus(
+                text: titled(overrunTitle, "ended \(span(minutes: minutes)) ago"),
+                tone: .overrun
+            )
         }
 
         guard let next else { return nil }
-        let time = "in \(until(next.start, from: now))"
-        let title = shortTitle(next.summary, limit: titleLength)
-        let text = (mode == .titleAndTime && !title.isEmpty) ? "\(title) \(time)" : time
-        return MenuBarMeetingStatus(text: text, tone: nextIsImminent ? .imminent : .plain)
+        return MenuBarMeetingStatus(
+            text: titled(next.summary, "in \(until(next.start, from: now))"),
+            tone: nextIsImminent ? .imminent : .plain
+        )
     }
 
     /// "1h 22m", "45m", "2h". Rounded up, so a meeting 30 seconds away

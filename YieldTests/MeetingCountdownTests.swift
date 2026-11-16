@@ -24,7 +24,10 @@ final class MeetingCountdownTests: XCTestCase {
         mode: MeetingCountdownMode = .titleAndTime,
         overrunSince: Date? = nil
     ) -> MenuBarMeetingStatus? {
-        MeetingCountdown.status(events: events, now: now, mode: mode, overrunSince: overrunSince)
+        MeetingCountdown.status(
+            events: events, now: now, mode: mode,
+            overrunSince: overrunSince, overrunTitle: "1:1 Sam"
+        )
     }
 
     // MARK: - Upcoming
@@ -78,9 +81,14 @@ final class MeetingCountdownTests: XCTestCase {
 
     // MARK: - In a meeting
 
-    func test_inAMeeting_showsTimeLeft() {
+    func test_inAMeeting_namesIt_andShowsTimeLeft() {
         let s = status([event("1:1 Sam", startsIn: -18, lasting: 30)])
-        XCTAssertEqual(s, MenuBarMeetingStatus(text: "ends in 12m", tone: .plain))
+        XCTAssertEqual(s, MenuBarMeetingStatus(text: "1:1 Sam ends in 12m", tone: .plain))
+    }
+
+    func test_inAMeeting_timeOnly_leavesTheTitleOut() {
+        let s = status([event("1:1 Sam", startsIn: -18, lasting: 30)], mode: .timeOnly)
+        XCTAssertEqual(s?.text, "ends in 12m")
     }
 
     func test_inAMeeting_mentionsANextOneThatFollowsClosely() {
@@ -88,7 +96,7 @@ final class MeetingCountdownTests: XCTestCase {
             event("1:1 Sam", startsIn: -18, lasting: 30),
             event("1:1 Alex", startsIn: 20),
         ])
-        XCTAssertEqual(s?.text, "ends in 12m · next in 20m")
+        XCTAssertEqual(s?.text, "1:1 Sam ends in 12m · next in 20m")
     }
 
     func test_inAMeeting_doesNotMentionADistantNextOne() {
@@ -96,14 +104,19 @@ final class MeetingCountdownTests: XCTestCase {
             event("1:1 Sam", startsIn: -18, lasting: 30),
             event("Review", startsIn: 120),
         ])
-        XCTAssertEqual(s?.text, "ends in 12m")
+        XCTAssertEqual(s?.text, "1:1 Sam ends in 12m")
     }
 
     // MARK: - Overrun
 
     func test_overrun_whenAMeetingsTimerOutlivesIt() {
         let s = status([], overrunSince: now.addingTimeInterval(-12 * 60))
-        XCTAssertEqual(s, MenuBarMeetingStatus(text: "ended 12m ago", tone: .overrun))
+        XCTAssertEqual(s, MenuBarMeetingStatus(text: "1:1 Sam ended 12m ago", tone: .overrun))
+    }
+
+    func test_overrun_timeOnly_leavesTheTitleOut() {
+        let s = status([], mode: .timeOnly, overrunSince: now.addingTimeInterval(-12 * 60))
+        XCTAssertEqual(s?.text, "ended 12m ago")
     }
 
     func test_overrun_outranksAMeetingThatIsMerelyLater() {
@@ -118,7 +131,7 @@ final class MeetingCountdownTests: XCTestCase {
 
     func test_overrun_yieldsToAMeetingInProgress() {
         let s = status([event("Review", startsIn: -5)], overrunSince: now.addingTimeInterval(-12 * 60))
-        XCTAssertEqual(s?.text, "ends in 25m")
+        XCTAssertEqual(s?.text, "Review ends in 25m")
     }
 
     // MARK: - What it leaves out
@@ -139,7 +152,7 @@ final class MeetingCountdownTests: XCTestCase {
 
     func test_duringAFocusBlock_itsEndAndTheNextMeetingShow() {
         let s = status([event("Focus time", startsIn: -30, lasting: 50), event("Review", startsIn: 25)])
-        XCTAssertEqual(s?.text, "ends in 20m · next in 25m")
+        XCTAssertEqual(s?.text, "Focus time ends in 20m · next in 25m")
     }
 
     // MARK: - Drawing
@@ -168,11 +181,13 @@ final class MeetingCountdownTests: XCTestCase {
         running.weekFractions = [1, 0.94, 1, 0.55, 0]; running.todayIndex = 3
         var due = running
         due.meetingDue = true
+        var inMeeting = running
+        inMeeting.meetingTimerRunning = true
         let rows: [(name: String, state: MenuBarGraphicState, status: MenuBarMeetingStatus)] = [
             ("Later", running, .init(text: "AMC kickoff in 1h 22m")),
             ("Starting", due, .init(text: "AMC kickoff in 2m", tone: .imminent)),
-            ("In a meeting", running, .init(text: "ends in 12m · next in 20m")),
-            ("Overrun", running, .init(text: "ended 12m ago", tone: .overrun)),
+            ("In a meeting", inMeeting, .init(text: "1:1 Sam ends in 12m · next in 20m")),
+            ("Overrun", inMeeting, .init(text: "1:1 Sam ended 12m ago", tone: .overrun)),
             ("Time only", running, .init(text: "in 1h 22m")),
         ]
         try MenuBarPreviewSheet.write(

@@ -14,7 +14,7 @@ enum MenuBarMeetingSegment {
 
     /// A template base (the classic style) stays a template: the
     /// countdown is drawn in black, macOS colors it, and the tones
-    /// then differ only by glyph.
+    /// then differ only by the glyph's shape.
     ///
     /// - Parameter isDark: which ink the bar needs. Ignored for a
     ///   template.
@@ -24,15 +24,21 @@ enum MenuBarMeetingSegment {
         isDark: Bool
     ) -> NSImage {
         let template = base.isTemplate
-        let color: NSColor
+        // The words are always in the bar's ordinary ink: tinted text
+        // on a translucent menu bar is hard to read. The tone colours
+        // the glyph only.
+        let textColor: NSColor
+        let glyphColor: NSColor
         if template {
-            color = .black
+            textColor = .black
+            glyphColor = .black
         } else {
             let palette = MenuBarGraphicRenderer.Palette(isDark: isDark)
+            textColor = palette.ink
             switch status.tone {
-            case .plain:    color = palette.ink
-            case .imminent: color = palette.meeting
-            case .overrun:  color = palette.nearLimit
+            case .plain:    glyphColor = palette.ink
+            case .imminent: glyphColor = palette.meeting
+            case .overrun:  glyphColor = palette.nearLimit
             }
         }
 
@@ -42,7 +48,7 @@ enum MenuBarMeetingSegment {
             .withSymbolConfiguration(config)
         let glyphSize = glyph?.size ?? .zero
 
-        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
         let textSize = (status.text as NSString).size(withAttributes: attrs)
 
         let baseSize = base.size
@@ -58,7 +64,7 @@ enum MenuBarMeetingSegment {
                     x: x, y: (height - glyphSize.height) / 2,
                     width: glyphSize.width, height: glyphSize.height
                 )
-                glyph.tinted(with: color).draw(in: rect)
+                glyph.tinted(with: glyphColor).draw(in: rect)
                 x += glyphSize.width + glyphGap
             }
 

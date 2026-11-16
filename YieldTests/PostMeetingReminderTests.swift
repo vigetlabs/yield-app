@@ -292,6 +292,21 @@ final class PostMeetingReminderTests: XCTestCase {
         XCTAssertEqual(vm.calendarSourcedTimer?.entryId, 7)
     }
 
+    // MARK: - Menu bar dot
+
+    func test_menuBarDot_showsWhileTheRunningTimerIsTiedToAMeeting() {
+        let vm = trackingVM(entry: entry(id: 7))
+        XCTAssertFalse(vm.menuBarGraphicState.showsMeetingBadge)
+
+        arm(vm, endedMinutesAgo: -20)
+        XCTAssertTrue(vm.menuBarGraphicState.meetingTimerRunning)
+        XCTAssertTrue(vm.menuBarGraphicState.showsMeetingBadge)
+
+        // Stopped: the dot goes with the timer.
+        vm.optimisticallyStopEntry(7)
+        XCTAssertFalse(vm.menuBarGraphicState.showsMeetingBadge)
+    }
+
     // MARK: - The link outlives a relaunch
 
     func test_link_isRestoredAfterRelaunch_andStillReminds() {

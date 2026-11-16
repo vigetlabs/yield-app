@@ -173,7 +173,7 @@ enum MenuBarGraphicRenderer {
             drawTimerGlyph(ctx, center: center, timer: state.timer, color: glyphColor)
         }
 
-        if state.meetingDue {
+        if state.showsMeetingBadge {
             drawBadge(ctx, center: CGPoint(x: ringWidth - 2.5, y: barHeight - 3), color: palette.meeting)
         }
     }
@@ -226,7 +226,7 @@ enum MenuBarGraphicRenderer {
         var textColor = palette.ink
         var outlineDashed = false
         var showsProgress = false
-        var badge = state.meetingDue
+        var badge = state.showsMeetingBadge
 
         if state.isStale {
             outlineDashed = true
@@ -368,7 +368,7 @@ enum MenuBarGraphicRenderer {
             fillRounded(ctx, CGRect(x: x, y: bottom, width: weekBarWidth, height: height), color: color)
         }
 
-        if state.meetingDue {
+        if state.showsMeetingBadge {
             drawBadge(ctx, center: CGPoint(x: weekBarsWidth - 2.5, y: barHeight - 3), color: palette.meeting)
         }
     }

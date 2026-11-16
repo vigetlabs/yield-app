@@ -14,7 +14,11 @@ struct ForecastNotesIcon: View {
     @State private var hoverTask: Task<Void, Never>?
 
     var body: some View {
-        Image(systemName: "note.text")
+        // A speech bubble, not `note.text`: that symbol is a box with a
+        // header band, which at this size is the calendar glyph the
+        // meeting marks use. These are notes someone left on the
+        // booking, so a bubble says it better anyway.
+        Image(systemName: "text.bubble")
             .font(.system(size: 14))
             .foregroundStyle(YieldColors.textSecondary)
             .onHover { hovering in
