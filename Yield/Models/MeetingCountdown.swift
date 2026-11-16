@@ -98,11 +98,12 @@ enum MeetingCountdown {
         }
 
         if let current {
-            // Named, like an upcoming one: "ends in 50m" on its own
-            // doesn't say what is ending.
-            var text = titled(current.summary, "ends in \(until(current.end, from: now))")
+            // Named, like an upcoming one: "50m left" on its own doesn't
+            // say what is ending. Kept terse — this is the longest line
+            // the menu bar shows, and the two numbers are what get read.
+            var text = titled(current.summary, "\(until(current.end, from: now)) left")
             if let next, next.start.timeIntervalSince(now) <= nextMentionWindow {
-                text += " · next in \(until(next.start, from: now))"
+                text += " · next \(until(next.start, from: now))"
             }
             return MenuBarMeetingStatus(text: text)
         }

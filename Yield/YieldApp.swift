@@ -195,8 +195,10 @@ struct YieldApp: App {
         var graphic: MenuBarGraphicState? = nil
         var style: MenuBarStyle = .classic
         var isDark: Bool = false
-        /// The meeting countdown appended after the graphic, if any.
+        /// The meeting countdown appended after the graphic, if any,
+        /// and the date its calendar glyph shows.
         var meeting: MenuBarMeetingStatus? = nil
+        var meetingDay: Int = 0
     }
 
     /// Process-global cache for the composed menu bar image. SwiftUI re-runs
@@ -246,6 +248,9 @@ struct YieldApp: App {
 
         var key = MenuBarImageKey(label: label, icon: icon, mode: mode)
         key.meeting = meeting
+        if meeting != nil {
+            key.meetingDay = Calendar.current.component(.day, from: Date())
+        }
         if let graphic {
             MenuBarAppearance.shared.attachIfNeeded()
             key.graphic = graphic
@@ -269,7 +274,7 @@ struct YieldApp: App {
             image = renderMenuBarImage(label: label, icon: icon, mode: mode)
         }
         if let meeting {
-            image = MenuBarMeetingSegment.append(meeting, to: image, isDark: key.isDark)
+            image = MenuBarMeetingSegment.append(meeting, to: image, day: key.meetingDay, isDark: key.isDark)
         }
         Self.cache = (key, image)
         return image

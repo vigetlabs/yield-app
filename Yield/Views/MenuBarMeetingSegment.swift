@@ -9,18 +9,21 @@ enum MenuBarMeetingSegment {
     /// Space between the timer graphic and the countdown — wider than
     /// the gaps inside either, so they read as two things.
     private static let leadingGap: CGFloat = 9
-    private static let glyphGap: CGFloat = 4
+    private static let glyphGap: CGFloat = 5
+    private static let glyphPointSize: CGFloat = 15
     private static let font = MenuBarGraphicRenderer.font
 
     /// A template base (the classic style) stays a template: the
     /// countdown is drawn in black, macOS colors it, and the tones
     /// then differ only by the glyph's shape.
     ///
-    /// - Parameter isDark: which ink the bar needs. Ignored for a
-    ///   template.
+    /// - Parameters:
+    ///   - day: today's day of the month, shown in the calendar glyph.
+    ///   - isDark: which ink the bar needs. Ignored for a template.
     static func append(
         _ status: MenuBarMeetingStatus,
         to base: NSImage,
+        day: Int,
         isDark: Bool
     ) -> NSImage {
         let template = base.isTemplate
@@ -42,10 +45,20 @@ enum MenuBarMeetingSegment {
             }
         }
 
-        let symbolName = status.tone == .overrun ? "calendar.badge.exclamationmark" : "calendar"
-        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-        let glyph = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
-            .withSymbolConfiguration(config)
+        // A calendar page showing today's date — the numbered symbols
+        // run 1 to 31 — or the plain calendar where one isn't
+        // available. An overrun keeps its exclamation badge: on a
+        // template image the shape is all that sets it apart.
+        // Drawn larger than the text beside it: at the text's own 12pt
+        // the date inside the page is too small to read. 15pt puts the
+        // page at about 16pt tall, the most the 18pt canvas of the
+        // ring and classic styles allows.
+        let config = NSImage.SymbolConfiguration(pointSize: Self.glyphPointSize, weight: .regular)
+        let symbol = status.tone == .overrun
+            ? NSImage(systemSymbolName: "calendar.badge.exclamationmark", accessibilityDescription: nil)
+            : NSImage(systemSymbolName: "\(day).calendar", accessibilityDescription: nil)
+                ?? NSImage(systemSymbolName: "calendar", accessibilityDescription: nil)
+        let glyph = symbol?.withSymbolConfiguration(config)
         let glyphSize = glyph?.size ?? .zero
 
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]

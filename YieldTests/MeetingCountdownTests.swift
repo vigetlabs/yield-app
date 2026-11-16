@@ -83,12 +83,12 @@ final class MeetingCountdownTests: XCTestCase {
 
     func test_inAMeeting_namesIt_andShowsTimeLeft() {
         let s = status([event("1:1 Sam", startsIn: -18, lasting: 30)])
-        XCTAssertEqual(s, MenuBarMeetingStatus(text: "1:1 Sam ends in 12m", tone: .plain))
+        XCTAssertEqual(s, MenuBarMeetingStatus(text: "1:1 Sam 12m left", tone: .plain))
     }
 
     func test_inAMeeting_timeOnly_leavesTheTitleOut() {
         let s = status([event("1:1 Sam", startsIn: -18, lasting: 30)], mode: .timeOnly)
-        XCTAssertEqual(s?.text, "ends in 12m")
+        XCTAssertEqual(s?.text, "12m left")
     }
 
     func test_inAMeeting_mentionsANextOneThatFollowsClosely() {
@@ -96,7 +96,7 @@ final class MeetingCountdownTests: XCTestCase {
             event("1:1 Sam", startsIn: -18, lasting: 30),
             event("1:1 Alex", startsIn: 20),
         ])
-        XCTAssertEqual(s?.text, "1:1 Sam ends in 12m · next in 20m")
+        XCTAssertEqual(s?.text, "1:1 Sam 12m left · next 20m")
     }
 
     func test_inAMeeting_doesNotMentionADistantNextOne() {
@@ -104,7 +104,7 @@ final class MeetingCountdownTests: XCTestCase {
             event("1:1 Sam", startsIn: -18, lasting: 30),
             event("Review", startsIn: 120),
         ])
-        XCTAssertEqual(s?.text, "1:1 Sam ends in 12m")
+        XCTAssertEqual(s?.text, "1:1 Sam 12m left")
     }
 
     // MARK: - Overrun
@@ -131,7 +131,7 @@ final class MeetingCountdownTests: XCTestCase {
 
     func test_overrun_yieldsToAMeetingInProgress() {
         let s = status([event("Review", startsIn: -5)], overrunSince: now.addingTimeInterval(-12 * 60))
-        XCTAssertEqual(s?.text, "Review ends in 25m")
+        XCTAssertEqual(s?.text, "Review 25m left")
     }
 
     // MARK: - What it leaves out
@@ -152,7 +152,7 @@ final class MeetingCountdownTests: XCTestCase {
 
     func test_duringAFocusBlock_itsEndAndTheNextMeetingShow() {
         let s = status([event("Focus time", startsIn: -30, lasting: 50), event("Review", startsIn: 25)])
-        XCTAssertEqual(s?.text, "Focus time ends in 20m · next in 25m")
+        XCTAssertEqual(s?.text, "Focus time 20m left · next 25m")
     }
 
     // MARK: - Drawing
@@ -162,13 +162,13 @@ final class MeetingCountdownTests: XCTestCase {
 
         let templateBase = NSImage(size: NSSize(width: 40, height: 18), flipped: false) { _ in true }
         templateBase.isTemplate = true
-        let template = MenuBarMeetingSegment.append(status, to: templateBase, isDark: false)
+        let template = MenuBarMeetingSegment.append(status, to: templateBase, day: 16, isDark: false)
         XCTAssertGreaterThan(template.size.width, 40)
         XCTAssertEqual(template.size.height, 18)
         XCTAssertTrue(template.isTemplate)
 
         let coloredBase = NSImage(size: NSSize(width: 40, height: 18), flipped: false) { _ in true }
-        let colored = MenuBarMeetingSegment.append(status, to: coloredBase, isDark: true)
+        let colored = MenuBarMeetingSegment.append(status, to: coloredBase, day: 16, isDark: true)
         XCTAssertFalse(colored.isTemplate)
     }
 
@@ -184,9 +184,9 @@ final class MeetingCountdownTests: XCTestCase {
         var inMeeting = running
         inMeeting.meetingTimerRunning = true
         let rows: [(name: String, state: MenuBarGraphicState, status: MenuBarMeetingStatus)] = [
-            ("Later", running, .init(text: "AMC kickoff in 1h 22m")),
+            ("Later", running, .init(text: "[bizdev] AMC: Pitch Con… in 1h 22m")),
             ("Starting", due, .init(text: "AMC kickoff in 2m", tone: .imminent)),
-            ("In a meeting", inMeeting, .init(text: "1:1 Sam ends in 12m · next in 20m")),
+            ("In a meeting", inMeeting, .init(text: "[bizdev] AMC: Pitch Con… 14m left · next 24m")),
             ("Overrun", inMeeting, .init(text: "1:1 Sam ended 12m ago", tone: .overrun)),
             ("Time only", running, .init(text: "in 1h 22m")),
         ]
@@ -195,12 +195,12 @@ final class MeetingCountdownTests: XCTestCase {
             rowNames: rows.map(\.name),
             styles: [.capsule, .ring],
             labelWidth: 96,
-            cellWidth: 268
+            cellWidth: 400
         ) { row, style, dark in
             let base = MenuBarGraphicRenderer.render(
                 style: style, label: "5:12 / 16:00", state: rows[row].state, labelMode: .projectTime, isDark: dark
             )
-            return MenuBarMeetingSegment.append(rows[row].status, to: base, isDark: dark)
+            return MenuBarMeetingSegment.append(rows[row].status, to: base, day: 16, isDark: dark)
         }
     }
 
