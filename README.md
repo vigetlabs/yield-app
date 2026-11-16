@@ -56,7 +56,7 @@ Unzip, drag Yield to your Applications folder, and launch — it'll take root in
 - 🌗 **Light & dark mode** — pick System, Light, or Dark from Settings. The light palette is tuned for WCAG AA contrast across every accent.
 - 🎯 **Your week, your numbers** — set your weekly hours target in Settings (40 by default). It sets the daily target that the day grid and the menu bar's week bars are measured against.
 - 🚀 **Launch at login** — a switch in Settings → Preferences.
-- 🔄 **Refresh on demand** — Yield keeps itself current, but the gear menu in the bottom-right has a Refresh for when you want it now, next to Settings and Quit.
+- 🔄 **Always current** — Yield refreshes itself: every time you open it, every 30 seconds for the running timer, after anything you do to a timer, and when your Mac wakes or comes back online. There's no refresh button to remember; if a load fails, the error has a Try again.
 
 ## 🔁 Updates
 

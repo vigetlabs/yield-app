@@ -645,6 +645,8 @@ struct MenuBarContentView: View {
                     .foregroundStyle(YieldColors.textSecondary)
                     .font(YieldFonts.label(11))
             }
+
+            RetryLoadButton(viewModel: viewModel, compact: false)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)

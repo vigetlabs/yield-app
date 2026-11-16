@@ -4017,7 +4017,8 @@ extension TimeComparisonViewModel {
         activeMeetingPrompt: CalendarEvent? = nil,
         calendarSourcedTimer: CalendarSourcedTimer? = nil,
         idleAlertState: IdleAlertState? = nil,
-        lastUpdated: Date? = nil
+        lastUpdated: Date? = nil,
+        serviceErrors: [ServiceError]? = nil
     ) {
         if let lastUpdated { self.lastUpdated = lastUpdated }
         if let pausedState { self.pausedState = pausedState }
@@ -4053,3 +4054,4 @@ extension TimeComparisonViewModel {
     @MainActor
     var _notifiedProjectIdsForTesting: Set<String> { notifiedProjectIds }
 }
+        if let serviceErrors { self.serviceErrors = serviceErrors }

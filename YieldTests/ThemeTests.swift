@@ -366,6 +366,23 @@ final class ThemeSnapshotTests: XCTestCase {
                            to: outDir.appendingPathComponent("banner-long-system-\(suffix).png"))
         }
 
+        // A failed load: the warning banner over existing data, and
+        // its "Try again".
+        let warnVM = Self.makeBannerViewModel()
+        warnVM._setStateForTesting(serviceErrors: [.init(service: .harvest, message: "Network error")])
+        for theme in [YieldTheme.editorial, .system] {
+            ThemeStore.shared.select(theme)
+            for (appearance, scheme, suffix) in appearances {
+                NSApp.appearance = NSAppearance(named: appearance)
+                let banner = ServiceWarningBanner(viewModel: warnVM)
+                    .frame(width: YieldDimensions.panelWidth)
+                    .background(YieldColors.background)
+                    .environment(\.colorScheme, scheme)
+                try Self.write(banner, to: outDir.appendingPathComponent("warning-\(theme.rawValue)-\(suffix).png"))
+            }
+        }
+        ThemeStore.shared.select(.system)
+
         // A timer tied to a calendar event: mid-meeting, past its end,
         // and with a long task and title to see what gives way.
         func meetingLink(endsIn minutes: Double, title: String) -> TimeComparisonViewModel.CalendarSourcedTimer {

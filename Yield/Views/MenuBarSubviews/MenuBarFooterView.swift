@@ -45,7 +45,7 @@ struct MenuBarFooterView: View {
                 .buttonStyle(.plain)
                 .menuIndicator(.hidden)
                 .fixedSize()
-                .help("Refresh, Settings, Quit")
+                .help("Settings, Quit")
             } else {
                 Menu {
                     menuItems
@@ -81,11 +81,10 @@ struct MenuBarFooterView: View {
     /// will skip filing.
     @ViewBuilder
     private var menuItems: some View {
-        Button("Refresh") {
-            Task { await viewModel.refresh() }
-        }
-        .disabled(viewModel.isLoading)
-
+        // No Refresh here any more: opening the panel already refreshes,
+        // so the item only ever repeated what had just happened. The
+        // one time a manual retry matters — a load that failed — the
+        // error itself now carries a "Try again" (`RetryLoadButton`).
         Button("Settings…") {
             onOpenSettings()
         }
