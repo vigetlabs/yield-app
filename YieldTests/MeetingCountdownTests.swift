@@ -107,6 +107,63 @@ final class MeetingCountdownTests: XCTestCase {
         XCTAssertEqual(s?.text, "1:1 Sam 12m left")
     }
 
+    // MARK: - Overlapping meetings
+
+    func test_insideALongBlock_aMeetingBeforeItsEndIsMentioned_howeverFarOff() {
+        // Three hours of focus time, 20 minutes in, a standup at the
+        // one-hour mark: 40 minutes off, past the usual half hour.
+        let s = status([
+            event("Focus time", startsIn: -20, lasting: 180),
+            event("Standup", startsIn: 40, lasting: 15),
+        ])
+        XCTAssertEqual(s?.text, "Focus time 2h 40m left · next 40m")
+    }
+
+    func test_aMeetingInsideALongerOne_takesOverWhileItRuns() {
+        let s = status([
+            event("Focus time", startsIn: -65, lasting: 180),
+            event("Standup", startsIn: -5, lasting: 15),
+        ])
+        XCTAssertEqual(s?.text, "Standup 10m left")
+    }
+
+    func test_whenTheInnerMeetingEnds_theOuterOneComesBack() {
+        let s = status([
+            event("Focus time", startsIn: -80, lasting: 180),
+            event("Standup", startsIn: -20, lasting: 15),
+        ])
+        XCTAssertEqual(s?.text, "Focus time 1h 40m left")
+    }
+
+    func test_partialOverlap_theLaterStartIsTheCurrentOne() {
+        // A 1:00–2:00, B 1:30–3:00, at 1:40.
+        let s = status([
+            event("A", startsIn: -40, lasting: 60),
+            event("B", startsIn: -10, lasting: 90),
+        ])
+        XCTAssertEqual(s?.text, "B 1h 20m left")
+    }
+
+    func test_partialOverlap_beforeTheSecondStarts_itIsNext() {
+        // The same pair at 1:15.
+        let s = status([
+            event("A", startsIn: -15, lasting: 60),
+            event("B", startsIn: 15, lasting: 90),
+        ])
+        XCTAssertEqual(s?.text, "A 45m left · next 15m")
+    }
+
+    func test_insideTheInnerMeeting_aLaterOneInTheOuterBlockIsNotMentioned() {
+        // The inner meeting decides: what follows it by more than half
+        // an hour isn't its business, even though the block is still on.
+        let s = status([
+            event("Focus time", startsIn: -65, lasting: 180),
+            event("Standup", startsIn: -5, lasting: 15),
+            event("Review", startsIn: 60),
+        ])
+        XCTAssertEqual(s?.text, "Standup 10m left")
+    }
+
     // MARK: - Overrun
 
     func test_overrun_whenAMeetingsTimerOutlivesIt() {

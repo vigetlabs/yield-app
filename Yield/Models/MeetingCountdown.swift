@@ -46,8 +46,9 @@ enum MeetingCountdown {
     /// How close a start has to be to draw in the meeting blue. Matches
     /// the moment the start prompt opens.
     static let imminentWindow: TimeInterval = 2 * 60
-    /// While in a meeting, the next one is mentioned only when it
-    /// follows this closely — back-to-back, or near enough.
+    /// While in a meeting, the next one is mentioned when it follows
+    /// this closely — back-to-back, or near enough — or when it starts
+    /// before the current one is over.
     static let nextMentionWindow: TimeInterval = 30 * 60
     /// Titles are cut to a set number of characters; the menu bar is
     /// narrow and the time is the part that has to survive. How many
@@ -84,6 +85,9 @@ enum MeetingCountdown {
         titleLength: Int = defaultTitleLength
     ) -> MenuBarMeetingStatus? {
         guard mode != .off else { return nil }
+        // Of several in progress, the one that started last: a meeting
+        // inside a longer block takes the bar while it runs and hands
+        // it back afterwards.
         let current = events
             .filter { $0.start <= now && now < $0.end }
             .max(by: { $0.start < $1.start })
@@ -102,7 +106,12 @@ enum MeetingCountdown {
             // say what is ending. Kept terse — this is the longest line
             // the menu bar shows, and the two numbers are what get read.
             var text = titled(current.summary, "\(until(current.end, from: now)) left")
-            if let next, next.start.timeIntervalSince(now) <= nextMentionWindow {
+            // The next one is mentioned when it is close, or when it
+            // starts before this one ends: inside a long block — three
+            // hours of focus time, say — a meeting 45 minutes off would
+            // otherwise go unannounced until the last half hour.
+            if let next,
+               next.start.timeIntervalSince(now) <= nextMentionWindow || next.start < current.end {
                 text += " · next \(until(next.start, from: now))"
             }
             return MenuBarMeetingStatus(text: text)
