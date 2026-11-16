@@ -690,12 +690,12 @@ private struct OpaqueMenuBarPanel: NSViewRepresentable {
                 forName: NSWindow.didChangeScreenNotification,
                 object: window,
                 queue: .main
-            ) { _ in coordinator.report() }
+            ) { _ in MainActor.assumeIsolated { coordinator.report() } }
             coordinator.paramsObserver = nc.addObserver(
                 forName: NSApplication.didChangeScreenParametersNotification,
                 object: nil,
                 queue: .main
-            ) { _ in coordinator.report() }
+            ) { _ in MainActor.assumeIsolated { coordinator.report() } }
         }
         return view
     }
@@ -710,6 +710,9 @@ private struct OpaqueMenuBarPanel: NSViewRepresentable {
         Coordinator(onVisibleHeightChange: onVisibleHeightChange)
     }
 
+    /// Main-actor bound: everything that touches it — SwiftUI, and the
+    /// two observers, which deliver on the main queue — is already there.
+    @MainActor
     final class Coordinator {
         var onVisibleHeightChange: (CGFloat) -> Void
         weak var window: NSWindow?

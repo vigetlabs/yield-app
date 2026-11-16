@@ -1266,7 +1266,8 @@ final class TimeComparisonViewModel {
         // elapsed ticker below stays at 60: it's local and adds one
         // minute per tick.
         refreshTimer = Timer.scheduledTimer(withTimeInterval: Self.softRefreshInterval, repeats: true) { [weak self] _ in
-            self?.triggerSoftRefresh()
+            // Scheduled on the main run loop, so already on the main actor.
+            MainActor.assumeIsolated { self?.triggerSoftRefresh() }
             // Same cadence for the meeting-start prompt window and the
             // post-meeting overage reminder — runs regardless of
             // tracking state (unlike the elapsed ticker, which only
