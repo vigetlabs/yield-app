@@ -3,8 +3,18 @@ options:
   bundleIdPrefix: com.jeremyfields
   deploymentTarget:
     macOS: "14.0"
-  xcodeVersion: "15.0"
+  # The Xcode this project was last checked against. Xcode offers
+  # "Update to recommended settings" whenever this is older than itself,
+  # and anything it then writes into Yield.xcodeproj is lost on the next
+  # `xcodegen generate` — so accept its suggestions here instead. Its
+  # suggested signing identity ("Apple Development") is deliberately not
+  # taken: see the targets' CODE_SIGN_IDENTITY.
+  xcodeVersion: "27.2"
   minimumXcodeGenVersion: "2.38"
+
+settings:
+  base:
+    DEAD_CODE_STRIPPING: YES
 
 packages:
   Sparkle:
