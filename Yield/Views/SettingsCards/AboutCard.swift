@@ -1,8 +1,7 @@
 import ServiceManagement
 import SwiftUI
 
-/// The app itself: launch at login, version + check-for-updates, and
-/// reveal-logs.
+/// The app itself: launch at login, and version + check-for-updates.
 struct AboutCard: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
@@ -61,30 +60,6 @@ struct AboutCard: View {
                 .buttonStyle(.greenOutlined)
             }
             .settingsRowPadding()
-
-            SettingsRowDivider()
-
-            // Reveal logs in Finder — utility row for attaching
-            // logs to a bug report.
-            Button {
-                LogStore.shared.revealInFinder()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .settingsRowIcon()
-                    Text("Reveal Logs in Finder")
-                        .font(YieldFonts.settingsLabel())
-                        .foregroundStyle(YieldColors.textPrimary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(YieldColors.textSecondary.opacity(0.5))
-                }
-                .settingsRowPadding()
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help("Open ~/Library/Logs/Yield in Finder so you can attach logs to a bug report")
         }
         .settingsCard()
     }

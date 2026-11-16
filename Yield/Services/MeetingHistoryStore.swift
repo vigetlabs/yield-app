@@ -105,6 +105,13 @@ final class MeetingHistoryStore {
         save()
     }
 
+    /// Drop every memory ("Forget Remembered Meetings" in Settings).
+    /// Each meeting asks where it belongs again the next time.
+    func forgetAll() {
+        memories.removeAll()
+        save()
+    }
+
     // MARK: - Persistence
 
     /// Persisted shape — paired with a title so we can encode/decode

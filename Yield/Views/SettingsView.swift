@@ -115,7 +115,8 @@ struct SettingsCardStack: View {
         VStack(spacing: SettingsStyle.refreshed ? 0 : 12) {
             // Account leads: nothing else works until Harvest is
             // connected. Then the app's own housekeeping, how it looks,
-            // the calendar, how it tracks, and the two lists last.
+            // the calendar, how it tracks, the two lists, and last the
+            // things you only reach for when something looks wrong.
             AccountCard(oAuthService: oAuthService, onDismiss: onDismiss)
             AboutCard()
             PreferencesCard(section: .display)
@@ -123,6 +124,7 @@ struct SettingsCardStack: View {
             PreferencesCard(section: .tracking)
             FavoritesCard(allProjects: allProjects, isLoadingProjects: isLoadingProjects)
             MutedMeetingsCard()
+            TroubleshootingCard()
         }
         .padding(SettingsStyle.refreshed ? 0 : 16)
     }

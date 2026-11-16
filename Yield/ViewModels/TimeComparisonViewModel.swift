@@ -1962,6 +1962,16 @@ final class TimeComparisonViewModel {
         calendarEventsFetchedAt = Date()
     }
 
+    /// "Sync Now" in Settings: a full refresh that also reloads the
+    /// calendar. An ordinary refresh leaves the calendar alone while
+    /// its cache is under four minutes old, which is what makes a
+    /// meeting accepted a moment ago slow to appear.
+    @MainActor
+    func syncNow() async {
+        calendarEventsFetchedAt = nil
+        await refresh()
+    }
+
     /// Best-effort background revalidation: skips when Google isn't
     /// connected or the cache is still fresh; failures keep the previous
     /// cache (stale events beat a spinner). Called from the refresh
