@@ -143,9 +143,13 @@ struct MeetingPromptBarView: View {
 
     /// The primary action's label carries the move offer when there's
     /// a running timer with at least a minute worth moving: "Start &
-    /// move 0:06". Otherwise a plain "Start Timer". The view model owns
-    /// the rule so the label and what the button does can't disagree.
+    /// move 0:06". When the running timer is already on the meeting's
+    /// task there is nothing to start or move — "Add to Timer" puts the
+    /// title on that entry. Otherwise a plain "Start Timer". The view
+    /// model owns the rules so the label and what the button does
+    /// can't disagree.
     private func startLabel(now: Date) -> String {
+        if viewModel.meetingPromptJoinsRunningTimer { return "Add to Timer" }
         guard let hours = viewModel.meetingPromptMoveHours(now: now) else { return "Start Timer" }
         return "Start & move \(hours.formattedColon)"
     }

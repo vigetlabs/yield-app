@@ -365,6 +365,31 @@ final class ThemeSnapshotTests: XCTestCase {
             try Self.write(Self.banner(longVM).environment(\.colorScheme, scheme),
                            to: outDir.appendingPathComponent("banner-long-system-\(suffix).png"))
         }
+
+        // A timer tied to a calendar event: mid-meeting, past its end,
+        // and with a long task and title to see what gives way.
+        func meetingLink(endsIn minutes: Double, title: String) -> TimeComparisonViewModel.CalendarSourcedTimer {
+            let end = Date().addingTimeInterval(minutes * 60)
+            return .init(eventId: "evt", eventTitle: title, eventStart: end.addingTimeInterval(-30 * 60),
+                         eventEnd: end, projectId: 1, taskId: 100, entryId: 1)
+        }
+        let duringVM = Self.makeBannerViewModel()
+        duringVM._setStateForTesting(calendarSourcedTimer: meetingLink(endsIn: 18, title: "Design review"))
+        let endedVM = Self.makeBannerViewModel()
+        endedVM._setStateForTesting(calendarSourcedTimer: meetingLink(endsIn: -12, title: "Design review"))
+        longVM._setStateForTesting(calendarSourcedTimer: meetingLink(endsIn: 18, title: "Design review"))
+        for (appearance, scheme, suffix) in appearances {
+            NSApp.appearance = NSAppearance(named: appearance)
+            let trio = VStack(spacing: 0) {
+                TimerBannerView(viewModel: duringVM)
+                TimerBannerView(viewModel: endedVM)
+                TimerBannerView(viewModel: longVM)
+            }
+            .frame(width: YieldDimensions.panelWidth)
+            .background(YieldColors.background)
+            .environment(\.colorScheme, scheme)
+            try Self.write(trio, to: outDir.appendingPathComponent("banner-meeting-system-\(suffix).png"))
+        }
     }
 
     /// Pixel-identity probes for the Editorial surfaces. Each renders

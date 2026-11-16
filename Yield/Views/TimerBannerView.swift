@@ -512,22 +512,41 @@ struct TimerBannerView: View {
         return Text("[\(code)] ").foregroundStyle(YieldColors.textSecondary) + name
     }
 
-    /// "Task · notes" in one secondary line. A calendar-sourced timer
-    /// keeps its glyph and the same tooltip Editorial's detail line has.
+    /// "Task · notes" in one secondary line.
+    ///
+    /// A timer tied to a calendar event says so: a calendar glyph in the
+    /// meeting blue — the colour the meeting bars and the menu bar use —
+    /// and when the event ends, held at the end of the line so a long
+    /// task or title truncates before it does. Past the end, the glyph
+    /// gains its exclamation badge and the line reads "ended 3:30pm":
+    /// the same wording the post-meeting bar opens with.
     private var heroSubtitle: some View {
         let source = viewModel.calendarSourceForCurrentTimer
-        let notes = detailLineText(source: source)
+        // With a meeting attached the notes stand alone (the schedule
+        // is carried separately); otherwise as Editorial words them.
+        let notes = source == nil
+            ? detailLineText(source: nil)
+            : (entryNotes ?? source?.eventTitle)
+        let ended = source.map { Date() >= $0.eventEnd } ?? false
         return HStack(alignment: .firstTextBaseline, spacing: 4) {
             if source != nil {
-                Image(systemName: "calendar")
-                    .font(.system(size: 10))
-                    .foregroundStyle(YieldColors.textSecondary)
+                Image(systemName: ended ? "calendar.badge.exclamationmark" : "calendar")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(YieldStatusColors.meeting)
             }
             Text(notes.map { "\(taskName) · \($0)" } ?? taskName)
                 .font(YieldFonts.rowSubtitle)
                 .foregroundStyle(YieldColors.textSecondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
+            if let source {
+                let end = Self.eventTimeFormatter.string(from: source.eventEnd)
+                Text(ended ? "· ended \(end)" : "· until \(end)")
+                    .font(YieldFonts.rowSubtitle)
+                    .foregroundStyle(YieldColors.textSecondary)
+                    .lineLimit(1)
+                    .fixedSize()
+            }
         }
         .help(detailLineTooltip(source: source))
     }

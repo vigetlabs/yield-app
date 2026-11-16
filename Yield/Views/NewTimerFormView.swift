@@ -671,7 +671,9 @@ struct NewTimerFormView: View {
             viewModel.finalizeMeetingPromptAction(for: event)
             onDismiss()
             Task {
-                await viewModel.startNewTimer(
+                // Today's entry for the pair if there is one — the
+                // same rule the meeting prompt's start follows.
+                await viewModel.startOrJoinTimer(
                     projectId: memory.projectId,
                     taskId: memory.taskId,
                     notes: event.summary.isEmpty ? nil : event.summary
@@ -1266,11 +1268,16 @@ struct NewTimerFormView: View {
                             }
                             onDismiss()
                             Task {
-                                await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false)
                                 if let event = sourcedCalendarEvent,
                                    let projectId = selectedProjectId,
                                    let taskId = selectedTaskId {
+                                    // A meeting resumed onto an existing
+                                    // entry adds its title to the notes,
+                                    // as every other meeting start does.
+                                    await viewModel.startOrJoinTimer(projectId: projectId, taskId: taskId, notes: notes)
                                     viewModel.noteCalendarSourcedTimer(event: event, projectId: projectId, taskId: taskId)
+                                } else {
+                                    await viewModel.toggleEntryTimer(entryId: entryId, isRunning: false)
                                 }
                             }
                         } label: {

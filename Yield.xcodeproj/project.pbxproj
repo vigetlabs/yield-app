@@ -24,6 +24,7 @@
 		32AAAF04CB36E8F7F665DA4F /* MenuBarAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54440D5584CB0A4009D3E012 /* MenuBarAppearance.swift */; };
 		35018499E43BEF99994080EC /* MutedMeetingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD907CCE73B8116AE553407 /* MutedMeetingsCard.swift */; };
 		3A7704C74BE47D08ED1E8FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77C42827589B10C29C0772BF /* Assets.xcassets */; };
+		3CD6966E179CEE791C332F3B /* MeetingTimerLinkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999EFE8F88F26EA9FE227B62 /* MeetingTimerLinkStore.swift */; };
 		3E63CD12398B7EA2A9E14EC2 /* MenuBarGraphicRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D150DC2B3AB0B5B99D920DEF /* MenuBarGraphicRenderer.swift */; };
 		3E722E094D65FE2843178E4D /* HarvestLinkIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ECCA20D51028E2296FAF26B /* HarvestLinkIcon.swift */; };
 		40A22BED7CDA32CBBD4C0F15 /* IdleAlertTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7E6FB600D5F45A1CAD808D6 /* IdleAlertTests.swift */; };
@@ -176,6 +177,7 @@
 		94CDCEBAAB1B8D5E04E319D7 /* PreferencesCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesCard.swift; sourceTree = "<group>"; };
 		97071C361541C20FA140647C /* RefreshPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshPipelineTests.swift; sourceTree = "<group>"; };
 		996FF1C75693575CA25ACE22 /* EntryMoveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryMoveTests.swift; sourceTree = "<group>"; };
+		999EFE8F88F26EA9FE227B62 /* MeetingTimerLinkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingTimerLinkStore.swift; sourceTree = "<group>"; };
 		9A155FA79AC05F13F3C0C6F6 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
 		9A3B030C6AFB8A579B19E5E7 /* Manrope-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Manrope-OFL.txt"; sourceTree = "<group>"; };
 		9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionHelpers.swift; sourceTree = "<group>"; };
@@ -373,6 +375,7 @@
 				7AC15EED42FBAABA8E309340 /* KeychainHelper.swift */,
 				381BBDC41541927F83D08FC9 /* LogStore.swift */,
 				8DFB807BB9B7D130BE3831DB /* MeetingHistoryStore.swift */,
+				999EFE8F88F26EA9FE227B62 /* MeetingTimerLinkStore.swift */,
 				54440D5584CB0A4009D3E012 /* MenuBarAppearance.swift */,
 				457D60FE27EF219D36D1901E /* MenuBarStatusItem.swift */,
 				23935EFBFE85FB320514FF58 /* MutedMeetingsStore.swift */,
@@ -618,6 +621,7 @@
 				42DB3888BEBE6DE88987C012 /* LookAheadRowView.swift in Sources */,
 				BE34E7E66A7767E71442F74D /* MeetingHistoryStore.swift in Sources */,
 				D887ADC2720DE2DFD35CC71B /* MeetingPromptBarView.swift in Sources */,
+				3CD6966E179CEE791C332F3B /* MeetingTimerLinkStore.swift in Sources */,
 				32AAAF04CB36E8F7F665DA4F /* MenuBarAppearance.swift in Sources */,
 				7C1545B79A40F59B462C2BE3 /* MenuBarContentView.swift in Sources */,
 				6C19944122C49326ED215EF5 /* MenuBarDisplay.swift in Sources */,

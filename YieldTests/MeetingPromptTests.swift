@@ -136,10 +136,68 @@ final class MeetingPromptTests: XCTestCase {
 
     // MARK: - Already-timing suppressions
 
-    func test_ineligible_whenTimingRememberedPair() {
+    /// Back-to-back meetings on one task: the timer is already on the
+    /// right project and task, but for the *previous* meeting. The
+    /// prompt shows and offers to add this one to the running timer.
+    func test_eligible_whenTimingRememberedPair_andOffersToJoin() {
+        let vm = trackingVM(entry: entry(id: 1, projectId: 500, taskId: 100, notes: "1:1 Alex", isRunning: true))
+        vm.meetingHistoryStore.record(notes: "Design Review", projectId: 500, taskId: 100)
+        let meeting = event(startOffsetMinutes: -5)
+        XCTAssertTrue(vm.meetingPromptEligible(meeting, now: now))
+
+        vm._setStateForTesting(activeMeetingPrompt: meeting)
+        XCTAssertTrue(vm.meetingPromptJoinsRunningTimer)
+        XCTAssertNil(vm.meetingPromptMoveHours(now: now), "nothing to move onto itself")
+    }
+
+    func test_doesNotJoin_whenTimingDifferentPair() {
         let vm = trackingVM(entry: entry(id: 1, projectId: 500, taskId: 100, isRunning: true))
+        vm.meetingHistoryStore.record(notes: "Design Review", projectId: 999, taskId: 42)
+        vm._setStateForTesting(activeMeetingPrompt: event(startOffsetMinutes: -5))
+        XCTAssertFalse(vm.meetingPromptJoinsRunningTimer)
+        XCTAssertNotNil(vm.meetingPromptMoveHours(now: now))
+    }
+
+    func test_ineligible_whenTitleIsAlreadyALineOfTheNotes() {
+        // The second of two meetings merged into one entry.
+        let vm = trackingVM(entry: entry(id: 1, notes: "1:1 Alex\nDesign Review", isRunning: true))
         vm.meetingHistoryStore.record(notes: "Design Review", projectId: 500, taskId: 100)
         XCTAssertFalse(vm.meetingPromptEligible(event(startOffsetMinutes: -5), now: now))
+    }
+
+    func test_ineligible_whenRunningTimerIsLinkedToThisEvent() {
+        // A relaunch mid-meeting: the session's dismissals are gone,
+        // the notes were cleared, but the saved link says it's timed.
+        let vm = trackingVM(entry: entry(id: 1, isRunning: true))
+        vm.meetingHistoryStore.record(notes: "Design Review", projectId: 500, taskId: 100)
+        let meeting = event(startOffsetMinutes: -5)
+        vm.noteCalendarSourcedTimer(event: meeting, projectId: 500, taskId: 100, now: now)
+        XCTAssertFalse(vm.meetingPromptEligible(meeting, now: now))
+    }
+
+    // MARK: - Notes merging
+
+    func test_notesAppending_putsTheAdditionOnANewLine() {
+        XCTAssertEqual(TimeComparisonViewModel.notes("1:1 Alex", appending: "1:1 Sam"), "1:1 Alex\n1:1 Sam")
+    }
+
+    func test_notesAppending_ontoNothing_isJustTheAddition() {
+        XCTAssertEqual(TimeComparisonViewModel.notes(nil, appending: " 1:1 Sam "), "1:1 Sam")
+        XCTAssertEqual(TimeComparisonViewModel.notes("", appending: "1:1 Sam"), "1:1 Sam")
+    }
+
+    func test_notesAppending_nothingToWrite_isNil() {
+        XCTAssertNil(TimeComparisonViewModel.notes("1:1 Alex", appending: nil))
+        XCTAssertNil(TimeComparisonViewModel.notes("1:1 Alex", appending: "  "))
+        // Already there, on a line of its own — never listed twice.
+        XCTAssertNil(TimeComparisonViewModel.notes("1:1 Alex\n1:1 Sam", appending: "1:1 sam"))
+    }
+
+    func test_notesAppending_aTitleInsideALongerLine_isNotAMatch() {
+        XCTAssertEqual(
+            TimeComparisonViewModel.notes("Prep for 1:1 Sam", appending: "1:1 Sam"),
+            "Prep for 1:1 Sam\n1:1 Sam"
+        )
     }
 
     func test_eligible_whenTimingDifferentPair() {
