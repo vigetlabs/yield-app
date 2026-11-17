@@ -376,6 +376,11 @@ struct DayTimeline {
         return f
     }()
 
+    /// "9am" — the gutter's label for an hour, and the schedule strip's.
+    static func hourLabel(for date: Date) -> String {
+        hourFormatter.string(from: date)
+    }
+
     init(events: [CalendarEvent], calendar: Calendar = .current) {
         let sorted = events.sorted { a, b in
             a.start != b.start ? a.start < b.start : a.end > b.end
@@ -447,7 +452,7 @@ struct DayTimeline {
         var marks: [HourMark] = []
         var cursor = timelineStart
         while cursor <= timelineEnd {
-            marks.append(HourMark(hour: cursor, label: Self.hourFormatter.string(from: cursor)))
+            marks.append(HourMark(hour: cursor, label: Self.hourLabel(for: cursor)))
             cursor = cursor.addingTimeInterval(3600)
         }
         return marks
@@ -464,27 +469,6 @@ private struct EventBlockView: View {
 
     @State private var isHovered = false
 
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "h:mma"
-        f.amSymbol = "am"
-        f.pmSymbol = "pm"
-        return f
-    }()
-
-    private var displayTitle: String {
-        event.summary.isEmpty ? "(No title)" : event.summary
-    }
-
-    /// Full range + duration, surfaced via tooltip on every block —
-    /// the visible line carries only the start time, calendar-style.
-    private var fullTimeLine: String {
-        let start = Self.timeFormatter.string(from: event.start)
-        let end = Self.timeFormatter.string(from: event.end)
-        let (h, m) = event.durationHours.roundedHM
-        let duration = MeetingCountdown.span(minutes: h * 60 + m)
-        return "\(start) \u{2013} \(end) (\(duration))"
-    }
 
     var body: some View {
         // Not a Button: the quick-action icons are the only click
@@ -499,11 +483,11 @@ private struct EventBlockView: View {
 
             // Calendar-style single line: start time leading the title,
             // no end/duration (those live in the tooltip).
-            (Text(Self.timeFormatter.string(from: event.start))
+            (Text(CalendarEvent.clockFormatter.string(from: event.start))
                 .font(YieldFonts.monoXS)
                 .foregroundStyle(YieldColors.textSecondary)
              + Text("  ")
-             + Text(displayTitle)
+             + Text(event.displayTitle)
                 .font(YieldFonts.titleSmall)
                 .foregroundStyle(YieldColors.textPrimary))
                 .lineLimit(1)
@@ -531,7 +515,9 @@ private struct EventBlockView: View {
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.1)) { isHovered = hovering }
         }
-        .help("\(displayTitle) \u{2014} \(fullTimeLine)")
+        // The visible line carries only the start time, calendar-style;
+        // the full range and duration are in the tooltip.
+        .help(event.tooltip)
     }
 
     private func actionIcon(_ systemImage: String, help: String, action: @escaping () -> Void) -> some View {

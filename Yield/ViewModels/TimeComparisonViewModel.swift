@@ -574,6 +574,8 @@ final class TimeComparisonViewModel {
     @MainActor
     func toggleDayFilter(_ date: String) {
         dayFilter = (dayFilter == date) ? nil : date
+        // The selected day's meetings are drawn under its tab.
+        Task { await refreshSelectedDayCalendarIfStale() }
     }
 
     @MainActor
@@ -964,6 +966,26 @@ final class TimeComparisonViewModel {
     var menuBarMeetingStatus: MenuBarMeetingStatus? {
         _ = calendarClock
         return menuBarMeetingStatus(now: Date())
+    }
+
+    /// The selected day's meetings, laid out for the strip under the
+    /// weekday tabs — or nil when no day is selected or Google
+    /// Calendar isn't connected. Derived like the countdown, and
+    /// follows the same tick so today's now-line moves.
+    var scheduleStrip: ScheduleStrip? {
+        _ = calendarClock
+        return scheduleStrip(now: Date())
+    }
+
+    func scheduleStrip(now: Date) -> ScheduleStrip? {
+        // Today's cache doubles as "the calendar is connected": it is
+        // nil until a fetch succeeds and again once Google is signed out.
+        guard let dayFilter, let today = cachedCalendarEvents,
+              let day = DateHelpers.dateFormatter.date(from: dayFilter) else { return nil }
+        let events = Calendar.current.isDate(day, inSameDayAs: now)
+            ? today
+            : otherDayCalendarEvents[dayFilter]?.events
+        return ScheduleStrip(events: events, day: day, now: now)
     }
 
     func menuBarMeetingStatus(now: Date) -> MenuBarMeetingStatus? {
@@ -1934,12 +1956,32 @@ final class TimeComparisonViewModel {
     private(set) var cachedCalendarEvents: [CalendarEvent]? = nil
     private var calendarEventsFetchedAt: Date? = nil
 
+    /// Events for days of this week other than today, by day
+    /// ("YYYY-MM-DD"), fetched when the day is selected in the weekday
+    /// bar. Kept apart from today's cache, which the prompts, the
+    /// reminders and the menu bar countdown all read as "today".
+    private var otherDayCalendarEvents: [String: DayCalendarEvents] = [:]
+
+    private struct DayCalendarEvents {
+        let events: [CalendarEvent]
+        let fetchedAt: Date
+    }
+
+    /// How long a fetch is good for: just under the five-minute
+    /// auto-refresh, so each cycle picks up calendar changes.
+    private static let calendarCacheLifetime: TimeInterval = 240
+
+    private func makeCalendarService() -> GoogleCalendarService {
+        let auth = AppState.shared.googleAuthService
+        return GoogleCalendarService(tokenProvider: { try await auth.getAccessToken() })
+    }
+
     /// The cache needs replacing when it's older than ~4 minutes (so
     /// each 5-minute auto-refresh cycle picks up calendar changes) or
     /// was fetched on a previous day (it holds *today's* events).
     private var calendarCacheIsStale: Bool {
         guard let fetchedAt = calendarEventsFetchedAt else { return true }
-        return Date().timeIntervalSince(fetchedAt) > 240
+        return Date().timeIntervalSince(fetchedAt) > Self.calendarCacheLifetime
             || !Calendar.current.isDateInToday(fetchedAt)
     }
 
@@ -1948,11 +1990,24 @@ final class TimeComparisonViewModel {
     /// error states (reconnect / unreachable) with a retry.
     @MainActor
     func fetchAndCacheCalendarEvents() async throws {
-        let auth = AppState.shared.googleAuthService
-        let service = GoogleCalendarService(tokenProvider: { try await auth.getAccessToken() })
-        let events = try await service.fetchTodayEvents()
+        let events = try await makeCalendarService().fetchEvents()
         cachedCalendarEvents = events
         calendarEventsFetchedAt = Date()
+    }
+
+    /// Fetch the selected day's events for the strip under its tab,
+    /// unless it is today (the cache above has those) or what is held
+    /// is still fresh. Best-effort, like today's: a failure keeps
+    /// whatever was there.
+    @MainActor
+    func refreshSelectedDayCalendarIfStale() async {
+        guard let dayFilter, cachedCalendarEvents != nil,
+              let day = DateHelpers.dateFormatter.date(from: dayFilter),
+              !Calendar.current.isDateInToday(day) else { return }
+        if let held = otherDayCalendarEvents[dayFilter],
+           Date().timeIntervalSince(held.fetchedAt) <= Self.calendarCacheLifetime { return }
+        guard let events = try? await makeCalendarService().fetchEvents(on: day) else { return }
+        otherDayCalendarEvents[dayFilter] = DayCalendarEvents(events: events, fetchedAt: Date())
     }
 
     /// "Sync Now" in Settings: a full refresh that also reloads the
@@ -1962,6 +2017,7 @@ final class TimeComparisonViewModel {
     @MainActor
     func syncNow() async {
         calendarEventsFetchedAt = nil
+        otherDayCalendarEvents = [:]
         await refresh()
     }
 
@@ -1974,8 +2030,10 @@ final class TimeComparisonViewModel {
         guard AppState.shared.googleAuthService.isAuthenticated else {
             cachedCalendarEvents = nil
             calendarEventsFetchedAt = nil
+            otherDayCalendarEvents = [:]
             return
         }
+        await refreshSelectedDayCalendarIfStale()
         guard calendarCacheIsStale else { return }
         try? await fetchAndCacheCalendarEvents()
         // Fresh events can open (or close) a prompt window — a meeting
@@ -4077,8 +4135,16 @@ extension TimeComparisonViewModel {
         idleAlertState: IdleAlertState? = nil,
         lastUpdated: Date? = nil,
         serviceErrors: [ServiceError]? = nil,
-        meetingCountdownMode: MeetingCountdownMode? = nil
+        meetingCountdownMode: MeetingCountdownMode? = nil,
+        dayFilter: String? = nil,
+        otherDayCalendarEvents: [String: [CalendarEvent]]? = nil
     ) {
+        if let dayFilter { self.dayFilter = dayFilter }
+        if let otherDayCalendarEvents {
+            self.otherDayCalendarEvents = otherDayCalendarEvents.mapValues {
+                DayCalendarEvents(events: $0, fetchedAt: Date())
+            }
+        }
         if let meetingCountdownMode { self.meetingCountdownMode = meetingCountdownMode }
         if let serviceErrors { self.serviceErrors = serviceErrors }
         if let lastUpdated { self.lastUpdated = lastUpdated }

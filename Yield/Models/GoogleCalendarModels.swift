@@ -23,6 +23,30 @@ struct CalendarEvent: Identifiable, Hashable {
     }
 }
 
+extension CalendarEvent {
+    /// "9:30am".
+    static let clockFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mma"
+        f.amSymbol = "am"
+        f.pmSymbol = "pm"
+        return f
+    }()
+
+    var displayTitle: String {
+        summary.isEmpty ? "(No title)" : summary
+    }
+
+    /// "Design review — 9:00am – 9:30am (30m)": the hover text
+    /// wherever an event is drawn too small to say all of that.
+    var tooltip: String {
+        let (h, m) = durationHours.roundedHM
+        let duration = MeetingCountdown.span(minutes: h * 60 + m)
+        let range = "\(Self.clockFormatter.string(from: start)) \u{2013} \(Self.clockFormatter.string(from: end))"
+        return "\(displayTitle) \u{2014} \(range) (\(duration))"
+    }
+}
+
 // MARK: - Google Calendar v3 wire types
 //
 // These mirror the subset of fields requested via the `fields=` query

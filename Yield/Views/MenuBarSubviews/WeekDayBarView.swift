@@ -2,6 +2,20 @@ import SwiftUI
 
 struct WeekDayBarView: View {
     let viewModel: TimeComparisonViewModel
+    /// The selected day's schedule strip sits directly underneath: its
+    /// tab squares off its bottom corners to run into it.
+    var joinsPanelBelow = false
+
+    /// The selected day's tab, and the panel that hangs from it.
+    static var selectedFill: Color {
+        ThemeStore.shared.theme.usesRefreshedLayout ? YieldColors.controlAccentSubtle : YieldColors.surfaceActive
+    }
+
+    private static func tabShape(joined: Bool) -> AnyShape {
+        let radius = YieldRadius.button
+        guard joined else { return AnyShape(RoundedRectangle(cornerRadius: radius)) }
+        return AnyShape(UnevenRoundedRectangle(topLeadingRadius: radius, topTrailingRadius: radius))
+    }
 
     var body: some View {
         // Live-ticking elapsed offset only applies to the current week.
@@ -30,11 +44,18 @@ struct WeekDayBarView: View {
             ForEach(days) { day in
                 let displayHours = day.hours + (day.isToday ? liveOffset : 0)
                 let isFiltered = isCurrent && viewModel.dayFilter == day.id
+                // System: today is a step heavier than a selected day,
+                // so it stays the one that stands out when another is
+                // selected. Editorial ships no weight above semibold,
+                // and keeps the two alike.
+                let emphasized = day.isToday || isFiltered
+                let labelWeight: Font.Weight = (refreshed && day.isToday) ? .bold : (emphasized ? .semibold : .medium)
+                let hoursWeight: Font.Weight = (refreshed && day.isToday) ? .semibold : (emphasized ? .medium : .regular)
 
                 let cell = VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 3) {
                         Text(day.dayLabel)
-                            .font(YieldFonts.label(refreshed ? 10 : 9, weight: (day.isToday || isFiltered) ? .semibold : .medium))
+                            .font(YieldFonts.label(refreshed ? 10 : 9, weight: labelWeight))
                             .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
                         if day.isLocked {
                             Image(systemName: "lock.fill")
@@ -46,7 +67,7 @@ struct WeekDayBarView: View {
 
                     HStack(spacing: 2) {
                         Text(refreshed && displayHours <= 0 ? "–" : formatDayHours(displayHours))
-                            .font(YieldFonts.mono(10, weight: (day.isToday || isFiltered) ? .medium : .regular))
+                            .font(YieldFonts.mono(10, weight: hoursWeight))
                             .foregroundStyle((day.isToday || isFiltered) ? YieldColors.textPrimary : YieldColors.textSecondary)
 
                         if day.isToday && isCurrent && isAnyTracking {
@@ -68,8 +89,8 @@ struct WeekDayBarView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
-                .background(isFiltered ? (refreshed ? YieldColors.controlAccentSubtle : YieldColors.surfaceActive) : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: YieldRadius.button))
+                .background(isFiltered ? Self.selectedFill : Color.clear)
+                .clipShape(Self.tabShape(joined: isFiltered && joinsPanelBelow))
 
                 // Past/future weeks render the cell as a static label
                 // (no Button) so `.disabled` doesn't dim it. Only the

@@ -76,11 +76,13 @@
 		93A77B44E265FEA54BC8F424 /* AppLocationCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5CE6E83B352C722A6F67C56 /* AppLocationCheck.swift */; };
 		95B603C14869A370CBA0C1B4 /* ForecastNotesIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */; };
 		95E28CA5455CF73C33B3F1F4 /* HarvestStatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B78953DDC0FEB63661C043A /* HarvestStatusService.swift */; };
+		95E8E312F40AC5BC43110E2F /* ScheduleStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBACD1D7822E883C8A124EFD /* ScheduleStrip.swift */; };
 		96BE7F6429568D068B53A35D /* MenuBarHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 239BAC0FB9D2ECACB00931A4 /* MenuBarHeaderView.swift */; };
 		977BD90BD8F50FCFC47E7B4A /* OptimisticTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D171E67D1EF700B24DDAB9 /* OptimisticTimerTests.swift */; };
 		97D4A1930EE4CFD8117F61DE /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A155FA79AC05F13F3C0C6F6 /* GoogleAuthService.swift */; };
 		990E6C13D62BAAD3ABF046A7 /* YieldBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77769A7AA84A6C229CB2B08 /* YieldBadge.swift */; };
 		99ED0D0543AAE1B074741BC6 /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C89FF347DAA4997B5AD9B507 /* DMSans-Medium.ttf */; };
+		9BBE9DF79CCC087219DEE6E4 /* ScheduleStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4B85A14E43E999D86D92B17 /* ScheduleStripView.swift */; };
 		9C4DF783011FD3DDA1DD5FE7 /* GoogleCalendarServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFFBABFB27E0104E4DF4161C /* GoogleCalendarServiceTests.swift */; };
 		A0D5FB56C0B51BFF22538E58 /* CollectionHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF6E15FF24B7AC8DA90E755 /* CollectionHelpers.swift */; };
 		A128C420B393CA51F5510DBC /* WeekDayBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27EC157B9E485AABFE77ACBF /* WeekDayBarView.swift */; };
@@ -117,6 +119,7 @@
 		EA70B3A5695C4282ACE6316F /* BudgetNotificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168140D146C953F805F0D8AE /* BudgetNotificationTests.swift */; };
 		EC523B1363DE6D14CA40A764 /* SettingsStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79A02750090208A4C315F1EA /* SettingsStyle.swift */; };
 		EE882AB59C60F5BAE74C3B8A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF707BC7919EFF060031F5B9 /* SettingsView.swift */; };
+		F8997284220DBBF09A784078 /* ScheduleStripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB9DDA82F847C3879CDC40D1 /* ScheduleStripTests.swift */; };
 		FDCF7D82E3EC296419530CAB /* Newsreader-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6CD7C88B49D2E0356F35FCF4 /* Newsreader-Regular.ttf */; };
 /* End PBXBuildFile section */
 
@@ -226,6 +229,7 @@
 		D7E6FB600D5F45A1CAD808D6 /* IdleAlertTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleAlertTests.swift; sourceTree = "<group>"; };
 		D7EA76509412B0479FB48C2B /* TimeOffRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOffRowView.swift; sourceTree = "<group>"; };
 		DB799247D52776862953EA20 /* Yield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yield.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DBACD1D7822E883C8A124EFD /* ScheduleStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleStrip.swift; sourceTree = "<group>"; };
 		DC77F3D780AE30B89DA4D28E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		DE23809963F31EA6370A8FD9 /* CalendarEventPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventPickerView.swift; sourceTree = "<group>"; };
 		DFBE31E2366932C81BC2CA46 /* MeetingCountdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingCountdown.swift; sourceTree = "<group>"; };
@@ -239,7 +243,9 @@
 		F0026089ABF0FF282F424F51 /* ProjectTaskHistoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectTaskHistoryStoreTests.swift; sourceTree = "<group>"; };
 		F160FBF429C939C04135CD72 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F2BD4C5582428B3456F726D2 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		F4B85A14E43E999D86D92B17 /* ScheduleStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleStripView.swift; sourceTree = "<group>"; };
 		F777E6F58BCD9A515EF065D4 /* DefaultsKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultsKey.swift; sourceTree = "<group>"; };
+		FB9DDA82F847C3879CDC40D1 /* ScheduleStripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleStripTests.swift; sourceTree = "<group>"; };
 		FBD48D786838656DCBEEFF94 /* DoubleFormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleFormattersTests.swift; sourceTree = "<group>"; };
 		FC430210B1DF47BE28F46EED /* PostMeetingReminderBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostMeetingReminderBarView.swift; sourceTree = "<group>"; };
 		FD6F0C5CB0E75FA54B760A6B /* MenuBarGraphicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarGraphicTests.swift; sourceTree = "<group>"; };
@@ -330,6 +336,7 @@
 				385040A3621DF55ADFDCADB9 /* MenuBarFooterView.swift */,
 				239BAC0FB9D2ECACB00931A4 /* MenuBarHeaderView.swift */,
 				FC430210B1DF47BE28F46EED /* PostMeetingReminderBarView.swift */,
+				F4B85A14E43E999D86D92B17 /* ScheduleStripView.swift */,
 				493154965F6E3C54AE30AA43 /* ServiceWarningBanner.swift */,
 				27EC157B9E485AABFE77ACBF /* WeekDayBarView.swift */,
 			);
@@ -359,6 +366,7 @@
 				CA00826B19142EA4BF7E31AE /* ProjectStatusTests.swift */,
 				F0026089ABF0FF282F424F51 /* ProjectTaskHistoryStoreTests.swift */,
 				97071C361541C20FA140647C /* RefreshPipelineTests.swift */,
+				FB9DDA82F847C3879CDC40D1 /* ScheduleStripTests.swift */,
 				7F93262C6A2A274DE932502F /* ScratchDefaults.swift */,
 				D56069843F4BCDEC1436E1B8 /* SystemThemeRefinementTests.swift */,
 				01B3A23B293BC2855B3ED1EF /* ThemeTests.swift */,
@@ -378,6 +386,7 @@
 				03FA034FB3EFA351C9C03841 /* MenuBarDisplay.swift */,
 				C5CD608D340FA8284978F9D8 /* ProjectGrouping.swift */,
 				ECA417D28206A2DBE49C1D74 /* ProjectStatus.swift */,
+				DBACD1D7822E883C8A124EFD /* ScheduleStrip.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -607,6 +616,7 @@
 				B1E1DB795329B77618CC033D /* ProjectStatusTests.swift in Sources */,
 				66D7F234238C6D5934DEE795 /* ProjectTaskHistoryStoreTests.swift in Sources */,
 				2501F935F826E25CC679DB9B /* RefreshPipelineTests.swift in Sources */,
+				F8997284220DBBF09A784078 /* ScheduleStripTests.swift in Sources */,
 				22F09D8AEECC56C64481093A /* ScratchDefaults.swift in Sources */,
 				DA375B36E3399B4BFEA8D118 /* SystemThemeRefinementTests.swift in Sources */,
 				5F17D1FE3BB307674CB8D130 /* ThemeTests.swift in Sources */,
@@ -677,6 +687,8 @@
 				CB09C6FE3EFC23724CEBE6BA /* ProjectStatus.swift in Sources */,
 				2E3EF213E9BF83C9C8108519 /* ProjectTaskHistoryStore.swift in Sources */,
 				1877E59EF5886B4B517F8937 /* RuntimeEnvironment.swift in Sources */,
+				95E8E312F40AC5BC43110E2F /* ScheduleStrip.swift in Sources */,
+				9BBE9DF79CCC087219DEE6E4 /* ScheduleStripView.swift in Sources */,
 				C26E6ADF39EAB91FF9DBCF7F /* ServiceWarningBanner.swift in Sources */,
 				7A5A5DCB1FD15587A437A0BD /* SettingsCardSectionHeader.swift in Sources */,
 				EC523B1363DE6D14CA40A764 /* SettingsStyle.swift in Sources */,

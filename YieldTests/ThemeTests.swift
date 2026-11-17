@@ -407,6 +407,64 @@ final class ThemeSnapshotTests: XCTestCase {
             .environment(\.colorScheme, scheme)
             try Self.write(trio, to: outDir.appendingPathComponent("banner-meeting-system-\(suffix).png"))
         }
+
+        // A selected day's meetings, hanging from its tab: today (with
+        // the now-line, wherever the clock puts it), the week's first
+        // day with a meeting inside a longer block, and an empty day.
+        let calendar = Calendar.current
+        func meeting(_ title: String, on day: Date, _ start: Double, _ end: Double) -> CalendarEvent {
+            let midnight = calendar.startOfDay(for: day)
+            return CalendarEvent(id: "\(title)-\(start)", summary: title,
+                                 start: midnight.addingTimeInterval(start * 3600),
+                                 end: midnight.addingTimeInterval(end * 3600))
+        }
+        func ordinary(on day: Date) -> [CalendarEvent] {
+            [
+                meeting("BD/PL/UI Check-In", on: day, 9, 9.5), meeting("Platform/Dev Check-In", on: day, 10, 10.5),
+                meeting("1:1 Kelly", on: day, 11, 11.5), meeting("Weekly Connect", on: day, 11.5, 12),
+                meeting("SEO sync", on: day, 12, 12.42), meeting("Design review", on: day, 14, 15),
+            ]
+        }
+        let dayIds = bannerVM.displayedDailyHours.map(\.id)
+        let todayId = DateHelpers.dateFormatter.string(from: Date())
+        let firstId = dayIds.first ?? todayId
+        let emptyId = dayIds.last ?? todayId
+        let firstDay = DateHelpers.dateFormatter.date(from: firstId) ?? Date()
+        let nested = [meeting("Focus time", on: firstDay, 7.5, 8.83), meeting("Standup", on: firstDay, 8, 8.25)]
+            + ordinary(on: firstDay) + [meeting("Lunch & learn", on: firstDay, 12, 13)]
+        let stripVMs = [todayId, firstId, emptyId].map { selected -> TimeComparisonViewModel in
+            let vm = Self.makeBannerViewModel()
+            vm._setStateForTesting(
+                cachedCalendarEvents: ordinary(on: Date()), dayFilter: selected,
+                otherDayCalendarEvents: selected == todayId ? [:] : [firstId: nested, emptyId: []]
+            )
+            return vm
+        }
+        for theme in [YieldTheme.editorial, .system] {
+            ThemeStore.shared.select(theme)
+            for (appearance, scheme, suffix) in appearances {
+                NSApp.appearance = NSAppearance(named: appearance)
+                let stack = VStack(spacing: 0) {
+                    ForEach(Array(stripVMs.enumerated()), id: \.offset) { _, vm in
+                        MenuBarHeaderView(viewModel: vm, onToggleNewTimerForm: {}, onOpenCalendarTimerForm: {})
+                    }
+                    // The panel alone at a fixed 10:15, mid-meeting:
+                    // the header's own follows the real clock, which
+                    // may be outside the strip's hours.
+                    ScheduleStripView(strip: ScheduleStrip(
+                        events: ordinary(on: Date()), day: Date(),
+                        now: calendar.startOfDay(for: Date()).addingTimeInterval(10.25 * 3600)
+                    ))
+                    .padding(12)
+                    TimerBannerView(viewModel: bannerVM)
+                }
+                .frame(width: YieldDimensions.panelWidth)
+                .background(YieldColors.background)
+                .environment(\.colorScheme, scheme)
+                try Self.write(stack, to: outDir.appendingPathComponent("strip-\(theme.rawValue)-\(suffix).png"))
+            }
+        }
+        ThemeStore.shared.select(.system)
     }
 
     /// Pixel-identity probes for the Editorial surfaces. Each renders

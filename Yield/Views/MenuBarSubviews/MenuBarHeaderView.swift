@@ -81,10 +81,36 @@ struct MenuBarHeaderView: View {
                 // starts 6pt short of the margins to land the text on
                 // them: "Mon" on the 19pt edge, the week total on the
                 // 16pt one.
-                WeekDayBarView(viewModel: viewModel)
-                    .padding(.leading, ThemeStore.shared.theme.usesRefreshedLayout ? Self.leadingInset - 6 : 18)
-                    .padding(.trailing, ThemeStore.shared.theme.usesRefreshedLayout ? 10 : 16)
-                    .padding(.bottom, 10)
+                let barLeading: CGFloat = ThemeStore.shared.theme.usesRefreshedLayout ? Self.leadingInset - 6 : 18
+                let barTrailing: CGFloat = ThemeStore.shared.theme.usesRefreshedLayout ? 10 : 16
+                // A selected day's meetings hang from its tab as a
+                // panel; with no day selected (or no calendar) the bar
+                // is as it always was.
+                let strip = viewModel.isViewingOtherWeek ? nil : viewModel.scheduleStrip
+                WeekDayBarView(viewModel: viewModel, joinsPanelBelow: strip != nil)
+                    .padding(.leading, barLeading)
+                    .padding(.trailing, barTrailing)
+                    .padding(.bottom, strip == nil ? 10 : 0)
+
+                if let strip {
+                    // The panel runs wider than the tabs, close to the
+                    // window's edges, and spends the difference inside:
+                    // "9am" still sits under the first day's name (the
+                    // tabs pad their text by 6pt).
+                    let outset = barLeading - Self.stripMargin
+                    let firstTabSelected = viewModel.dayFilter == viewModel.displayedDailyHours.first?.id
+                    ScheduleStripView(
+                        strip: strip,
+                        horizontalInset: outset + 6,
+                        topLeadingRadius: firstTabSelected ? min(YieldRadius.button, outset) : nil,
+                        // The day view is today's; another day's strip
+                        // has nothing to open.
+                        onOpen: strip.showsToday ? onOpenCalendarTimerForm : nil
+                    )
+                    .padding(.horizontal, Self.stripMargin)
+                    .padding(.bottom, Self.stripMargin)
+                    .transition(.opacity)
+                }
             }
         }
         .overlay(alignment: .bottom) {
@@ -92,7 +118,19 @@ struct MenuBarHeaderView: View {
                 .fill(YieldColors.border)
                 .frame(height: 1)
         }
+        // The strip exists only while the calendar cache does, and the
+        // cache otherwise follows Google's sign-in only on a full
+        // refresh. Checking it whenever the header appears — coming
+        // back from Settings included — and when the sign-in changes
+        // means connecting brings the strip in and disconnecting takes
+        // it away at once. A no-op while the cache is fresh.
+        .task(id: AppState.shared.googleAuthService.isAuthenticated) {
+            await viewModel.refreshCalendarEventsIfStale()
+        }
     }
+
+    /// Space between the schedule strip's panel and the window's edges.
+    private static let stripMargin: CGFloat = 8
 
     /// Left margin of the header's controls.
     static var leadingInset: CGFloat {

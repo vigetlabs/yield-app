@@ -24,16 +24,17 @@ final class GoogleCalendarService {
         self.tokenProvider = tokenProvider
     }
 
-    /// Fetch today's events on the primary calendar, post-filtered to
-    /// the subset usable as a time entry. Sorted by start ascending.
+    /// Fetch one day's events on the primary calendar — today's unless
+    /// told otherwise — post-filtered to the subset usable as a time
+    /// entry. Sorted by start ascending.
     ///
     /// Throws `APIError.unauthorized` on 401 (signal to the picker to
     /// show "Reconnect Google Calendar in Settings"); other status
     /// codes throw `APIError.serverError`.
-    func fetchTodayEvents(now: Date = Date(), calendar: Calendar = .current) async throws -> [CalendarEvent] {
+    func fetchEvents(on day: Date = Date(), calendar: Calendar = .current) async throws -> [CalendarEvent] {
         let token = try await tokenProvider()
 
-        let (timeMin, timeMax) = Self.todayBounds(now: now, calendar: calendar)
+        let (timeMin, timeMax) = Self.dayBounds(containing: day, calendar: calendar)
 
         guard var components = URLComponents(string: "https://www.googleapis.com/calendar/v3/calendars/primary/events") else {
             throw APIError.noData
@@ -91,12 +92,12 @@ final class GoogleCalendarService {
 
     // MARK: - Pure helpers (internal so tests can drive them)
 
-    /// RFC3339 timestamps bounding the start and end of `now`'s
+    /// RFC3339 timestamps bounding the start and end of `day`'s
     /// calendar day. We compute these in the user's local time zone
     /// (not UTC) so the boundary matches what the user thinks of as
-    /// "today" — Google honors the offset on `timeMin`/`timeMax`.
-    static func todayBounds(now: Date, calendar: Calendar) -> (timeMin: String, timeMax: String) {
-        let startOfDay = calendar.startOfDay(for: now)
+    /// that day — Google honors the offset on `timeMin`/`timeMax`.
+    static func dayBounds(containing day: Date, calendar: Calendar) -> (timeMin: String, timeMax: String) {
+        let startOfDay = calendar.startOfDay(for: day)
         // Use date arithmetic, not 86400 seconds, to handle DST.
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay.addingTimeInterval(86400)
         let formatter = ISO8601DateFormatter()
