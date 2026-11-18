@@ -67,7 +67,7 @@ struct MenuBarGraphicState: Equatable {
     /// still on its entry.
     var meetingTimerRunning = false
 
-    /// The blue dot on the graphic: a meeting wants a timer, or has
+    /// The meeting dot on the graphic: a meeting wants a timer, or has
     /// one. The dot, not coloured text, is the menu bar's meeting
     /// signal — a small solid shape holds up on a translucent bar
     /// where tinted text doesn't.

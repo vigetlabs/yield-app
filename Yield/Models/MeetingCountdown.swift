@@ -31,7 +31,7 @@ struct MenuBarMeetingStatus: Equatable {
     enum Tone: Equatable {
         /// Ordinary menu bar ink.
         case plain
-        /// The next meeting is starting: the meeting blue, the same as
+        /// The next meeting is starting: the meeting colour, the same as
         /// the capsule's "meeting waiting" state.
         case imminent
         /// The meeting is over and its timer is still running.
@@ -43,7 +43,7 @@ struct MenuBarMeetingStatus: Equatable {
 }
 
 enum MeetingCountdown {
-    /// How close a start has to be to draw in the meeting blue. Matches
+    /// How close a start has to be to draw in the meeting colour. Matches
     /// the moment the start prompt opens.
     static let imminentWindow: TimeInterval = 2 * 60
     /// While in a meeting, the next one is mentioned when it follows

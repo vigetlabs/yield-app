@@ -515,7 +515,7 @@ struct TimerBannerView: View {
     /// "Task · notes" in one secondary line.
     ///
     /// A timer tied to a calendar event says so: a calendar glyph in the
-    /// meeting blue — the colour the meeting bars and the menu bar use —
+    /// meeting colour — the one the meeting bars and the menu bar use —
     /// and when the event ends, held at the end of the line so a long
     /// task or title truncates before it does. Past the end, the glyph
     /// gains its exclamation badge and the line reads "ended 3:30pm":

@@ -46,7 +46,9 @@ enum MenuBarGraphicRenderer {
             onPace = Palette.hex(isDark ? 0x5BD68A : 0x12804A)
             nearLimit = Palette.hex(isDark ? 0xF5B544 : 0xA86200)
             over = Palette.hex(isDark ? 0xFF6F66 : 0xC8322B)
-            meeting = Palette.hex(isDark ? 0x6CB2FF : 0x1C68C4)
+            // The app's meeting colour (System's orange-brown). A shade
+            // off `nearLimit`, which the dot can sit beside.
+            meeting = Palette.hex(isDark ? 0xF2B05C : 0x9F5E0C)
         }
 
         /// Line/glyph color for a tone. Neutral is plain ink: color
@@ -66,7 +68,9 @@ enum MenuBarGraphicRenderer {
         static let pillNearLimit = hex(0xF0B030)
         static let pillNearLimitText = hex(0x3D2800)
         static let pillOver = hex(0xD8423B)
-        static let pillMeeting = hex(0x2F7DE1)
+        /// The meeting orange-brown, dark enough for white text — and
+        /// so apart from `pillNearLimit`'s bright amber and dark text.
+        static let pillMeeting = hex(0x9F5E0C)
 
         static func hex(_ value: Int) -> NSColor {
             NSColor(

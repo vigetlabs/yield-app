@@ -6,9 +6,13 @@ struct WeekDayBarView: View {
     /// tab squares off its bottom corners to run into it.
     var joinsPanelBelow = false
 
-    /// The selected day's tab, and the panel that hangs from it.
-    static var selectedFill: Color {
-        ThemeStore.shared.theme.usesRefreshedLayout ? YieldColors.controlAccentSubtle : YieldColors.surfaceActive
+    /// The selected day's tab. With the schedule strip hanging from
+    /// it, the tab and the strip's panel are one shape and one fill —
+    /// in System the meeting colour's wash, since what the panel
+    /// holds is the day's meetings.
+    static func selectedFill(joined: Bool) -> Color {
+        guard ThemeStore.shared.theme.usesRefreshedLayout else { return YieldColors.surfaceActive }
+        return joined ? YieldStatusColors.meeting.opacity(0.12) : YieldColors.controlAccentSubtle
     }
 
     private static func tabShape(joined: Bool) -> AnyShape {
@@ -89,7 +93,7 @@ struct WeekDayBarView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
-                .background(isFiltered ? Self.selectedFill : Color.clear)
+                .background(isFiltered ? Self.selectedFill(joined: joinsPanelBelow) : Color.clear)
                 .clipShape(Self.tabShape(joined: isFiltered && joinsPanelBelow))
 
                 // Past/future weeks render the cell as a static label

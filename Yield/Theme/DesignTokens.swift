@@ -376,13 +376,11 @@ enum YieldStatusColors {
     static var prospective: Color {
         theme == .editorial ? Editorial.prospective : YieldColors.System.prospective
     }
-    /// A calendar meeting: the prompt and reminder bars. Editorial's
-    /// are its amber, as they always were. System's are blue — the
-    /// colour the menu bar already uses for a meeting — which also
-    /// keeps them apart from a paused timer's amber bar.
-    static var meeting: Color {
-        theme == .editorial ? YieldColors.yellowAccent : YieldColors.controlAccent
-    }
+    /// A calendar meeting, wherever one is drawn: the prompt and
+    /// reminder bars, the timer bar's calendar glyph, System's day
+    /// strip. The theme's amber — Editorial's yellow, System's
+    /// orange-brown — and the menu bar's meeting dot is the same hue.
+    static var meeting: Color { YieldColors.yellowAccent }
     /// Error and destructive text. Editorial keeps the system red it
     /// shipped with, at the strength each place used; System uses the
     /// theme's own red.

@@ -95,10 +95,8 @@ struct PostMeetingReminderBarView: View {
             .padding(.leading, refreshed ? 16 + 3 : 16)
             .padding(.trailing, 16)
             .padding(.vertical, refreshed ? 12 : 10)
-            // System: a wash of the meeting blue, edge to edge, as the
-            // timer bar is washed green. Blue is what the menu bar
-            // shows for a meeting, and it keeps this bar apart from a
-            // paused timer's amber one.
+            // System: a wash of the meeting colour, edge to edge, as
+            // the timer bar is washed green.
             .background(refreshed ? YieldStatusColors.meeting.opacity(0.08) : YieldColors.yellowFaint)
         }
         // One rule, underneath. Whatever is above — the header, or the

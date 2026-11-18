@@ -77,7 +77,7 @@ struct ScheduleStripView: View {
         .padding(.horizontal, horizontalInset)
         .padding(.top, 6)
         .padding(.bottom, 7)
-        .background(panelShape.fill(WeekDayBarView.selectedFill))
+        .background(panelShape.fill(WeekDayBarView.selectedFill(joined: true)))
     }
 
     /// Hour labels and lines, the pills over them, and the now-line.
@@ -135,13 +135,19 @@ struct ScheduleStripView: View {
         }
     }
 
+    /// System draws a meeting in the meeting colour here as everywhere
+    /// else. Editorial keeps the accent its day view draws events in.
+    private static var pillColor: Color {
+        ThemeStore.shared.theme.usesRefreshedLayout ? YieldStatusColors.meeting : YieldColors.controlAccent
+    }
+
     /// Only today tells what's on (solid) from what's coming (lighter)
     /// and what's over (fainter still); other days are all "coming".
     private static func fill(for phase: ScheduleStrip.Phase) -> Color {
         switch phase {
-        case .past:     return YieldColors.controlAccent.opacity(0.3)
-        case .current:  return YieldColors.controlAccent
-        case .upcoming: return YieldColors.controlAccent.opacity(0.55)
+        case .past:     return pillColor.opacity(0.42)
+        case .current:  return pillColor
+        case .upcoming: return pillColor.opacity(0.72)
         }
     }
 }
@@ -153,7 +159,7 @@ private struct PanelUnderlay<S: Shape>: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .background(shape.fill(WeekDayBarView.selectedFill))
+            .background(shape.fill(WeekDayBarView.selectedFill(joined: true)))
             .background(shape.fill(YieldColors.background))
     }
 }
