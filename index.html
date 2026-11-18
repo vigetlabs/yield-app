@@ -19,6 +19,9 @@
     :root {
       --green: #0B7048;
       --green-hover: #095B3A;
+      /* Text on the green button: white on the deep light-mode green,
+         near-black on the bright dark-mode one. */
+      --on-green: #FFFFFF;
       --bg: #FAFAFA;
       --surface: #FFFFFF;
       --text: #1A1B1C;
@@ -30,6 +33,7 @@
       :root {
         --green: #15DA93;
         --green-hover: #20E89F;
+        --on-green: #0B2A1D;
         --bg: #1A1B1C;
         --surface: #232425;
         --text: #F5F5F6;
@@ -106,7 +110,7 @@
       align-items: center;
       gap: 8px;
       background: var(--green);
-      color: #FFFFFF;
+      color: var(--on-green);
       text-decoration: none;
       padding: 12px 20px;
       border-radius: 8px;
@@ -154,11 +158,12 @@
 
     .features li:last-child { border-bottom: none; }
 
-    .features li::before {
-      content: "→";
-      color: var(--green);
-      font-weight: 600;
+    .features li .icon {
       flex-shrink: 0;
+      width: 1.4em;
+      font-size: 1.1em;
+      line-height: 1.4;
+      text-align: center;
     }
 
     footer {
@@ -205,17 +210,17 @@
     <section class="features">
       <h2>What it does</h2>
       <ul>
-        <li>Full-featured Harvest time tracker — start, stop, pause, resume, edit, delete without leaving the menu bar.</li>
-        <li>Move time off a runaway timer — sat through a meeting on the wrong timer? Shift the minutes where they belong, keep timing or switch.</li>
-        <li>Meeting-start prompts — when a calendar event begins, Yield offers to start its timer and back-fill the minutes since it started; let a meeting timer run long and it offers to move the overage too. Meetings on the same task share one entry for the day, newest first in the notes.</li>
-        <li>Your next meeting in the menu bar — a glanceable countdown beside the timer: what's next and when, how long the current meeting has left, and what follows it.</li>
-        <li>Color-coded progress per project — under, on-track, or over your booked hours, at a glance.</li>
-        <li>Expand any project for a day-by-day breakdown of the week's hours.</li>
-        <li>Log time from a Google Calendar event — today's schedule as a mini day view, one click to start a timer or log the meeting.</li>
-        <li>A day's meetings at a glance — select a day in the week strip and its meetings open as a thin timeline under it.</li>
-        <li>Past and future weeks — look ahead at what's booked or step back for a read-only review.</li>
-        <li>Menu bar styles — a budget ring, a status capsule that fills like a battery, or week bars, alongside the classic gauge.</li>
-        <li>Two looks, Editorial and System, plus a weekly time chart, idle detection, and more.</li>
+        <li><span class="icon" aria-hidden="true">⏱️</span><span>Full-featured Harvest time tracker — start, stop, pause, resume, edit, delete without leaving the menu bar.</span></li>
+        <li><span class="icon" aria-hidden="true">🔀</span><span>Move time off a runaway timer — sat through a meeting on the wrong timer? Shift the minutes where they belong, keep timing or switch.</span></li>
+        <li><span class="icon" aria-hidden="true">🗓️</span><span>Meeting-start prompts — when a calendar event begins, Yield offers to start its timer and back-fill the minutes since it started; let a meeting timer run long and it offers to move the overage too. Meetings on the same task share one entry for the day, newest first in the notes.</span></li>
+        <li><span class="icon" aria-hidden="true">⏳</span><span>Your next meeting in the menu bar — a glanceable countdown beside the timer: what's next and when, how long the current meeting has left, and what follows it.</span></li>
+        <li><span class="icon" aria-hidden="true">📊</span><span>Color-coded progress per project — under, on-track, or over your booked hours, at a glance.</span></li>
+        <li><span class="icon" aria-hidden="true">📐</span><span>Expand any project for a day-by-day breakdown of the week's hours.</span></li>
+        <li><span class="icon" aria-hidden="true">📅</span><span>Log time from a Google Calendar event — today's schedule as a mini day view, one click to start a timer or log the meeting.</span></li>
+        <li><span class="icon" aria-hidden="true">🕘</span><span>A day's meetings at a glance — select a day in the week strip and its meetings open as a thin timeline under it.</span></li>
+        <li><span class="icon" aria-hidden="true">🔭</span><span>Past and future weeks — look ahead at what's booked or step back for a read-only review.</span></li>
+        <li><span class="icon" aria-hidden="true">🎛️</span><span>Menu bar styles — a budget ring, a status capsule that fills like a battery, or week bars, alongside the classic gauge.</span></li>
+        <li><span class="icon" aria-hidden="true">🎨</span><span>Two looks, Editorial and System, plus a weekly time chart, idle detection, and more.</span></li>
       </ul>
     </section>
 
