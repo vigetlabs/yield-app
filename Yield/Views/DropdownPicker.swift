@@ -7,11 +7,20 @@ struct DropdownGroup {
     let items: [(id: Int, title: String)]
 }
 
+/// A group of pre-composed items for `DropdownPicker.richGroups`.
+struct RichDropdownGroup {
+    let label: String?
+    let items: [(id: Int, attributedTitle: NSAttributedString)]
+}
+
 /// A native NSPopUpButton-backed dropdown that works reliably inside MenuBarExtra panels.
 /// SwiftUI Menu/Picker can drop selections due to ViewBridge disconnects in this context.
 struct DropdownPicker: View {
     let label: String
     let placeholder: String
+    /// SF Symbol drawn ahead of `placeholder`, the way a favorite's
+    /// star leads its title.
+    var placeholderSymbol: String? = nil
     var isLoading: Bool = false
     var items: [(id: Int, title: String)] = []
     var groups: [DropdownGroup]? = nil
@@ -25,14 +34,14 @@ struct DropdownPicker: View {
     /// pinned to `placeholder`; selecting an item just fires
     /// `onSelect` and doesn't change the displayed title.
     var isPullDown: Bool = false
-    /// Pre-composed attributed titles, one per item — overrides
-    /// `items` when supplied. Use this when you need rich per-item
-    /// rendering (multi-line, leading icons, mixed fonts) that the
-    /// plain `items` API can't express.
-    var richItems: [(id: Int, attributedTitle: NSAttributedString)]? = nil
+    /// Groups of pre-composed attributed titles — overrides `items`
+    /// when supplied. Use this when you need rich per-item rendering
+    /// (multi-line, leading icons, mixed fonts) that the plain `items`
+    /// API can't express. Groups are divided as in `groups`: a
+    /// separator between them, and a header when one is labelled.
+    var richGroups: [RichDropdownGroup]? = nil
     /// When true, an `NSMenuItem.separator()` is inserted between
-    /// each item (or rich item). Doesn't apply to grouped mode,
-    /// which already uses separators between groups.
+    /// each item (or rich item) within a group.
     var showsItemSeparators: Bool = false
     let onSelect: (Int) -> Void
 
@@ -46,11 +55,12 @@ struct DropdownPicker: View {
                 groups: groups,
                 selectedId: selectedId,
                 placeholder: placeholder,
+                placeholderSymbol: placeholderSymbol,
                 label: label,
                 isDisabled: isDisabled,
                 favoritedIds: favoritedIds,
                 isPullDown: isPullDown,
-                richItems: richItems,
+                richGroups: richGroups,
                 showsItemSeparators: showsItemSeparators,
                 onSelect: onSelect
             )
@@ -87,11 +97,12 @@ private struct NativePopUpButton: NSViewRepresentable {
     let groups: [DropdownGroup]?
     let selectedId: Int?
     let placeholder: String
+    let placeholderSymbol: String?
     let label: String
     let isDisabled: Bool
     let favoritedIds: Set<Int>
     let isPullDown: Bool
-    let richItems: [(id: Int, attributedTitle: NSAttributedString)]?
+    let richGroups: [RichDropdownGroup]?
     let showsItemSeparators: Bool
     let onSelect: (Int) -> Void
 
@@ -104,10 +115,20 @@ private struct NativePopUpButton: NSViewRepresentable {
     /// title is rendered both in the open menu and in the closed
     /// popup's selected state.
     private static func attributedTitle(for title: String, font: NSFont, isFavorited: Bool) -> NSAttributedString {
+        attributedTitle(for: title, font: font, symbol: isFavorited ? ("star.fill", "Favorite") : nil)
+    }
+
+    /// `title` led by `symbol` (an SF Symbol name and its accessibility
+    /// description), or plain when there is none.
+    private static func attributedTitle(
+        for title: String,
+        font: NSFont,
+        symbol: (name: String, description: String)?
+    ) -> NSAttributedString {
         let result = NSMutableAttributedString()
-        if isFavorited, let star = favoriteIcon(forFont: font) {
+        if let symbol, let icon = symbolIcon(symbol.name, description: symbol.description, forFont: font) {
             let attachment = NSTextAttachment()
-            attachment.image = star
+            attachment.image = icon
             let glyphSize = font.pointSize
             // Negative y lowers the attachment below the baseline. The
             // SF Symbol star occupies its full bounds, but visually
@@ -122,11 +143,29 @@ private struct NativePopUpButton: NSViewRepresentable {
         return result
     }
 
-    private static func favoriteIcon(forFont font: NSFont) -> NSImage? {
+    /// A group's label: disabled, so it reads as a heading and can't
+    /// be picked.
+    private static func headerItem(_ label: String, font: NSFont) -> NSMenuItem {
+        let item = NSMenuItem()
+        item.attributedTitle = NSAttributedString(
+            // System writes group names as it writes client names
+            // everywhere else: in their own case.
+            string: ThemeStore.shared.theme.usesRefreshedLayout ? label : label.uppercased(),
+            attributes: [
+                .font: font,
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ]
+        )
+        item.isEnabled = false
+        item.tag = -1
+        return item
+    }
+
+    private static func symbolIcon(_ name: String, description: String, forFont font: NSFont) -> NSImage? {
         let glyphSize = font.pointSize
         let config = NSImage.SymbolConfiguration(pointSize: glyphSize, weight: .semibold)
             .applying(.init(paletteColors: [.labelColor]))
-        let image = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favorite")?
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: description)?
             .withSymbolConfiguration(config)
         image?.size = NSSize(width: glyphSize, height: glyphSize)
         return image
@@ -207,21 +246,8 @@ private struct NativePopUpButton: NSViewRepresentable {
                     popup.menu?.addItem(.separator())
                 }
 
-                // Group header (disabled, acts as label)
                 if let groupLabel = group.label {
-                    let headerItem = NSMenuItem()
-                    headerItem.attributedTitle = NSAttributedString(
-                        // System writes group names as it writes client
-                        // names everywhere else: in their own case.
-                        string: ThemeStore.shared.theme.usesRefreshedLayout ? groupLabel : groupLabel.uppercased(),
-                        attributes: [
-                            .font: headerFont,
-                            .foregroundColor: NSColor.secondaryLabelColor,
-                        ]
-                    )
-                    headerItem.isEnabled = false
-                    headerItem.tag = -1
-                    popup.menu?.addItem(headerItem)
+                    popup.menu?.addItem(Self.headerItem(groupLabel, font: headerFont))
                 }
 
                 // Group items (indented)
@@ -237,16 +263,24 @@ private struct NativePopUpButton: NSViewRepresentable {
                     popup.menu?.addItem(menuItem)
                 }
             }
-        } else if let richItems {
+        } else if let richGroups {
             // Rich mode — caller composed attributed titles per item.
-            for (index, item) in richItems.enumerated() {
-                if showsItemSeparators, index > 0 {
+            for (groupIndex, group) in richGroups.enumerated() where !group.items.isEmpty {
+                if groupIndex > 0, popup.menu?.items.count ?? 0 > 1 {
                     popup.menu?.addItem(.separator())
                 }
-                let menuItem = NSMenuItem()
-                menuItem.attributedTitle = item.attributedTitle
-                menuItem.tag = item.id
-                popup.menu?.addItem(menuItem)
+                if let groupLabel = group.label {
+                    popup.menu?.addItem(Self.headerItem(groupLabel, font: headerFont))
+                }
+                for (index, item) in group.items.enumerated() {
+                    if showsItemSeparators, index > 0 {
+                        popup.menu?.addItem(.separator())
+                    }
+                    let menuItem = NSMenuItem()
+                    menuItem.attributedTitle = item.attributedTitle
+                    menuItem.tag = item.id
+                    popup.menu?.addItem(menuItem)
+                }
             }
         } else {
             // Flat mode
@@ -265,9 +299,10 @@ private struct NativePopUpButton: NSViewRepresentable {
         }
 
         // Style placeholder
-        popup.menu?.items.first?.attributedTitle = NSAttributedString(
-            string: placeholder,
-            attributes: [.font: menuFont]
+        popup.menu?.items.first?.attributedTitle = Self.attributedTitle(
+            for: placeholder,
+            font: menuFont,
+            symbol: placeholderSymbol.map { ($0, "") }
         )
 
         // Select the right item

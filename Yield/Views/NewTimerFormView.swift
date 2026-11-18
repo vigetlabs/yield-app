@@ -340,13 +340,11 @@ struct NewTimerFormView: View {
     }
 
     private var formBody: some View {
-        // Hoist resolvedFavorites once per body pass — it's read by
-        // the isEmpty guard, the popover's `richItems`, the indices
-        // check, and the index access. Previously each was a separate
-        // recomputation (Dictionary grouping + sort over all favorites)
-        // per body, multiplied by the high re-render rate while the
-        // user types in any TextField.
-        let favorites = resolvedFavorites
+        // Hoisted once per body pass — it's read by the isEmpty guard
+        // and the menu. Each read is a resolve + sort over the booked
+        // projects and favorites, multiplied by the high re-render rate
+        // while the user types in any TextField.
+        let quickPicks = resolvedQuickPicks
         return VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(spacing: 6) {
@@ -383,10 +381,10 @@ struct NewTimerFormView: View {
             VStack(alignment: .leading, spacing: 12) {
                 // Project + task pickers, with the favorite star
                 // button floating to the right (toggles favorite for
-                // the current selection). When the user has favorites,
-                // a "Favorites" button sits inline with the project
-                // picker — opens a popover for one-tap selection of a
-                // saved combo.
+                // the current selection). When there is a booking or a favorite,
+                // a "Quick picks" button sits inline with the project
+                // picker — a menu of this week's bookings and saved
+                // combos, each one tap away.
                 if let unselectableProjectName {
                     unassignedBanner(projectName: unselectableProjectName)
                 }
@@ -399,8 +397,8 @@ struct NewTimerFormView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 8) {
                             projectPicker
-                            if !favorites.isEmpty {
-                                favoritesPickerButton(favorites: favorites)
+                            if !quickPicks.isEmpty {
+                                favoritesPickerButton(picks: quickPicks)
                             }
                         }
                         taskPicker
@@ -702,19 +700,20 @@ struct NewTimerFormView: View {
         return project.taskAssignments.contains { $0.task.id == memory.taskId }
     }
 
-    // MARK: - Favorites Pill Row
+    // MARK: - Favorites Menu
 
-    private struct ResolvedFavorite: Identifiable {
+    /// One row of the Favorites menu, resolved against `allProjects`.
+    private struct QuickPickRow {
         let projectId: Int
-        let taskId: Int
+        /// Nil for a booked project whose task Yield can't guess: the
+        /// row selects the project and leaves the task to the user.
+        let taskId: Int?
         let clientName: String?
         let projectName: String
         /// Forecast/Harvest project code, prefixed in `displayName`.
         let projectCode: String?
-        let taskName: String
-        let lastUsedAt: Date
-
-        var id: String { "\(projectId)-\(taskId)" }
+        let taskName: String?
+        let isBooked: Bool
 
         /// Project name with the `[code]` prefix when set.
         var displayName: String {
@@ -722,96 +721,130 @@ struct NewTimerFormView: View {
         }
     }
 
-    /// Favorites resolved against the loaded `allProjects`. Sorted
-    /// most-recently-used first so the pill row reads as the user's
-    /// "recent quick-picks". Drops favorites whose project the user
-    /// no longer has access to since they can't be selected from this
-    /// form anyway (the Settings card still surfaces them for cleanup).
-    private var resolvedFavorites: [ResolvedFavorite] {
-        let projectsById = allProjects.indexed { $0.harvestProjectId }
-        return FavoritesStore.shared.favorites
-            .compactMap { fav -> ResolvedFavorite? in
-                guard let project = projectsById[fav.projectId],
-                      let task = project.taskAssignments.first(where: { $0.task.id == fav.taskId })?.task
-                else { return nil }
-                return ResolvedFavorite(
-                    projectId: fav.projectId,
-                    taskId: fav.taskId,
-                    clientName: project.clientName,
-                    projectName: project.projectName,
-                    projectCode: project.projectCode,
-                    taskName: task.name,
-                    lastUsedAt: fav.lastUsedAt
-                )
-            }
-            // Match the project list's sort: alphabetical by client →
-            // project → task. The most-recently-used favorite still
-            // wins the auto-select inside `selectProject`; this sort
-            // only controls how the popover lists the favorites.
-            .sorted { a, b in
-                let ac = a.clientName ?? ""
-                let bc = b.clientName ?? ""
-                if ac != bc { return ac.localizedCaseInsensitiveCompare(bc) == .orderedAscending }
-                if a.projectName != b.projectName {
-                    return a.projectName.localizedCaseInsensitiveCompare(b.projectName) == .orderedAscending
-                }
-                return a.taskName.localizedCaseInsensitiveCompare(b.taskName) == .orderedAscending
-            }
+    /// The menu's two lists: this week's booked projects, then the
+    /// favorites that aren't already one of them.
+    private struct QuickPickLists {
+        let booked: [QuickPickRow]
+        let favorites: [QuickPickRow]
+
+        var isEmpty: Bool { booked.isEmpty && favorites.isEmpty }
+        /// Both lists in menu order; a row's index here is its menu id.
+        var all: [QuickPickRow] { booked + favorites }
     }
 
-    /// Favorites picker, built on the same `DropdownPicker` /
+    /// Booked projects and favorites, resolved against the loaded
+    /// `allProjects` — anything the user can't log to from this form is
+    /// dropped (the Settings card still lists stale favorites for
+    /// cleanup). Each list reads alphabetically, client → project →
+    /// task, like the project list.
+    private var resolvedQuickPicks: QuickPickLists {
+        let projectsById = allProjects.indexed { $0.harvestProjectId }
+        func row(_ pick: QuickPicks.Pick, booked: Bool) -> QuickPickRow? {
+            guard let project = projectsById[pick.projectId] else { return nil }
+            let task = pick.taskId.flatMap { id in project.taskAssignments.first { $0.task.id == id }?.task }
+            if pick.taskId != nil, task == nil { return nil }
+            return QuickPickRow(
+                projectId: project.harvestProjectId, taskId: task?.id,
+                clientName: project.clientName, projectName: project.projectName,
+                projectCode: project.projectCode, taskName: task?.name, isBooked: booked
+            )
+        }
+
+        // This week's bookings, whatever date the form is set to: the
+        // week the panel is about.
+        var seen = Set<Int>()
+        let booked: [QuickPicks.Pick] = viewModel.projectStatuses.compactMap { status in
+            guard status.isForecasted, let projectId = status.harvestProjectId,
+                  let project = projectsById[projectId], seen.insert(projectId).inserted else { return nil }
+            return QuickPicks.Pick(projectId: projectId, taskId: Self.preferredTask(for: project))
+        }
+        let favorites = QuickPicks.favorites(
+            FavoritesStore.shared.favorites.map { QuickPicks.Pick(projectId: $0.projectId, taskId: $0.taskId) },
+            excluding: booked
+        )
+        return QuickPickLists(
+            booked: Self.sorted(booked.compactMap { row($0, booked: true) }),
+            favorites: Self.sorted(favorites.compactMap { row($0, booked: false) })
+        )
+    }
+
+    private static func sorted(_ rows: [QuickPickRow]) -> [QuickPickRow] {
+        rows.sorted { a, b in
+            let ac = a.clientName ?? ""
+            let bc = b.clientName ?? ""
+            if ac != bc { return ac.localizedCaseInsensitiveCompare(bc) == .orderedAscending }
+            if a.projectName != b.projectName {
+                return a.projectName.localizedCaseInsensitiveCompare(b.projectName) == .orderedAscending
+            }
+            return (a.taskName ?? "").localizedCaseInsensitiveCompare(b.taskName ?? "") == .orderedAscending
+        }
+    }
+
+    /// Favorites menu, built on the same `DropdownPicker` /
     /// `NSPopUpButton` machinery as the project and task pickers so it
     /// matches them pixel-for-pixel — same border, background,
     /// chevron, fonts, and (importantly) the same NSMenu-based
     /// dispatch that resizes the MenuBarExtra panel cleanly. Unlike
     /// the project picker we never store a selection: the placeholder
-    /// "★ Favorites" stays in the closed state regardless of what the
+    /// "Quick picks" stays in the closed state regardless of what the
     /// user picks, so the button reads as a trigger rather than a
-    /// selector. Takes the pre-resolved favorites list as a parameter
-    /// so the caller can compute it once per body pass instead of
-    /// this view recomputing it for each of its four read sites.
-    private func favoritesPickerButton(favorites: [ResolvedFavorite]) -> some View {
-        DropdownPicker(
-            label: "Favorites",
-            placeholder: "★ Favorites",
+    /// selector. Takes the pre-resolved lists as a parameter so the
+    /// caller can compute them once per body pass.
+    private func favoritesPickerButton(picks: QuickPickLists) -> some View {
+        let rows = picks.all
+        return DropdownPicker(
+            label: "Quick picks",
+            placeholder: "Quick picks",
+            placeholderSymbol: "bolt.fill",
             selectedId: nil,
             isPullDown: true,
-            richItems: favorites.enumerated().map { index, fav in
-                (id: index, attributedTitle: Self.favoriteMenuItemTitle(for: fav))
-            },
+            richGroups: [
+                RichDropdownGroup(
+                    label: "Booked this week",
+                    items: picks.booked.indices.map { (id: $0, attributedTitle: Self.quickPickTitle(for: picks.booked[$0])) }
+                ),
+                RichDropdownGroup(
+                    label: "Favorites",
+                    items: picks.favorites.indices.map {
+                        (id: picks.booked.count + $0, attributedTitle: Self.quickPickTitle(for: picks.favorites[$0]))
+                    }
+                ),
+            ],
             showsItemSeparators: true
         ) { index in
-            guard favorites.indices.contains(index) else { return }
-            applyFavorite(favorites[index])
+            guard rows.indices.contains(index) else { return }
+            applyQuickPick(rows[index])
         }
         .fixedSize()
     }
 
-    /// Compose a two-line `NSAttributedString` for a favorite menu
-    /// item: leading filled-star glyph + project on top, task on
-    /// bottom in a smaller secondary-color font. The task line is
-    /// indented past the star so it aligns with the project text.
-    private static func favoriteMenuItemTitle(for fav: ResolvedFavorite) -> NSAttributedString {
+    /// Compose a two-line `NSAttributedString` for a menu item:
+    /// leading glyph + project on top, task on the bottom in a smaller
+    /// secondary-color font. A favorite leads with a star, a booking
+    /// with a briefcase; a booking with no known task says so. The task
+    /// line is indented past the glyph so it aligns with the project.
+    private static func quickPickTitle(for row: QuickPickRow) -> NSAttributedString {
         let titleFont = YieldFonts.nsTitle(12)
         let subtitleFont = YieldFonts.nsLabel(10)
         let result = NSMutableAttributedString()
 
-        // Star icon (text attachment so the line height stays tight).
-        let starSize = titleFont.pointSize
-        let starConfig = NSImage.SymbolConfiguration(pointSize: starSize, weight: .semibold)
+        // Leading glyph (text attachment so the line height stays tight).
+        let glyphSize = titleFont.pointSize
+        let config = NSImage.SymbolConfiguration(pointSize: glyphSize, weight: .semibold)
             .applying(.init(paletteColors: [.labelColor]))
-        if let starImage = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favorite")?
-            .withSymbolConfiguration(starConfig) {
-            starImage.size = NSSize(width: starSize, height: starSize)
+        let symbol = row.isBooked ? "briefcase.fill" : "star.fill"
+        if let glyph = NSImage(systemSymbolName: symbol, accessibilityDescription: row.isBooked ? "Booked" : "Favorite")?
+            .withSymbolConfiguration(config) {
+            glyph.size = NSSize(width: glyphSize, height: glyphSize)
             let attachment = NSTextAttachment()
-            attachment.image = starImage
-            attachment.bounds = NSRect(x: 0, y: -1, width: starSize, height: starSize)
+            attachment.image = glyph
+            attachment.bounds = NSRect(x: 0, y: -1, width: glyphSize, height: glyphSize)
             result.append(NSAttributedString(attachment: attachment))
             result.append(NSAttributedString(string: "  ", attributes: [.font: titleFont]))
         }
 
         // Project line (Client — [code] Project)
-        let projectText = ProjectStatus.qualifiedName(client: fav.clientName, project: fav.displayName)
+        let projectText = ProjectStatus.qualifiedName(client: row.clientName, project: row.displayName)
         result.append(NSAttributedString(
             string: "\(projectText)\n",
             attributes: [
@@ -820,29 +853,43 @@ struct NewTimerFormView: View {
             ]
         ))
 
-        // Task line — leading spaces approximate the star + gap so
+        // Task line — leading spaces approximate the glyph + gap so
         // the task name aligns under the project text.
         result.append(NSAttributedString(
-            string: "    \(fav.taskName)",
+            string: "    \(row.taskName ?? "Choose a task")",
             attributes: [
                 .font: subtitleFont,
-                .foregroundColor: NSColor.secondaryLabelColor,
+                .foregroundColor: row.taskName == nil ? NSColor.tertiaryLabelColor : NSColor.secondaryLabelColor,
             ]
         ))
 
         return result
     }
 
-    /// Apply a favorite to the form: select the project (loading its
-    /// tasks) and force the favorited task — the existing
-    /// `selectProject` auto-selects the most-recently-used favorite
-    /// for the project, but here we want THIS favorite specifically.
-    private func applyFavorite(_ fav: ResolvedFavorite) {
-        guard let project = allProjects.first(where: { $0.harvestProjectId == fav.projectId }) else { return }
+    /// Apply a menu row: select its project (loading its tasks) and
+    /// the row's task — which may not be the one `selectProject` would
+    /// pick, when the project has several favorites. A row with no task
+    /// leaves the task picker empty for the user to fill.
+    private func applyQuickPick(_ row: QuickPickRow) {
+        guard let project = allProjects.first(where: { $0.harvestProjectId == row.projectId }) else { return }
         selectedProjectId = project.harvestProjectId
+        selectedTaskId = nil
         availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
         duplicateConfirmEntries = nil
-        selectTask(fav.taskId)
+        if let taskId = row.taskId {
+            selectTask(taskId)
+        }
+    }
+
+    /// The task to select with `project`, or nil when Yield can't
+    /// tell: `QuickPicks.preferredTask` fed from the favorites and the
+    /// usage history.
+    private static func preferredTask(for project: TimeComparisonViewModel.TimerProjectOption) -> Int? {
+        QuickPicks.preferredTask(
+            taskIds: project.taskAssignments.map(\.task.id),
+            recentFavoriteTaskId: FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: project.harvestProjectId)?.taskId,
+            usualTaskId: ProjectTaskHistoryStore.shared.bestTask(forProjectId: project.harvestProjectId)
+        )
     }
 
     // MARK: - Project Picker
@@ -930,23 +977,11 @@ struct NewTimerFormView: View {
         selectedTaskId = nil
         duplicateConfirmEntries = nil
         availableTasks = project.taskAssignments.map { TaskOption(id: $0.task.id, name: $0.task.name) }
-        // Auto-select preference order:
-        //   1. Most-recently-used hard favorite for this project (explicit
-        //      user intent; covers single- and multi-favorite cases).
-        //   2. Soft favorite — the task the user tends to log on this
-        //      project lately (recency-weighted frequency). Fills the gap
-        //      when nothing's been explicitly starred.
-        //   3. Project's only task, if there's just one.
-        // Each candidate is guarded against staleness (the stored task may
-        // have since been unassigned from the project).
-        if let fav = FavoritesStore.shared.mostRecentlyUsedFavorite(forProjectId: project.harvestProjectId),
-           availableTasks.contains(where: { $0.id == fav.taskId }) {
-            selectTask(fav.taskId)
-        } else if let softTaskId = ProjectTaskHistoryStore.shared.bestTask(forProjectId: project.harvestProjectId),
-                  availableTasks.contains(where: { $0.id == softTaskId }) {
-            selectTask(softTaskId)
-        } else if let onlyTask = availableTasks.first, availableTasks.count == 1 {
-            selectTask(onlyTask.id)
+        // The project's most recently used favorite, else the task
+        // usually logged there, else its only task — the same guess the
+        // Favorites menu shows beside a booked project.
+        if let taskId = Self.preferredTask(for: project) {
+            selectTask(taskId)
         }
     }
 
