@@ -177,26 +177,34 @@ final class MeetingPromptTests: XCTestCase {
 
     // MARK: - Notes merging
 
-    func test_notesAppending_putsTheAdditionOnANewLine() {
-        XCTAssertEqual(TimeComparisonViewModel.notes("1:1 Alex", appending: "1:1 Sam"), "1:1 Alex\n1:1 Sam")
+    func test_notesPrepending_putsTheAdditionFirst_onItsOwnLine() {
+        XCTAssertEqual(TimeComparisonViewModel.notes("1:1 Alex", prepending: "1:1 Sam"), "1:1 Sam\n1:1 Alex")
     }
 
-    func test_notesAppending_ontoNothing_isJustTheAddition() {
-        XCTAssertEqual(TimeComparisonViewModel.notes(nil, appending: " 1:1 Sam "), "1:1 Sam")
-        XCTAssertEqual(TimeComparisonViewModel.notes("", appending: "1:1 Sam"), "1:1 Sam")
+    func test_notesPrepending_ontoNothing_isJustTheAddition() {
+        XCTAssertEqual(TimeComparisonViewModel.notes(nil, prepending: " 1:1 Sam "), "1:1 Sam")
+        XCTAssertEqual(TimeComparisonViewModel.notes("", prepending: "1:1 Sam"), "1:1 Sam")
     }
 
-    func test_notesAppending_nothingToWrite_isNil() {
-        XCTAssertNil(TimeComparisonViewModel.notes("1:1 Alex", appending: nil))
-        XCTAssertNil(TimeComparisonViewModel.notes("1:1 Alex", appending: "  "))
-        // Already there, on a line of its own — never listed twice.
-        XCTAssertNil(TimeComparisonViewModel.notes("1:1 Alex\n1:1 Sam", appending: "1:1 sam"))
+    func test_notesPrepending_nothingToWrite_isNil() {
+        XCTAssertNil(TimeComparisonViewModel.notes("1:1 Alex", prepending: nil))
+        XCTAssertNil(TimeComparisonViewModel.notes("1:1 Alex", prepending: "  "))
+        // Already leading — nothing to change.
+        XCTAssertNil(TimeComparisonViewModel.notes("1:1 Sam\n1:1 Alex", prepending: "1:1 sam"))
     }
 
-    func test_notesAppending_aTitleInsideALongerLine_isNotAMatch() {
+    func test_notesPrepending_aTitleAlreadyFurtherDown_movesUp_ratherThanListingTwice() {
+        // A second 1:1 with Sam, after one with Alex in between.
         XCTAssertEqual(
-            TimeComparisonViewModel.notes("Prep for 1:1 Sam", appending: "1:1 Sam"),
-            "Prep for 1:1 Sam\n1:1 Sam"
+            TimeComparisonViewModel.notes("1:1 Alex\n1:1 Sam\nStandup", prepending: "1:1 sam"),
+            "1:1 Sam\n1:1 Alex\nStandup"
+        )
+    }
+
+    func test_notesPrepending_aTitleInsideALongerLine_isNotAMatch() {
+        XCTAssertEqual(
+            TimeComparisonViewModel.notes("Prep for 1:1 Sam", prepending: "1:1 Sam"),
+            "1:1 Sam\nPrep for 1:1 Sam"
         )
     }
 

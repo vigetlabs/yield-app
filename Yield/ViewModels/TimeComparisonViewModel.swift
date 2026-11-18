@@ -1905,10 +1905,10 @@ final class TimeComparisonViewModel {
         do {
             let destEntryId: Int
             if let existing = existingDest {
-                // Merge notes the way Harvest does when it merges timers:
-                // append on a new line. nil omits the field and preserves
-                // the existing notes untouched.
-                let mergedNotes = Self.notes(existing.notes, appending: notes)
+                // The moved time's notes lead the entry's, on their own
+                // line. nil omits the field and preserves the existing
+                // notes untouched.
+                let mergedNotes = Self.notes(existing.notes, prepending: notes)
                 _ = try await harvestService.updateTimeEntry(
                     entryId: existing.id,
                     hours: existing.hours + moved,
@@ -2184,16 +2184,27 @@ final class TimeComparisonViewModel {
             .contains { MeetingHistoryStore.normalize(String($0)) == key }
     }
 
-    /// `existing` with `addition` on a new line — the way Harvest
-    /// merges timers, and how several meetings on one task end up
-    /// listed in a single entry. Nil when there is nothing to write:
-    /// no addition, or the notes already carry it.
-    static func notes(_ existing: String?, appending addition: String?) -> String? {
+    /// `existing` with `addition` as its first line — how several
+    /// meetings on one task end up listed in a single entry, newest
+    /// first, so the timer bar (which shows the start of the notes)
+    /// names the meeting being timed rather than the day's first. A
+    /// title the notes already carry further down is moved up instead
+    /// of listed twice. Nil when there is nothing to write: no
+    /// addition, or it already leads.
+    static func notes(_ existing: String?, prepending addition: String?) -> String? {
         guard let addition = addition?.trimmingCharacters(in: .whitespacesAndNewlines),
               !addition.isEmpty else { return nil }
         guard let existing, !existing.isEmpty else { return addition }
-        if notes(existing, carry: addition) { return nil }
-        return existing + "\n" + addition
+
+        let key = MeetingHistoryStore.normalize(addition)
+        var lines = existing.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        if !key.isEmpty,
+           let index = lines.firstIndex(where: { MeetingHistoryStore.normalize($0) == key }) {
+            guard index > 0 else { return nil }
+            lines.insert(lines.remove(at: index), at: 0)
+            return lines.joined(separator: "\n")
+        }
+        return addition + "\n" + existing
     }
 
     /// Hours elapsed since the prompt event started — the amount the
@@ -2331,7 +2342,7 @@ final class TimeComparisonViewModel {
     }
 
     /// Start timing `projectId`/`taskId` on today's entry for that pair
-    /// when there is one, adding `notes` on a new line; create an entry
+    /// when there is one, adding `notes` as the first line; create an entry
     /// only when there isn't. One entry per task per day is what the
     /// "Start & move" path has always produced — this makes a plain
     /// meeting start agree with it, so whether a second 1:1 joins the
@@ -2350,7 +2361,7 @@ final class TimeComparisonViewModel {
             return
         }
 
-        let mergedNotes = Self.notes(existing.notes, appending: notes)
+        let mergedNotes = Self.notes(existing.notes, prepending: notes)
 
         if existing.isRunning {
             guard let mergedNotes else { return }
