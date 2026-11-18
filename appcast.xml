@@ -3,6 +3,29 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.8.0</title>
+      <sparkle:version>70</sparkle:version>
+      <sparkle:shortVersionString>1.8.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>Fixed: idle alerts stopped appearing.</strong> Since 1.7.2, Yield never noticed when you'd stepped away from a running timer. Idle detection works again, and checks even while Harvest can't be reached.</li>
+          <li><strong>Your next meeting in the menu bar.</strong> Turn on Settings &rarr; Calendar &rarr; <em>Menu bar meetings</em> and a countdown sits beside the timer: <em>AMC kickoff in 1h 22m</em>, then <em>1:1 Sam 12m left &middot; next 20m</em> while you're in it, and <em>ended 12m ago</em> if its timer is still running. A small calendar page shows today's date. Choose <em>Time only</em> to keep titles out of the bar while screen sharing, and set how much of a title to keep with <em>Shorten titles to</em>. Off by default.</li>
+          <li><strong>A day's meetings at a glance.</strong> With Google Calendar connected, selecting a day in the week strip opens a thin timeline of that day's meetings under its tab &mdash; Wednesday's calendar when you select Wednesday. Today's marks now with a red line; hover a meeting for its title and times.</li>
+          <li><strong>Meeting timers hold on.</strong> A timer started from a meeting is tied to its Harvest entry, so pausing, resuming or relaunching Yield no longer loses the meeting &mdash; or the reminder when it runs long. Meetings on the same task share one entry for the day, newest first in the notes, so the timer bar names the meeting you're in. If the timer is already on that task, the prompt offers <em>Add to Timer</em>.</li>
+          <li><strong>Menu bar styles.</strong> Settings &rarr; Display &rarr; <em>Menu bar style</em> adds a budget ring, a status capsule that fills like a battery, and week bars, alongside the classic gauge. A dot on them marks a meeting waiting for a timer, or one running.</li>
+          <li><strong>A reworked System theme.</strong> New type (Manrope), colours and controls throughout, Settings included, and anything to do with your calendar in one orange-brown. Editorial is unchanged and stays the default.</li>
+          <li><strong>Settings, regrouped.</strong> General, Display, Calendar, Tracking, Favorites and Muted Meetings, with every calendar option under Calendar. A new <em>Troubleshooting</em> section can sync now, reveal the logs, reset preferences, or forget remembered meetings.</li>
+          <li><strong>Try again where it fails.</strong> Refresh is gone from the gear menu &mdash; Yield refreshes whenever you open it &mdash; and a failed load now has a <em>Try again</em> right where the error shows.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.8.0/Yield-1.8.0.zip"
+        sparkle:edSignature="X2SyTEDJhOGPLwEGaOJ/3p+/8jfUqFir20+IClPgvmb7+8xj8xNQMrGFvZFmwuQbTPldXS5HHqcw7CDlqkOEDQ=="
+        length="3615311"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.7.3</title>
       <sparkle:version>69</sparkle:version>
       <sparkle:shortVersionString>1.7.3</sparkle:shortVersionString>
