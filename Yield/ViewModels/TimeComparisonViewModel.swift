@@ -1470,10 +1470,23 @@ final class TimeComparisonViewModel {
         assignedHarvestProjectIds = nil
     }
 
+    /// When `elapsedOffset` was last zeroed: the moment the running
+    /// entry's hours were last known to be current.
+    private var elapsedOffsetBase = Date()
+
+    /// Called on every refresh while a timer runs, and when one starts.
+    /// The hours just loaded are current, so the local offset goes back
+    /// to zero — but a ticker already running is left running.
+    ///
+    /// It used to be rescheduled here every time. Once refreshes came
+    /// every 30 seconds, that put the 60-second tick 60 seconds away
+    /// again every 30, so it never fired — and the idle check, which
+    /// runs on this tick, never ran: no idle alert since 1.7.2.
     @MainActor
     private func startElapsedTimer() {
-        elapsedTimer?.invalidate()
         elapsedOffset = 0
+        elapsedOffsetBase = Date()
+        guard elapsedTimer == nil else { return }
         idleNotificationSent = false
         elapsedTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             guard let self else { return }
@@ -1483,13 +1496,26 @@ final class TimeComparisonViewModel {
                 // accumulating phantom hours would mislead the user. A
                 // Forecast-only failure is fine; Harvest data is still
                 // fresh.
-                guard !self.isHarvestDown else { return }
-                self.elapsedOffset += 1.0 / 60.0  // add 1 minute in hours
-                self.checkBookedHoursReached()
+                if !self.isHarvestDown {
+                    // Whole minutes since the hours were last loaded,
+                    // not a minute per tick: the tick's phase no longer
+                    // lines up with the refreshes, and adding a minute
+                    // a few seconds after one would run the display
+                    // ahead of Harvest.
+                    let minutes = (Date().timeIntervalSince(self.elapsedOffsetBase) / 60).rounded(.down)
+                    self.elapsedOffset = max(0, minutes) / 60
+                    self.checkBookedHoursReached()
+                }
+                // Idle time is the Mac's, not Harvest's: check it even
+                // while Harvest can't be reached.
                 self.checkIdleTime()
             }
         }
     }
+
+    /// Whether the minute ticker (and the idle check on it) is
+    /// scheduled. Test-only.
+    var _elapsedTimerForTesting: Timer? { elapsedTimer }
 
     @MainActor
     private func checkIdleTime() {
@@ -2855,6 +2881,7 @@ final class TimeComparisonViewModel {
         elapsedTimer?.invalidate()
         elapsedTimer = nil
         elapsedOffset = 0
+        elapsedOffsetBase = Date()
     }
 
     /// Fetch all active projects assigned to the current user (used by NewTimerFormView)

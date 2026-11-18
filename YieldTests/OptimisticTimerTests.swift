@@ -115,6 +115,28 @@ final class OptimisticTimerTests: XCTestCase {
         XCTAssertEqual(vm.trackingEntry?.id, 1)
     }
 
+    /// Every refresh while a timer runs goes through the same restart
+    /// as a start. Rescheduling the minute ticker each time meant that,
+    /// with refreshes every 30 seconds, its 60-second tick never came —
+    /// and the idle check that runs on it never ran.
+    func test_restartingWhileRunning_keepsTheMinuteTickerScheduled() throws {
+        let vm = makeVM()
+        vm._setStateForTesting(projectStatuses: [
+            project(id: "p1", isTracking: false, entries: [entry(id: 1, isRunning: false)]),
+        ])
+
+        vm.optimisticallyStartEntry(1)
+        let ticker = try XCTUnwrap(vm._elapsedTimerForTesting)
+        let firesAt = ticker.fireDate
+
+        vm.optimisticallyStartEntry(1)
+
+        XCTAssertTrue(vm._elapsedTimerForTesting === ticker)
+        XCTAssertTrue(ticker.isValid)
+        XCTAssertEqual(ticker.fireDate, firesAt)
+        XCTAssertEqual(vm.elapsedOffset, 0)
+    }
+
     func test_start_stopsAnyOtherRunningEntryOnSameProject() {
         // Starting a different entry on a project should atomically stop
         // whatever was previously running there — Harvest only allows
