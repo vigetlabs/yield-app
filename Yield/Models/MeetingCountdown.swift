@@ -50,6 +50,9 @@ enum MeetingCountdown {
     /// this closely — back-to-back, or near enough — or when it starts
     /// before the current one is over.
     static let nextMentionWindow: TimeInterval = 30 * 60
+    /// Back-to-back, this close to the current meeting's end the bar
+    /// hands over to the next one: "8m left, 1:1 Alex next".
+    static let handoffWindow: TimeInterval = 10 * 60
     /// Titles are cut to a set number of characters; the menu bar is
     /// narrow and the time is the part that has to survive. How many
     /// is the user's call ("Shorten titles to"), within these bounds
@@ -110,13 +113,29 @@ enum MeetingCountdown {
             // Named, like an upcoming one: "50m left" on its own doesn't
             // say what is ending. Kept terse — this is the longest line
             // the menu bar shows, and the two numbers are what get read.
-            var text = titled(current.summary, "\(until(current.end, from: now)) left")
+            let left = "\(until(current.end, from: now)) left"
+            guard let next else { return MenuBarMeetingStatus(text: titled(current.summary, left)) }
+
+            // Back-to-back, the next one's wait is this one's time left,
+            // and "12m left · next 12m" says it twice. So the next goes
+            // unmentioned until the last few minutes, when the bar turns
+            // to it: "8m left, 1:1 Alex next".
+            let backToBack = (0..<60).contains(next.start.timeIntervalSince(current.end))
+            if backToBack {
+                guard current.end.timeIntervalSince(now) <= handoffWindow else {
+                    return MenuBarMeetingStatus(text: titled(current.summary, left))
+                }
+                let title = shortTitle(next.summary, limit: titleLength)
+                let name = (mode == .titleAndTime && !title.isEmpty) ? title : "meeting"
+                return MenuBarMeetingStatus(text: "\(left), \(name) next")
+            }
+
+            var text = titled(current.summary, left)
             // The next one is mentioned when it is close, or when it
             // starts before this one ends: inside a long block — three
             // hours of focus time, say — a meeting 45 minutes off would
             // otherwise go unannounced until the last half hour.
-            if let next,
-               next.start.timeIntervalSince(now) <= nextMentionWindow || next.start < current.end {
+            if next.start.timeIntervalSince(now) <= nextMentionWindow || next.start < current.end {
                 text += " · next \(until(next.start, from: now))"
             }
             return MenuBarMeetingStatus(text: text)

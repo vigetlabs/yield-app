@@ -101,6 +101,30 @@ final class MeetingCountdownTests: XCTestCase {
         XCTAssertEqual(s?.text, "1:1 Sam 12m left · next 20m")
     }
 
+    func test_inAMeeting_backToBack_leavesTheNextOneOut_untilTheHandoff() {
+        let s = status([
+            event("1:1 Sam", startsIn: -18, lasting: 30),
+            event("1:1 Alex", startsIn: 12),
+        ])
+        XCTAssertEqual(s?.text, "1:1 Sam 12m left")
+    }
+
+    func test_inAMeeting_backToBack_handsOverInTheLastTenMinutes() {
+        let s = status([
+            event("1:1 Sam", startsIn: -22, lasting: 30),
+            event("1:1 Alex", startsIn: 8),
+        ])
+        XCTAssertEqual(s, MenuBarMeetingStatus(text: "8m left, 1:1 Alex next"))
+    }
+
+    func test_inAMeeting_backToBack_handoff_timeOnly() {
+        let s = status([
+            event("1:1 Sam", startsIn: -22, lasting: 30),
+            event("1:1 Alex", startsIn: 8),
+        ], mode: .timeOnly)
+        XCTAssertEqual(s?.text, "8m left, meeting next")
+    }
+
     func test_inAMeeting_doesNotMentionADistantNextOne() {
         let s = status([
             event("1:1 Sam", startsIn: -18, lasting: 30),
