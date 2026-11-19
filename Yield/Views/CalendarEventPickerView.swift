@@ -368,17 +368,12 @@ struct DayTimeline {
     let timelineEnd: Date
     let blocks: [Block]
 
-    private static let hourFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "ha"
-        f.amSymbol = "am"
-        f.pmSymbol = "pm"
-        return f
-    }()
-
     /// "9am" — the gutter's label for an hour, and the schedule strip's.
-    static func hourLabel(for date: Date) -> String {
-        hourFormatter.string(from: date)
+    /// Read in `calendar`'s time zone, so the label always names the
+    /// same hour the caller laid the mark out on.
+    static func hourLabel(for date: Date, calendar: Calendar = .current) -> String {
+        let hour = calendar.component(.hour, from: date)
+        return "\((hour + 11) % 12 + 1)\(hour < 12 ? "am" : "pm")"
     }
 
     init(events: [CalendarEvent], calendar: Calendar = .current) {

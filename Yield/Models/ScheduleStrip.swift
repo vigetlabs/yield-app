@@ -98,7 +98,7 @@ struct ScheduleStrip: Equatable {
             // am/pm, and the rest are read from them.
             let hour = calendar.component(.hour, from: date)
             let label = (index == 0 || hour % 12 == 0)
-                ? DayTimeline.hourLabel(for: date)
+                ? DayTimeline.hourLabel(for: date, calendar: calendar)
                 : String((hour + 11) % 12 + 1)
             return HourMark(fraction: Double(index) / Double(hours), label: label)
         }
