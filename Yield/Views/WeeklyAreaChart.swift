@@ -13,8 +13,15 @@ import SwiftUI
 struct WeeklyAreaChart: View {
     struct Series: Identifiable {
         let id: Int
+        /// Identity in the chart's colour scale (`ChartPoint.projectName`).
         let name: String
         let color: Color
+        /// What the legend and tooltip call it; `name` when nil.
+        var label: String? = nil
+        /// Shown under the label in the legend.
+        var client: String? = nil
+        /// The week's total, at the end of its legend row.
+        var hours: Double = 0
     }
 
     /// Points with any isolation already applied (non-isolated series
@@ -92,6 +99,19 @@ struct WeeklyAreaChart: View {
                 )
                 .foregroundStyle(by: .value("Project", point.projectName))
                 .interpolationMethod(.monotone)
+            }
+
+            // A hairline in the background colour along each band's top, so
+            // neighbouring bands of similar depth stay distinct.
+            ForEach(ChartSeriesPlan.edges(points)) { edge in
+                LineMark(
+                    x: .value("Day", idx[edge.dayLabel] ?? 0),
+                    y: .value("Hours", edge.top),
+                    series: .value("Separator", edge.projectName)
+                )
+                .foregroundStyle(YieldColors.background)
+                .interpolationMethod(.monotone)
+                .lineStyle(StrokeStyle(lineWidth: ChartSeriesPlan.separatorWidth))
             }
 
             // Workday reference. Dashed on purpose — it's a reference
@@ -212,7 +232,7 @@ struct WeeklyAreaChart: View {
             ForEach(rows, id: \.0.id) { s, h in
                 HStack(spacing: 6) {
                     RoundedRectangle(cornerRadius: 2).fill(s.color).frame(width: 8, height: 8)
-                    Text(s.name)
+                    Text(s.label ?? s.name)
                         .font(YieldFonts.label(10))
                         .foregroundStyle(YieldColors.textSecondary)
                         .lineLimit(1)
@@ -258,33 +278,70 @@ struct WeeklyAreaChart: View {
     }
 }
 
-/// Legend for the System chart: an 8pt square swatch and the name in
-/// text tokens. Clicking isolates a series; clicking it again clears.
+/// Legend for the System chart: an 8pt square swatch, then a
+/// `ChartLegendRow`. Clicking isolates a series; clicking it again
+/// clears.
 struct WeeklyChartLegend: View {
     let series: [WeeklyAreaChart.Series]
     let isolatedId: Int?
     let onSelect: (Int) -> Void
 
     var body: some View {
-        let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+        let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
             ForEach(series) { s in
                 Button { onSelect(s.id) } label: {
-                    HStack(spacing: 7) {
+                    ChartLegendRow(title: s.label ?? s.name, subtitle: s.client, hours: s.hours) {
                         RoundedRectangle(cornerRadius: 2)
                             .fill(s.color)
                             .frame(width: 8, height: 8)
-                        Text(s.name)
-                            .font(YieldFonts.label(10))
-                            .foregroundStyle(YieldColors.textPrimary)
-                            .lineLimit(1)
-                        Spacer(minLength: 0)
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .opacity(isolatedId == nil || isolatedId == s.id ? 1.0 : 0.35)
             }
+        }
+    }
+}
+
+/// One row of a chart legend, either theme: the swatch, the project's
+/// name with its client underneath in smaller secondary text, and the
+/// week's hours at the end. Text wears text tokens; only the swatch
+/// carries the series colour.
+struct ChartLegendRow<Swatch: View>: View {
+    let title: String
+    let subtitle: String?
+    let hours: Double
+    /// The title's size; the client line and hours follow from it.
+    var size: CGFloat = 10
+    @ViewBuilder let swatch: () -> Swatch
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 7) {
+            // Centred on the title's x-height rather than the two-line
+            // block, so it lines up with the first line.
+            swatch()
+                .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] + size * 0.32 }
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(YieldFonts.label(size))
+                    .foregroundStyle(YieldColors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(YieldFonts.label(size - 1))
+                        .foregroundStyle(YieldColors.textSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+            Spacer(minLength: 6)
+            Text(ThemeStore.shared.theme.duration(hours))
+                .font(YieldFonts.mono(size))
+                .foregroundStyle(YieldColors.textSecondary)
+                .fixedSize()
         }
     }
 }

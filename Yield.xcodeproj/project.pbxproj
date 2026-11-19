@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		00CF200AE600512B319C3288 /* Newsreader-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0FD374FF50C57C8CDAC6FF39 /* Newsreader-Italic.ttf */; };
+		01AE17ED00233AE6CA82B540 /* ChartSeriesPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4378EE7C390A35B88330971 /* ChartSeriesPlanTests.swift */; };
 		0304CB3AB70DA7C9665E7908 /* EntryMoveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996FF1C75693575CA25ACE22 /* EntryMoveTests.swift */; };
 		07833C8855FBF86DBEE1761D /* CalendarEventPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE23809963F31EA6370A8FD9 /* CalendarEventPickerView.swift */; };
 		0A4CD72A293DB291F4C6F20D /* ProjectRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78BE3AD1E01EEA33BD6DB1C6 /* ProjectRowView.swift */; };
@@ -78,6 +79,7 @@
 		95B603C14869A370CBA0C1B4 /* ForecastNotesIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5F5D6314DDCF74E5EB6BC6 /* ForecastNotesIcon.swift */; };
 		95E28CA5455CF73C33B3F1F4 /* HarvestStatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B78953DDC0FEB63661C043A /* HarvestStatusService.swift */; };
 		95E8E312F40AC5BC43110E2F /* ScheduleStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBACD1D7822E883C8A124EFD /* ScheduleStrip.swift */; };
+		95EED093F38F736CA9397A9F /* ChartSeriesPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADE25C53FD5285506B58746 /* ChartSeriesPlan.swift */; };
 		96BE7F6429568D068B53A35D /* MenuBarHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 239BAC0FB9D2ECACB00931A4 /* MenuBarHeaderView.swift */; };
 		977BD90BD8F50FCFC47E7B4A /* OptimisticTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D171E67D1EF700B24DDAB9 /* OptimisticTimerTests.swift */; };
 		97D4A1930EE4CFD8117F61DE /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A155FA79AC05F13F3C0C6F6 /* GoogleAuthService.swift */; };
@@ -211,6 +213,7 @@
 		B1B79CFE54ADFAC0324B783D /* ProjectChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectChartView.swift; sourceTree = "<group>"; };
 		B31168BFC9DC2EF2BDDDE60C /* DayTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTimelineTests.swift; sourceTree = "<group>"; };
 		B38D70F529A76FE3A2F4935F /* RuntimeEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeEnvironment.swift; sourceTree = "<group>"; };
+		B4378EE7C390A35B88330971 /* ChartSeriesPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartSeriesPlanTests.swift; sourceTree = "<group>"; };
 		B58E49DBB49B3AA58579E5AB /* YieldTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YieldTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastModels.swift; sourceTree = "<group>"; };
 		BCD907CCE73B8116AE553407 /* MutedMeetingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutedMeetingsCard.swift; sourceTree = "<group>"; };
@@ -240,6 +243,7 @@
 		E1350494431A405E6124039A /* TimerMoveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerMoveTests.swift; sourceTree = "<group>"; };
 		E5CE6E83B352C722A6F67C56 /* AppLocationCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocationCheck.swift; sourceTree = "<group>"; };
 		E6AE4314E6BA70459850E000 /* Yield.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Yield.entitlements; sourceTree = "<group>"; };
+		EADE25C53FD5285506B58746 /* ChartSeriesPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartSeriesPlan.swift; sourceTree = "<group>"; };
 		EBCE6580387BF2264E6489BC /* TroubleshootingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TroubleshootingTests.swift; sourceTree = "<group>"; };
 		EC3EF47C858A0F5BC37C9712 /* ForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastService.swift; sourceTree = "<group>"; };
 		ECA417D28206A2DBE49C1D74 /* ProjectStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStatus.swift; sourceTree = "<group>"; };
@@ -351,6 +355,7 @@
 			isa = PBXGroup;
 			children = (
 				168140D146C953F805F0D8AE /* BudgetNotificationTests.swift */,
+				B4378EE7C390A35B88330971 /* ChartSeriesPlanTests.swift */,
 				4269FF2D4C89CC7CD8668F99 /* DateHelpersTests.swift */,
 				B31168BFC9DC2EF2BDDDE60C /* DayTimelineTests.swift */,
 				FBD48D786838656DCBEEFF94 /* DoubleFormattersTests.swift */,
@@ -384,6 +389,7 @@
 		6BB3D5EF89C68D9AF3EBB7EB /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				EADE25C53FD5285506B58746 /* ChartSeriesPlan.swift */,
 				B95CB3E8D0461C2D0E114140 /* ForecastModels.swift */,
 				12B153EDC6B898354DF10F1A /* GoogleCalendarModels.swift */,
 				9FE70177FE259AB1C37908F0 /* HarvestModels.swift */,
@@ -603,6 +609,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EA70B3A5695C4282ACE6316F /* BudgetNotificationTests.swift in Sources */,
+				01AE17ED00233AE6CA82B540 /* ChartSeriesPlanTests.swift in Sources */,
 				708A8AAD9C0B82C047AF82C9 /* DateHelpersTests.swift in Sources */,
 				84884C0D54953B86ADA226C8 /* DayTimelineTests.swift in Sources */,
 				427EA4BFD575944A859EF6CF /* DoubleFormattersTests.swift in Sources */,
@@ -640,6 +647,7 @@
 				2D6EEE3A1EFE15E3B42ABA95 /* AccountCard.swift in Sources */,
 				93A77B44E265FEA54BC8F424 /* AppLocationCheck.swift in Sources */,
 				07833C8855FBF86DBEE1761D /* CalendarEventPickerView.swift in Sources */,
+				95EED093F38F736CA9397A9F /* ChartSeriesPlan.swift in Sources */,
 				5F61F3DC85DC2ECAC08F5FEF /* ClientSectionHeader.swift in Sources */,
 				A0D5FB56C0B51BFF22538E58 /* CollectionHelpers.swift in Sources */,
 				CA12BB7BD1F76E62FC87A9F1 /* DateHelpers.swift in Sources */,

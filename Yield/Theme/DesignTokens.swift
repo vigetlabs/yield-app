@@ -201,18 +201,27 @@ enum YieldColors {
 
 // MARK: - Chart colors
 
-/// Categorical palette for the weekly chart's series (System theme).
+/// Categorical palettes for the weekly chart's series, one per theme.
 ///
-/// Eight hues in a fixed order, each stepped separately for the light
-/// and dark surfaces. The order is load-bearing: it was validated for
-/// colorblind separation and a normal-vision floor on *adjacent* pairs
-/// — which is what stacked segments are — against Yield's own surfaces
-/// (#F5F5F6 light, #151617 dark). Slots are assigned to projects in
-/// sequence and never cycled; a ninth project folds into `other`.
+/// Four hues — blue, orange, green, purple — each as a deep shade and a
+/// light one, in a scrambled order so no two projects look related:
+/// every neighbour differs in both hue and lightness, a hue's two
+/// shades sit at least three slots apart (and never on the same legend
+/// row), and the first four slots — a typical week — are four
+/// different hues. No red: red means "over" everywhere else in Yield. Both themes share the hues and order, so
+/// a project keeps its colour across a theme switch; Editorial's are
+/// the quieter (less saturated) treatment, System's the crisper.
 ///
-/// Four light-mode slots sit below 3:1 on the light surface, which the
-/// validator flags as needing a relief channel. The chart's hover
-/// tooltip, with the day's per-project hours, is that channel.
+/// Slots are assigned to projects in sequence (most hours first — see
+/// `ChartSeriesPlan`) and never cycled; a ninth project and beyond fold
+/// into `other`. Built in OKLCH (deep shades L ≈ 0.56 light / 0.58 dark,
+/// light shades ~0.24 above) and validated on *adjacent* pairs — what
+/// stacked bands are — against each theme's own surfaces: colour-blind
+/// separation (protan/deutan ΔE ≥ 8; worst 17.6) and a normal-vision
+/// floor (ΔE ≥ 15; worst 24.3) in all four theme × mode combinations.
+/// The light shades sit under 3:1 against the light surfaces by design;
+/// the legend, naming each project with its hours, carries identity.
+/// Changing a value or the order means re-running that check.
 enum YieldChartColors {
     private static func hex(_ light: UInt32, _ dark: UInt32) -> Color {
         func ns(_ v: UInt32) -> NSColor {
@@ -223,18 +232,31 @@ enum YieldChartColors {
         return dynamicColor(light: ns(light), dark: ns(dark))
     }
 
-    static let slots: [Color] = [
-        hex(0x2A78D6, 0x3987E5),  // blue
-        hex(0xEB6834, 0xD95926),  // orange
-        hex(0x1BAF7A, 0x199E70),  // aqua
-        hex(0xEDA100, 0xC98500),  // yellow
-        hex(0xE87BA4, 0xD55181),  // magenta
-        hex(0x008300, 0x008300),  // green
-        hex(0x6250D6, 0x9085E9),  // violet
-        hex(0xE34948, 0xE66767),  // red
+    /// Editorial: light (on #F5F5F6) / dark (on #151617).
+    static let editorial: [Color] = [
+        hex(0x4374BD, 0x4E7BBD),  // blue
+        hex(0xA0CC96, 0xA9D1A0),  // light green
+        hex(0x8061B3, 0x856AB3),  // purple
+        hex(0xE5B379, 0xE8BB87),  // light orange
+        hex(0x368848, 0x468C52),  // green
+        hex(0x87BEEC, 0x93C4EE),  // light blue
+        hex(0xBC712A, 0xBE7A3E),  // orange
+        hex(0xC5B2EB, 0xCBBAED),  // light purple
     ]
 
-    /// Projects past the eighth are merged into one neutral series.
+    /// System: light (on #FFFFFF) / dark (on #121212).
+    static let system: [Color] = [
+        hex(0x3673CB, 0x447AC9),  // blue
+        hex(0x99CF8E, 0xA4D499),  // light green
+        hex(0x835CBE, 0x8765BE),  // purple
+        hex(0xECB16A, 0xEEB97A),  // light orange
+        hex(0x1D8B3D, 0x358F49),  // green
+        hex(0x7CBEF6, 0x89C4F7),  // light blue
+        hex(0xC36D05, 0xC67625),  // orange
+        hex(0xC7B0F4, 0xCDB8F5),  // light purple
+    ]
+
+    /// Projects past the last slot are merged into one neutral series.
     static let other = hex(0x9A9A9A, 0x6E6E6E)
 }
 

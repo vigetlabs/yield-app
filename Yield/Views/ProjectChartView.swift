@@ -20,41 +20,18 @@ struct ProjectChartView: View {
         DateHelpers.dailyHours(fromWeekly: Double(weeklyHoursTarget))
     }
 
-    /// Assign colors by dividing the color wheel into N equal slices (where N is
-    /// the number of projects in the chart). Every pair of projects ends up the
-    /// same 360°/N apart — maximum possible separation. Sat/bright alternates so
-    /// even a small N has brightness variation too.
+    private typealias ProjectRef = ChartSeriesPlan.Project
+
+    /// A project's colour in the Editorial chart: its slot in the
+    /// plan's order (see `YieldChartColors.editorial`), or the neutral
+    /// one for "Other".
     private func color(for projectId: Int, in projects: [ProjectRef]) -> Color {
-        guard let idx = projects.firstIndex(where: { $0.id == projectId }) else {
-            return YieldColors.greenAccent  // shouldn't happen
+        guard projectId != ChartSeriesPlan.otherId,
+              let idx = projects.firstIndex(where: { $0.id == projectId }),
+              YieldChartColors.editorial.indices.contains(idx) else {
+            return YieldChartColors.other
         }
-        let n = max(projects.count, 1)
-        let hue = Double(idx) / Double(n)
-        // Muted, dark-theme-friendly tones. Alternate sat/bright between two
-        // low-saturation levels so neighbors differ on a second axis.
-        let even = idx.isMultiple(of: 2)
-        let sat: Double = even ? 0.50 : 0.35
-        let bright: Double = even ? 0.82 : 0.72
-        return Color(hue: hue, saturation: sat, brightness: bright)
-    }
-
-    private struct ProjectRef: Identifiable {
-        let id: Int
-        let name: String
-    }
-
-    /// Unique projects in the series, in display order (alphabetical
-    /// by name). Takes the points as a parameter so the body can pass
-    /// in its already-captured `chartSeries` value, instead of this
-    /// helper recomputing the whole nested-loop traversal.
-    private func projectList(from points: [TimeComparisonViewModel.ChartPoint]) -> [ProjectRef] {
-        var seen = Set<Int>()
-        var out: [ProjectRef] = []
-        for p in points where !seen.contains(p.projectId) {
-            seen.insert(p.projectId)
-            out.append(ProjectRef(id: p.projectId, name: p.projectName))
-        }
-        return out.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        return YieldChartColors.editorial[idx]
     }
 
     /// Returns the active isolation id (or nil if nothing is isolated, or the
@@ -85,7 +62,9 @@ struct ProjectChartView: View {
                     projectName: point.projectName,
                     date: point.date,
                     dayLabel: point.dayLabel,
-                    hours: 0
+                    hours: 0,
+                    projectLabel: point.projectLabel,
+                    clientName: point.clientName
                 )
         }
     }
@@ -104,8 +83,9 @@ struct ProjectChartView: View {
 
     @ViewBuilder
     private var editorialBody: some View {
-        let allPoints = viewModel.chartSeries
-        let projects = projectList(from: allPoints)
+        let plan = ChartSeriesPlan(points: viewModel.chartSeries, slotCount: YieldChartColors.editorial.count)
+        let allPoints = plan.points(viewModel.chartSeries)
+        let projects = plan.projects
         let isolated = activeIsolation(projects: projects)
         let points = visiblePoints(allPoints: allPoints, isolatedId: isolated)
         let days = viewModel.chartDays
@@ -143,34 +123,15 @@ struct ProjectChartView: View {
 
     // MARK: - System theme (stacked columns)
 
-    /// Up to eight projects take the validated palette slots in name
-    /// order; any beyond that fold into a single neutral "Other" series
-    /// so no hue is ever generated or cycled.
-    private static let maxDistinctSeries = YieldChartColors.slots.count
-    private static let otherSeriesId = -1
-
-    private func systemSeries(from projects: [ProjectRef]) -> [WeeklyAreaChart.Series] {
-        var out = projects.prefix(Self.maxDistinctSeries).enumerated().map { i, p in
-            WeeklyAreaChart.Series(id: p.id, name: p.name, color: YieldChartColors.slots[i])
-        }
-        if projects.count > Self.maxDistinctSeries {
-            out.append(.init(id: Self.otherSeriesId, name: "Other", color: YieldChartColors.other))
-        }
-        return out
-    }
-
-    /// Re-keys points for folded projects onto the "Other" series.
-    private func systemPoints(
-        _ points: [TimeComparisonViewModel.ChartPoint],
-        projects: [ProjectRef]
-    ) -> [TimeComparisonViewModel.ChartPoint] {
-        let folded = Set(projects.dropFirst(Self.maxDistinctSeries).map(\.id))
-        guard !folded.isEmpty else { return points }
-        return points.map { p in
-            folded.contains(p.projectId)
-                ? TimeComparisonViewModel.ChartPoint(id: p.id, projectId: Self.otherSeriesId, projectName: "Other",
-                                                     date: p.date, dayLabel: p.dayLabel, hours: p.hours)
-                : p
+    /// The plan's projects in the palette's slots, "Other" in
+    /// the neutral colour.
+    private func systemSeries(from plan: ChartSeriesPlan) -> [WeeklyAreaChart.Series] {
+        plan.projects.enumerated().map { i, p in
+            let color = p.id == ChartSeriesPlan.otherId || !YieldChartColors.system.indices.contains(i)
+                ? YieldChartColors.other
+                : YieldChartColors.system[i]
+            return WeeklyAreaChart.Series(id: p.id, name: p.name, color: color,
+                                          label: p.label, client: p.client, hours: p.hours)
         }
     }
 
@@ -187,9 +148,9 @@ struct ProjectChartView: View {
         if allPoints.isEmpty {
             emptyState
         } else {
-            let projects = projectList(from: allPoints)
-            let series = systemSeries(from: projects)
-            let all = systemPoints(allPoints, projects: projects)
+            let plan = ChartSeriesPlan(points: allPoints, slotCount: YieldChartColors.system.count)
+            let series = systemSeries(from: plan)
+            let all = plan.points(allPoints)
             let isolated = systemActiveIsolation(series: series)
             let visible = visiblePoints(allPoints: all, isolatedId: isolated)
             let days = viewModel.chartDays
@@ -334,6 +295,19 @@ struct ProjectChartView: View {
                 .interpolationMethod(.monotone)
             }
 
+            // A hairline in the background colour along each band's top, so
+            // neighbouring bands of similar depth stay distinct.
+            ForEach(ChartSeriesPlan.edges(points)) { edge in
+                LineMark(
+                    x: .value("Day", dayIndex[edge.dayLabel] ?? 0),
+                    y: .value("Hours", edge.top),
+                    series: .value("Separator", edge.projectName)
+                )
+                .foregroundStyle(YieldColors.background)
+                .interpolationMethod(.monotone)
+                .lineStyle(StrokeStyle(lineWidth: ChartSeriesPlan.separatorWidth))
+            }
+
             // Workday reference line. The label is rendered as a trailing
             // Y-axis tick so it sits outside the plot area to the right,
             // mirroring how the leading tick labels sit outside on the left.
@@ -398,8 +372,8 @@ struct ProjectChartView: View {
         // Two-column flow so long project lists don't overflow the panel width.
         // Clicking a row isolates that project; clicking the already-isolated
         // row toggles back to "all" — no separate reset button needed.
-        let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
-        return LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+        let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
+        return LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
             ForEach(projects) { project in
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -410,15 +384,10 @@ struct ProjectChartView: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 6) {
+                    ChartLegendRow(title: project.label, subtitle: project.client, hours: project.hours) {
                         Circle()
                             .fill(color(for: project.id, in: projects))
                             .frame(width: 7, height: 7)
-                        Text(project.name)
-                            .font(YieldFonts.label(10))
-                            .foregroundStyle(YieldColors.textPrimary)
-                            .lineLimit(1)
-                        Spacer(minLength: 0)
                     }
                     .contentShape(Rectangle())
                 }
@@ -481,6 +450,19 @@ struct ProjectChartView: View {
                     .interpolationMethod(.monotone)
                 }
 
+                // A hairline in the background colour along each band's top, so
+                // neighbouring bands of similar depth stay distinct.
+                ForEach(ChartSeriesPlan.edges(allPoints)) { edge in
+                    LineMark(
+                        x: .value("Day", dayIndex[edge.dayLabel] ?? 0),
+                        y: .value("Hours", edge.top),
+                        series: .value("Separator", edge.projectName)
+                    )
+                    .foregroundStyle(YieldColors.background)
+                    .interpolationMethod(.monotone)
+                    .lineStyle(StrokeStyle(lineWidth: ChartSeriesPlan.separatorWidth))
+                }
+
                 RuleMark(y: .value("Target", dailyHoursTarget))
                     .foregroundStyle(YieldColors.onBackground.opacity(0.4))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
@@ -534,16 +516,12 @@ struct ProjectChartView: View {
                 GridItem(.flexible(), spacing: 16),
                 GridItem(.flexible(), spacing: 16)
             ]
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
                 ForEach(projects) { project in
-                    HStack(spacing: 8) {
+                    ChartLegendRow(title: project.label, subtitle: project.client, hours: project.hours, size: 12) {
                         Circle()
                             .fill(color(for: project.id, in: projects))
                             .frame(width: 8, height: 8)
-                        Text(project.name)
-                            .font(.system(size: 12))
-                            .foregroundStyle(YieldColors.textPrimary)
-                            .lineLimit(1)
                     }
                 }
             }

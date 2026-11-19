@@ -185,6 +185,11 @@ final class TimeComparisonViewModel {
         let date: String       // YYYY-MM-DD
         let dayLabel: String   // "Mon", "Tue"…
         let hours: Double
+        /// The project's name alone, for the legend — `projectName`
+        /// carries the `[code]` prefix and stays the chart's identity.
+        var projectLabel: String? = nil
+        /// The project's client, shown under it in the legend.
+        var clientName: String? = nil
     }
 
     /// Day labels on the chart's X-axis. Always Mon–Fri; Sat/Sun are only
@@ -218,7 +223,9 @@ final class TimeComparisonViewModel {
                     projectName: project.displayName,
                     date: day.date,
                     dayLabel: day.label,
-                    hours: hoursByDate[day.date] ?? 0
+                    hours: hoursByDate[day.date] ?? 0,
+                    projectLabel: project.projectName,
+                    clientName: project.clientName
                 ))
             }
         }
