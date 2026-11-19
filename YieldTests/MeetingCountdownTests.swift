@@ -96,9 +96,9 @@ final class MeetingCountdownTests: XCTestCase {
     func test_inAMeeting_mentionsANextOneThatFollowsClosely() {
         let s = status([
             event("1:1 Sam", startsIn: -18, lasting: 30),
-            event("1:1 Alex", startsIn: 20),
+            event("1:1 Alex", startsIn: 25),
         ])
-        XCTAssertEqual(s?.text, "1:1 Sam 12m left · next 20m")
+        XCTAssertEqual(s?.text, "1:1 Sam 12m left · next 25m")
     }
 
     func test_inAMeeting_backToBack_leavesTheNextOneOut_untilTheHandoff() {
@@ -123,6 +123,32 @@ final class MeetingCountdownTests: XCTestCase {
             event("1:1 Alex", startsIn: 8),
         ], mode: .timeOnly)
         XCTAssertEqual(s?.text, "8m left, meeting next")
+    }
+
+    func test_inAMeeting_aSpeedyMeetingsBreak_countsAsBackToBack_untilTheHandoff() {
+        // Sam's 1:1 ends five minutes early, as Google's speedy
+        // meetings do; Alex's starts on the half hour.
+        let s = status([
+            event("1:1 Sam", startsIn: -10, lasting: 25),
+            event("1:1 Alex", startsIn: 20),
+        ])
+        XCTAssertEqual(s?.text, "1:1 Sam 15m left")
+    }
+
+    func test_inAMeeting_aSpeedyMeetingsBreak_isNamedInTheHandoff() {
+        let s = status([
+            event("1:1 Sam", startsIn: -17, lasting: 25),
+            event("1:1 Alex", startsIn: 13),
+        ])
+        XCTAssertEqual(s?.text, "8m left, 5m break, 1:1 Alex next")
+    }
+
+    func test_inAMeeting_aBreakOverTenMinutes_isNotBackToBack() {
+        let s = status([
+            event("1:1 Sam", startsIn: -22, lasting: 30),
+            event("1:1 Alex", startsIn: 23),
+        ])
+        XCTAssertEqual(s?.text, "1:1 Sam 8m left · next 23m")
     }
 
     func test_inAMeeting_doesNotMentionADistantNextOne() {
@@ -250,8 +276,8 @@ final class MeetingCountdownTests: XCTestCase {
     }
 
     func test_duringAFocusBlock_itsEndAndTheNextMeetingShow() {
-        let s = status([event("Focus time", startsIn: -30, lasting: 50), event("Review", startsIn: 25)])
-        XCTAssertEqual(s?.text, "Focus time 20m left · next 25m")
+        let s = status([event("Focus time", startsIn: -30, lasting: 45), event("Review", startsIn: 28)])
+        XCTAssertEqual(s?.text, "Focus time 15m left · next 28m")
     }
 
     // MARK: - Drawing

@@ -53,6 +53,10 @@ enum MeetingCountdown {
     /// Back-to-back, this close to the current meeting's end the bar
     /// hands over to the next one: "8m left, 1:1 Alex next".
     static let handoffWindow: TimeInterval = 10 * 60
+    /// The most a next meeting can trail the current one's end and
+    /// still count as back-to-back — enough for Google's speedy
+    /// meetings, which end five or ten minutes early.
+    static let backToBackGap: TimeInterval = 10 * 60
     /// Titles are cut to a set number of characters; the menu bar is
     /// narrow and the time is the part that has to survive. How many
     /// is the user's call ("Shorten titles to"), within these bounds
@@ -119,15 +123,19 @@ enum MeetingCountdown {
             // Back-to-back, the next one's wait is this one's time left,
             // and "12m left · next 12m" says it twice. So the next goes
             // unmentioned until the last few minutes, when the bar turns
-            // to it: "8m left, 1:1 Alex next".
-            let backToBack = (0..<60).contains(next.start.timeIntervalSince(current.end))
-            if backToBack {
+            // to it: "8m left, 1:1 Alex next". A short break between
+            // them — a speedy meeting that ends early — still counts, and
+            // is named: "8m left, 5m break, 1:1 Alex next".
+            let gap = next.start.timeIntervalSince(current.end)
+            if gap >= 0, gap <= backToBackGap {
                 guard current.end.timeIntervalSince(now) <= handoffWindow else {
                     return MenuBarMeetingStatus(text: titled(current.summary, left))
                 }
                 let title = shortTitle(next.summary, limit: titleLength)
                 let name = (mode == .titleAndTime && !title.isEmpty) ? title : "meeting"
-                return MenuBarMeetingStatus(text: "\(left), \(name) next")
+                let breakMinutes = Int((gap / 60).rounded())
+                let pause = breakMinutes >= 1 ? "\(span(minutes: breakMinutes)) break, " : ""
+                return MenuBarMeetingStatus(text: "\(left), \(pause)\(name) next")
             }
 
             var text = titled(current.summary, left)
