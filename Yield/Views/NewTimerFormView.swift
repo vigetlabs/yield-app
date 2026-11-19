@@ -213,6 +213,14 @@ struct NewTimerFormView: View {
         return selectedProjectId == move.sourceProjectId && selectedTaskId == move.sourceTaskId
     }
 
+    /// A meeting's move form pointed back at the running timer: the
+    /// back-to-back case, a second 1:1 on the same task as the first.
+    /// There is no time to move, but the meeting still belongs on that
+    /// entry, so the form offers Add to Timer instead of refusing.
+    private var addsMeetingToSourceTimer: Bool {
+        isMoveSelfTarget && sourcedCalendarEvent != nil
+    }
+
     /// Timer-move commit gate: a real destination, a positive amount, and
     /// no more than the source timer currently holds. The ceiling is live
     /// (the source keeps ticking under the form), and the commit path
@@ -428,8 +436,11 @@ struct NewTimerFormView: View {
                         .background(YieldColors.surfaceDefault)
                         .yieldBorder()
 
-                    // Manual time entry (HH:MM)
+                    // Manual time entry (HH:MM). Nothing is moved when
+                    // a meeting joins the timer it would move from.
                     TimeInputView(hours: $timeHours, minutes: $timeMinutes)
+                        .disabled(addsMeetingToSourceTimer)
+                        .opacity(addsMeetingToSourceTimer ? 0.5 : 1)
                 }
             }
             .padding(.leading, Self.leadingInset)
@@ -484,6 +495,15 @@ struct NewTimerFormView: View {
                         .formCommitButtonStyle()
                         .disabled(!canLog || duplicateConfirmEntries != nil)
                         .opacity(canLog && duplicateConfirmEntries == nil ? 1 : 0.5)
+                    } else if addsMeetingToSourceTimer {
+                        Button {
+                            Task { await addMeetingToSourceTimer() }
+                        } label: {
+                            Text("Add to Timer")
+                        }
+                        .formCommitButtonStyle()
+                        .disabled(!canStart)
+                        .opacity(canStart ? 1 : 0.5)
                     } else if let move = timerMove {
                         // Timer-move mode: two commits. Keep = source
                         // stays as it was (running keeps running at the
@@ -1127,6 +1147,26 @@ struct NewTimerFormView: View {
         }
     }
 
+    /// Add to Timer, for a meeting whose move form was pointed at the
+    /// running timer: the meeting's title goes onto that entry's notes
+    /// and the meeting link moves to it — what the prompt bar's own Add
+    /// to Timer does once the title is remembered, which this teaches.
+    private func addMeetingToSourceTimer() async {
+        guard let event = sourcedCalendarEvent,
+              let projectId = selectedProjectId,
+              let taskId = selectedTaskId else { return }
+        let notesToSend = notes.isEmpty ? nil : notes
+        FavoritesStore.shared.markUsed(projectId: projectId, taskId: taskId)
+        MeetingHistoryStore.shared.record(notes: notes, projectId: projectId, taskId: taskId)
+        viewModel.finalizeMeetingPromptAction(for: event)
+        // Before the notes change, as the prompt's own path does: the
+        // previous meeting's link must not judge itself overrun while
+        // its successor takes over.
+        viewModel.noteCalendarSourcedTimer(event: event, projectId: projectId, taskId: taskId)
+        onDismiss()
+        await viewModel.startOrJoinTimer(projectId: projectId, taskId: taskId, notes: notesToSend)
+    }
+
     /// Commit the idle-move flow with a brand-new entry on the chosen
     /// project/task. The duplicate banner short-circuits this path
     /// when an existing entry would be a better target.
@@ -1206,21 +1246,25 @@ struct NewTimerFormView: View {
     /// Timer-move replacement for `duplicateConfirmBanner` — informational
     /// rather than an action fork. Two cases: the picked task already has
     /// time today (fine — the move merges into it), or the picked task IS
-    /// the source timer (blocked; `canMove` disables the commit buttons).
+    /// the source timer (blocked; `canMove` disables the commit buttons —
+    /// unless a meeting opened the form, when it can join that timer).
     private func moveTargetBanner(entries: [TimeEntryInfo]) -> some View {
         let totalHours = entries.reduce(0.0) { $0 + $1.hours }
         let projectName = selectedProject?.displayName ?? "This project"
         let taskName = entries.first?.taskName ?? "this task"
         let (h, m) = totalHours.roundedHM
         let timeStr = "\(h)h \(String(format: "%02d", m))m"
-        let message = isMoveSelfTarget
+        let blocked = isMoveSelfTarget && !addsMeetingToSourceTimer
+        let message = addsMeetingToSourceTimer
+            ? "That's the timer that's running. Add to Timer puts this meeting on it."
+            : blocked
             ? "That's the timer you're moving time from — pick a different task."
             : "\(projectName) / \(taskName) already has \(timeStr) today. The moved time will be added to that entry."
 
         return HStack(alignment: .top, spacing: 6) {
-            Image(systemName: isMoveSelfTarget ? "exclamationmark.triangle.fill" : "info.circle")
+            Image(systemName: blocked ? "exclamationmark.triangle.fill" : "info.circle")
                 .font(.system(size: 10))
-                .foregroundStyle(isMoveSelfTarget ? YieldColors.yellowAccent : YieldColors.textSecondary)
+                .foregroundStyle(blocked ? YieldColors.yellowAccent : YieldColors.textSecondary)
                 .padding(.top, 1)
             Text(message)
                 .font(YieldFonts.label(11))
@@ -1229,7 +1273,7 @@ struct NewTimerFormView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(isMoveSelfTarget ? YieldColors.yellowFaint : YieldColors.surfaceDefault)
+        .background(blocked ? YieldColors.yellowFaint : YieldColors.surfaceDefault)
         .clipShape(RoundedRectangle(cornerRadius: YieldRadius.dropdown))
         .padding(.leading, Self.leadingInset)
         .padding(.trailing, 16)
