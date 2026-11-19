@@ -3,6 +3,28 @@
   <channel>
     <title>Yield Updates</title>
     <item>
+      <title>Version 1.8.1</title>
+      <sparkle:version>71</sparkle:version>
+      <sparkle:shortVersionString>1.8.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <ul>
+          <li><strong>New chart colours, no red.</strong> The weekly chart used to paint whichever project sorted first in red, every week. It now uses blue, orange, green and purple, each in a deep and a light shade, mixed so no two projects look related and checked for colour-blind readers. Red stays reserved for &ldquo;over&rdquo;. The project you've spent the most time on sits at the bottom, a thin line separates each band, and past eight projects the rest share a grey &ldquo;Other&rdquo;.</li>
+          <li><strong>A clearer chart legend.</strong> Each project is listed by name with its client underneath and the week's hours beside it.</li>
+          <li><strong>Saved chart images match your appearance.</strong> Saving the chart as a PNG used to come out light even in dark mode; it now matches what you see. The save button is bigger, too.</li>
+          <li><strong>Back-to-back meetings hand over.</strong> In the last 10 minutes of a meeting, the menu bar countdown turns to the next one: <em>8m left, Design review next</em>. A short break between them is noted (<em>8m left, 5m break, Design review next</em>), so Google's speedy meetings still count.</li>
+          <li><strong>Add a meeting to the running timer.</strong> When the next meeting is on the same task as your running timer (two 1:1s logged to Management, say), the timer form offers <em>Add to Timer</em> to put the new meeting's title on it, instead of refusing to switch to the same task.</li>
+          <li><strong>Quick picks.</strong> The timer form's Favorites button is now a <em>Quick picks</em> menu.</li>
+          <li><strong>Fixed: muted meetings turned the calendar icon orange.</strong> A meeting you've muted no longer lights up the menu bar's calendar icon as it approaches.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vigetlabs/yield-app/releases/download/v1.8.1/Yield-1.8.1.zip"
+        sparkle:edSignature="XrKg7qG3EyJnW/9inoiPUAW2+YHaKR5wPyGg7sP6hzp/2DE7I258U1ycAErnvQrf5ed24t1kZGQep3iktfszAQ=="
+        length="3654672"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.8.0</title>
       <sparkle:version>70</sparkle:version>
       <sparkle:shortVersionString>1.8.0</sparkle:shortVersionString>
