@@ -98,21 +98,9 @@ struct ProjectChartView: View {
                     chart(points: points, allPoints: allPoints, projects: projects, days: days)
                         .frame(height: 200)
 
-                    Button {
-                        exportChartAsPNG(
-                            allPoints: allPoints,
-                            projects: projects,
-                            days: days
-                        )
-                    } label: {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(YieldColors.textSecondary)
-                            .frame(width: 20, height: 20)
-                            .contentShape(Rectangle())
+                    ChartExportButton {
+                        exportChartAsPNG(allPoints: allPoints, projects: projects, days: days)
                     }
-                    .buttonStyle(.plain)
-                    .help("Save chart as PNG")
                 }
 
                 legend(projects: projects, isolatedId: isolated)
@@ -169,17 +157,9 @@ struct ProjectChartView: View {
                     // re-mounting the marks.
                     .animation(.easeInOut(duration: 0.25), value: isolatedProjectId)
 
-                    Button {
+                    ChartExportButton {
                         exportSystemChartAsPNG(allPoints: all, series: series, days: days)
-                    } label: {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(YieldColors.textSecondary)
-                            .frame(width: 20, height: 20)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .help("Save chart as PNG")
                 }
 
                 WeeklyChartLegend(series: series, isolatedId: isolated) { id in
@@ -212,10 +192,14 @@ struct ProjectChartView: View {
         savePNG(of: view)
     }
 
-    /// Shared save flow for either theme's export view.
+    /// Shared save flow for either theme's export view. The image takes
+    /// the panel's current appearance: `ImageRenderer` renders outside
+    /// any window, so without an explicit colour scheme it falls back to
+    /// light whatever the app is showing.
     @MainActor
     private func savePNG<V: View>(of view: V) {
-        let renderer = ImageRenderer(content: view)
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let renderer = ImageRenderer(content: view.environment(\.colorScheme, isDark ? .dark : .light))
         renderer.scale = 2.0
         guard let cgImage = renderer.cgImage else { return }
         let panel = NSSavePanel()
@@ -419,8 +403,8 @@ struct ProjectChartView: View {
 
     // MARK: - PNG Export
 
-    /// Builds a standalone version of the chart suitable for ImageRenderer.
-    /// Explicit dark background, week title, and wider layout for a clean PNG.
+    /// Builds a standalone version of the chart suitable for ImageRenderer:
+    /// the panel's background, a week title, and a wider layout for a clean PNG.
     private func exportableView(
         allPoints: [TimeComparisonViewModel.ChartPoint],
         projects: [ProjectRef],
@@ -536,24 +520,26 @@ struct ProjectChartView: View {
         projects: [ProjectRef],
         days: [String]
     ) {
-        let view = exportableView(allPoints: allPoints, projects: projects, days: days)
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2.0  // Retina
+        savePNG(of: exportableView(allPoints: allPoints, projects: projects, days: days))
+    }
+}
 
-        guard let cgImage = renderer.cgImage else { return }
+/// The chart's "Save as PNG" button, in its top-right corner: a
+/// 14pt glyph in a 28pt hit area, brightening on hover.
+private struct ChartExportButton: View {
+    let action: () -> Void
+    @State private var isHovered = false
 
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.png]
-        panel.nameFieldStringValue = "yield-chart-\(DateHelpers.weekDateStrings().start).png"
-        panel.canCreateDirectories = true
-
-        panel.begin { result in
-            guard result == .OK, let url = panel.url else { return }
-            guard let destination = CGImageDestinationCreateWithURL(
-                url as CFURL, "public.png" as CFString, 1, nil
-            ) else { return }
-            CGImageDestinationAddImage(destination, cgImage, nil)
-            CGImageDestinationFinalize(destination)
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "square.and.arrow.down")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(isHovered ? YieldColors.textPrimary : YieldColors.textSecondary)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .help("Save chart as PNG")
+        .onHover { isHovered = $0 }
     }
 }
