@@ -999,7 +999,8 @@ final class TimeComparisonViewModel {
             mode: meetingCountdownMode,
             overrunSince: linked?.eventEnd,
             overrunTitle: linked?.eventTitle ?? "",
-            titleLength: meetingCountdownTitleLength
+            titleLength: meetingCountdownTitleLength,
+            isMuted: { [mutedMeetingsStore] in mutedMeetingsStore.isMuted(title: $0) }
         )
     }
 

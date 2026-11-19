@@ -22,11 +22,13 @@ final class MeetingCountdownTests: XCTestCase {
     private func status(
         _ events: [CalendarEvent],
         mode: MeetingCountdownMode = .titleAndTime,
-        overrunSince: Date? = nil
+        overrunSince: Date? = nil,
+        muted: Set<String> = []
     ) -> MenuBarMeetingStatus? {
         MeetingCountdown.status(
             events: events, now: now, mode: mode,
-            overrunSince: overrunSince, overrunTitle: "1:1 Sam"
+            overrunSince: overrunSince, overrunTitle: "1:1 Sam",
+            isMuted: { muted.contains($0) }
         )
     }
 
@@ -189,6 +191,22 @@ final class MeetingCountdownTests: XCTestCase {
     func test_overrun_yieldsToAMeetingInProgress() {
         let s = status([event("Review", startsIn: -5)], overrunSince: now.addingTimeInterval(-12 * 60))
         XCTAssertEqual(s?.text, "Review 25m left")
+    }
+
+    // MARK: - Muted meetings
+
+    func test_mutedMeeting_aboutToStart_isCountedDown_butNotColoured() {
+        let s = status([event("Standup", startsIn: 2)], muted: ["Standup"])
+        XCTAssertEqual(s, MenuBarMeetingStatus(text: "Standup in 2m", tone: .plain))
+    }
+
+    func test_mutedMeeting_aboutToStart_doesNotDisplaceAnOverrun() {
+        let s = status(
+            [event("Standup", startsIn: 1)],
+            overrunSince: now.addingTimeInterval(-12 * 60),
+            muted: ["Standup"]
+        )
+        XCTAssertEqual(s?.tone, .overrun)
     }
 
     // MARK: - What it leaves out

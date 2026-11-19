@@ -71,18 +71,23 @@ enum MeetingCountdown {
     ///   - overrunSince: the end of the meeting whose timer is still
     ///     running, if there is one — and `overrunTitle`, its name.
     ///   - titleLength: characters of the title to keep.
+    ///   - isMuted: whether a title's start prompt is muted.
     ///
     /// Every event counts, whatever kind it is — a focus block is as
     /// much "what's next" as a 1:1. Muted titles count too: muting
     /// turns off the *start prompt* for a meeting, which is a separate
-    /// question from whether it exists and is coming up.
+    /// question from whether it exists and is coming up. What a muted
+    /// meeting doesn't get is the imminent colour, which stands for
+    /// that prompt — nor, by the same token, does it displace an
+    /// overrun.
     static func status(
         events: [CalendarEvent],
         now: Date,
         mode: MeetingCountdownMode,
         overrunSince: Date? = nil,
         overrunTitle: String = "",
-        titleLength: Int = defaultTitleLength
+        titleLength: Int = defaultTitleLength,
+        isMuted: (String) -> Bool = { _ in false }
     ) -> MenuBarMeetingStatus? {
         guard mode != .off else { return nil }
         // Of several in progress, the one that started last: a meeting
@@ -117,7 +122,9 @@ enum MeetingCountdown {
             return MenuBarMeetingStatus(text: text)
         }
 
-        let nextIsImminent = next.map { $0.start.timeIntervalSince(now) <= imminentWindow } ?? false
+        let nextIsImminent = next.map {
+            $0.start.timeIntervalSince(now) <= imminentWindow && !isMuted($0.summary)
+        } ?? false
 
         // A meeting's timer still running after it ended is the one
         // thing here that wants doing something about — it outranks a
