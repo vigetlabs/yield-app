@@ -8,204 +8,219 @@
 
   <link rel="icon" type="image/png" href="/app-icon.png">
   <link rel="apple-touch-icon" href="/app-icon.png">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#08090A">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
     :root {
-      --green: #0B7048;
-      --bg: #FAFAFA;
-      --surface: #FFFFFF;
-      --text: #1A1B1C;
-      --text-secondary: #6B7280;
-      --border: #E5E7EB;
-    }
+      --bg: #08090A;
+      --bg-band: #0B0C0D;
+      --surface: #111315;
+      --surface-2: #0F1112;
+      --line: #1A1C1E;
+      --edge: #1F2225;
+      --edge-strong: #24272A;
+      --text: #F5F5F6;
+      --text-2: #A6A9AE;
+      --text-3: #8A8E93;
+      --text-4: #7D8186;
+      --green: #15DA93;
+      --green-hover: #3BE6A7;
+      --on-green: #062016;
+      /* Menu bar colours, from the app's own renderer. */
+      --bar-ink: rgba(255, 255, 255, 0.95);
+      --bar-dim: rgba(255, 255, 255, 0.26);
+      --pill-on-pace: #1F9D57;
+      --on-pace: #5BD68A;
+      --meeting: #F2B05C;
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --green: #15DA93;
-        --bg: #1A1B1C;
-        --surface: #232425;
-        --text: #F5F5F6;
-        --text-secondary: #9CA3AF;
-        --border: #2F3032;
-      }
+      --display: 'Inter Tight', 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --bar-font: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
     }
 
     *, *::before, *::after { box-sizing: border-box; }
-
-    html { -webkit-text-size-adjust: 100%; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
     body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      font-size: 16px;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 17px;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
 
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 64px 24px;
+    a { color: var(--green); }
+    a:hover { color: var(--green-hover); }
+    img { max-width: 100%; height: auto; }
+    :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 6px; }
+
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 640px) { .wrap { padding: 0 20px; } }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
     }
+    h1, h2, h3 { font-family: var(--display); font-weight: 600; }
+    h2 { margin: 0; font-size: clamp(36px, 5vw, 60px); line-height: 1.04; letter-spacing: -0.035em; }
+    .muted { color: #6E7277; }
 
-    .breadcrumb {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 14px;
-      margin-bottom: 32px;
-      border-bottom: 1px solid transparent;
-      transition: border-color 120ms ease, color 120ms ease;
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      min-height: 48px; padding: 0 24px;
+      border-radius: 12px; font-weight: 600; font-size: 16px;
+      text-decoration: none; white-space: nowrap;
+      transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
     }
+    .btn-primary { background: var(--green); color: var(--on-green); box-shadow: 0 10px 40px -8px rgba(21, 218, 147, 0.55); }
+    .btn-primary:hover { background: var(--green-hover); color: var(--on-green); }
+    .btn-quiet { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 0 0 1px var(--edge-strong); }
+    .btn-quiet:hover { color: var(--text); box-shadow: 0 0 0 1px #3A3E42; }
+    .btn svg { flex-shrink: 0; }
 
-    .breadcrumb:hover {
-      color: var(--text);
-      border-bottom-color: var(--text-secondary);
-    }
+    /* Nav */
+    .nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 22px; padding-bottom: 22px; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 19px; letter-spacing: -0.01em; }
+    .brand:hover { color: var(--text); }
+    .brand img { width: 30px; height: 30px; border-radius: 7px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 4px; padding: 5px; border-radius: 12px; background: var(--surface); box-shadow: 0 0 0 1px var(--edge); font-size: 14px; }
+    .nav-links a { color: #B4B7BC; text-decoration: none; padding: 8px 14px; border-radius: 8px; }
+    .nav-links a:hover { color: var(--text); background: #1A1D1F; }
+    .nav .btn { min-height: 44px; padding: 0 18px; font-size: 15px; background: var(--text); color: var(--bg); box-shadow: none; }
+    .nav .btn:hover { background: #FFFFFF; color: var(--bg); }
+    @media (max-width: 860px) { .nav-links { display: none; } }
 
-    header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 8px;
-    }
-
-    header img {
-      width: 32px;
-      height: 32px;
-      border-radius: 7px;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-
-    .updated {
-      color: var(--text-secondary);
-      font-size: 14px;
-      margin: 0 0 32px;
-    }
-
-    h2 {
-      font-size: 18px;
-      font-weight: 600;
-      margin: 40px 0 12px;
-      letter-spacing: -0.005em;
-    }
-
-    p { margin: 0 0 14px; }
-
-    ul {
-      margin: 0 0 14px;
-      padding-left: 20px;
-    }
-
-    li { margin-bottom: 8px; }
-
-    code {
-      font-family: "SF Mono", Menlo, monospace;
-      font-size: 0.9em;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 5px;
-    }
-
-    strong { font-weight: 600; }
-
-    footer {
-      margin-top: 64px;
-      padding-top: 24px;
-      border-top: 1px solid var(--border);
-      font-size: 13px;
-      color: var(--text-secondary);
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    footer a {
-      color: var(--text-secondary);
-      text-decoration: none;
-      border-bottom: 1px solid transparent;
-      transition: border-color 120ms ease, color 120ms ease;
-    }
-
-    footer a:hover {
-      color: var(--text);
-      border-bottom-color: var(--text-secondary);
-    }
+    /* Legal pages */
+    .page-head { padding-top: 72px; padding-bottom: 48px; border-bottom: 1px solid var(--line); }
+    .page-head .inner { max-width: 760px; }
+    .page-head h1 { margin: 0 0 16px; font-size: clamp(44px, 7vw, 72px); line-height: 1; letter-spacing: -0.045em; }
+    .page-head .updated { margin: 0; font-family: var(--mono); font-size: 13px; color: var(--text-4); }
+    .legal { padding-top: 56px; padding-bottom: 120px; }
+    .prose { max-width: 760px; color: #C9CBCF; }
+    .prose > p:first-child { font-size: 19px; line-height: 1.6; color: var(--text); }
+    .prose h2 { margin: 56px 0 16px; font-size: 28px; line-height: 1.2; letter-spacing: -0.02em; color: var(--text); }
+    .prose p { margin: 0 0 16px; }
+    .prose ul { margin: 0 0 16px; padding-left: 22px; }
+    .prose li { margin: 0 0 12px; padding-left: 4px; }
+    .prose li::marker { color: var(--green); }
+    .prose strong { color: var(--text); font-weight: 600; }
+    .prose code { font-family: var(--mono); font-size: 0.86em; padding: 2px 6px; border-radius: 6px; background: var(--surface); box-shadow: 0 0 0 1px var(--edge); color: var(--text); word-break: break-word; }
+    .prose a { text-decoration-color: rgba(21, 218, 147, 0.45); text-underline-offset: 3px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <a href="/" class="breadcrumb">← Yield</a>
+  <header class="wrap nav">
+    <a class="brand" href="/">
+      <img src="/app-icon.png" alt="" width="30" height="30">
+      Yield
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="/#how">How it works</a>
+      <a href="/#features">Features</a>
+      <a href="/#changelog">Changelog</a>
+      <a href="https://github.com/vigetlabs/yield-app">GitHub</a>
+    </nav>
+    <a class="btn" href="https://github.com/vigetlabs/yield-app/releases/latest">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="M6 11l6 6 6-6"/><path d="M5 20h14"/></svg>
+      Download
+    </a>
+  </header>
 
-    <header>
-      <img src="/app-icon.png" alt="Yield app icon">
-      <h1>Terms of Service</h1>
-    </header>
-    <p class="updated">Last updated: 20 May 2026</p>
+  <main>
+    <section class="page-head">
+      <div class="wrap">
+        <div class="inner">
+          <p class="eyebrow">Legal</p>
+          <h1>Terms of Service</h1>
+          <p class="updated">Last updated: 20 May 2026</p>
+        </div>
+      </div>
+    </section>
 
-    <p>These terms govern your use of <strong>Yield</strong>, a macOS menu bar app distributed by Viget Labs ("we," "us"). By installing or using Yield, you agree to these terms. If you don't agree, don't use the app.</p>
+    <section class="wrap legal">
+      <article class="prose">
+      <p>These terms govern your use of <strong>Yield</strong>, a macOS menu bar app distributed by Viget Labs ("we," "us"). By installing or using Yield, you agree to these terms. If you don't agree, don't use the app.</p>
 
-    <h2>What Yield is</h2>
-    <p>Yield is a free desktop utility that reads time entries from your Harvest account and assignments from your Forecast account and shows them in the macOS menu bar. You can also create, edit, pause, resume, and delete Harvest time entries from the app. Yield runs entirely on your Mac and talks directly to the Harvest and Forecast APIs — there is no Yield-operated server, account, or backend.</p>
+      <h2>What Yield is</h2>
+      <p>Yield is a free desktop utility that reads time entries from your Harvest account and assignments from your Forecast account and shows them in the macOS menu bar. You can also create, edit, pause, resume, and delete Harvest time entries from the app. Yield runs entirely on your Mac and talks directly to the Harvest and Forecast APIs — there is no Yield-operated server, account, or backend.</p>
 
-    <h2>Cost</h2>
-    <p>Yield is free to download and use. We don't charge for it, and we don't expect to.</p>
+      <h2>Cost</h2>
+      <p>Yield is free to download and use. We don't charge for it, and we don't expect to.</p>
 
-    <h2>Your responsibilities</h2>
-    <ul>
-      <li>You need an active Harvest account (with Forecast enabled) to use Yield's core features. Obtaining and paying for that account is between you and Getharvest, Inc.</li>
-      <li>You're responsible for keeping your macOS user account secure. Yield stores your Harvest OAuth tokens in the macOS Keychain; anyone with access to your unlocked Mac can use them.</li>
-      <li>Don't use Yield to violate Harvest's or Forecast's terms of service, scrape data you're not entitled to, or otherwise abuse the APIs Yield depends on.</li>
-    </ul>
+      <h2>Your responsibilities</h2>
+      <ul>
+        <li>You need an active Harvest account (with Forecast enabled) to use Yield's core features. Obtaining and paying for that account is between you and Getharvest, Inc.</li>
+        <li>You're responsible for keeping your macOS user account secure. Yield stores your Harvest OAuth tokens in the macOS Keychain; anyone with access to your unlocked Mac can use them.</li>
+        <li>Don't use Yield to violate Harvest's or Forecast's terms of service, scrape data you're not entitled to, or otherwise abuse the APIs Yield depends on.</li>
+      </ul>
 
-    <h2>Third-party services</h2>
-    <p>Yield depends on services we don't control:</p>
-    <ul>
-      <li><strong>Harvest and Forecast</strong> (Getharvest, Inc.) for the time-tracking and forecasting APIs. Your use of those services is governed by <a href="https://www.getharvest.com/terms">Harvest's terms</a> and <a href="https://www.getharvest.com/privacy-policy">privacy policy</a>.</li>
-      <li><strong>GitHub</strong> for distribution of the app and updates (via the Sparkle framework's appcast). Your use of GitHub-hosted resources is governed by GitHub's terms.</li>
-    </ul>
-    <p>If any of these services change, become unavailable, or terminate your access, Yield's behavior depends on them — there is nothing we can do to keep Yield working in their absence.</p>
+      <h2>Third-party services</h2>
+      <p>Yield depends on services we don't control:</p>
+      <ul>
+        <li><strong>Harvest and Forecast</strong> (Getharvest, Inc.) for the time-tracking and forecasting APIs. Your use of those services is governed by <a href="https://www.getharvest.com/terms">Harvest's terms</a> and <a href="https://www.getharvest.com/privacy-policy">privacy policy</a>.</li>
+        <li><strong>GitHub</strong> for distribution of the app and updates (via the Sparkle framework's appcast). Your use of GitHub-hosted resources is governed by GitHub's terms.</li>
+      </ul>
+      <p>If any of these services change, become unavailable, or terminate your access, Yield's behavior depends on them — there is nothing we can do to keep Yield working in their absence.</p>
 
-    <h2>Disclaimer</h2>
-    <p>Yield is provided <strong>"as is" and without warranty of any kind</strong>, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. We don't guarantee that Yield will be uninterrupted, error-free, or that the time entries it reads or writes will be accurate. Always verify hours that matter — invoicing decisions, contractual deliverables, payroll — directly in Harvest itself.</p>
+      <h2>Disclaimer</h2>
+      <p>Yield is provided <strong>"as is" and without warranty of any kind</strong>, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. We don't guarantee that Yield will be uninterrupted, error-free, or that the time entries it reads or writes will be accurate. Always verify hours that matter — invoicing decisions, contractual deliverables, payroll — directly in Harvest itself.</p>
 
-    <h2>Limitation of liability</h2>
-    <p>To the maximum extent permitted by law, Viget Labs is not liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses, resulting from your access to or use of (or inability to use) Yield.</p>
+      <h2>Limitation of liability</h2>
+      <p>To the maximum extent permitted by law, Viget Labs is not liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses, resulting from your access to or use of (or inability to use) Yield.</p>
 
-    <h2>Changes to the app and these terms</h2>
-    <p>We may add features, change features, or stop developing Yield at any time. If these terms change, we'll update the "Last updated" date above; material changes will also be mentioned in the release notes for the version that includes them. Continued use of Yield after a change means you accept the updated terms.</p>
+      <h2>Changes to the app and these terms</h2>
+      <p>We may add features, change features, or stop developing Yield at any time. If these terms change, we'll update the "Last updated" date above; material changes will also be mentioned in the release notes for the version that includes them. Continued use of Yield after a change means you accept the updated terms.</p>
 
-    <h2>Termination</h2>
-    <p>You can stop using Yield at any time — quit the app, drag it to the Trash, and (optionally) follow the uninstall steps in the <a href="https://github.com/vigetlabs/yield-app">repository README</a> to remove preferences and tokens. We may stop distributing Yield or its updates at any time.</p>
+      <h2>Termination</h2>
+      <p>You can stop using Yield at any time — quit the app, drag it to the Trash, and (optionally) follow the uninstall steps in the <a href="https://github.com/vigetlabs/yield-app">repository README</a> to remove preferences and tokens. We may stop distributing Yield or its updates at any time.</p>
 
-    <h2>Governing law</h2>
-    <p>These terms are governed by the laws of the Commonwealth of Virginia, United States, without regard to its conflict of laws principles.</p>
+      <h2>Governing law</h2>
+      <p>These terms are governed by the laws of the Commonwealth of Virginia, United States, without regard to its conflict of laws principles.</p>
 
-    <h2>Contact</h2>
-    <p>Open an issue at <a href="https://github.com/vigetlabs/yield-app/issues">github.com/vigetlabs/yield-app/issues</a> with any questions about these terms.</p>
+      <h2>Contact</h2>
+      <p>Open an issue at <a href="https://github.com/vigetlabs/yield-app/issues">github.com/vigetlabs/yield-app/issues</a> with any questions about these terms.</p>
+      </article>
+    </section>
+  </main>
 
-    <footer>
-      <span>© Viget Labs</span>
-      <span>
-        <a href="/">Home</a>
-        &nbsp;·&nbsp;
-        <a href="/privacy">Privacy</a>
-        &nbsp;·&nbsp;
-        <a href="https://github.com/vigetlabs/yield-app">GitHub</a>
-      </span>
-    </footer>
-  </div>
+  <footer>
+    <div class="wrap foot">
+      <div class="foot-brand">
+        <a class="brand" href="/"><img src="/app-icon.png" alt="" width="24" height="24">Yield</a>
+        <span>Made by Viget.</span>
+      </div>
+      <div class="foot-cols">
+        <div class="foot-col">
+          <b>Product</b>
+          <a href="https://github.com/vigetlabs/yield-app/releases/latest">Download</a>
+          <a href="https://github.com/vigetlabs/yield-app/releases">Changelog</a>
+        </div>
+        <div class="foot-col">
+          <b>Source</b>
+          <a href="https://github.com/vigetlabs/yield-app">GitHub</a>
+          <a href="https://github.com/vigetlabs/yield-app/issues">Report an issue</a>
+        </div>
+        <div class="foot-col">
+          <b>Legal</b>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

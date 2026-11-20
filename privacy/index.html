@@ -8,211 +8,226 @@
 
   <link rel="icon" type="image/png" href="/app-icon.png">
   <link rel="apple-touch-icon" href="/app-icon.png">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#08090A">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
     :root {
-      --green: #0B7048;
-      --bg: #FAFAFA;
-      --surface: #FFFFFF;
-      --text: #1A1B1C;
-      --text-secondary: #6B7280;
-      --border: #E5E7EB;
-    }
+      --bg: #08090A;
+      --bg-band: #0B0C0D;
+      --surface: #111315;
+      --surface-2: #0F1112;
+      --line: #1A1C1E;
+      --edge: #1F2225;
+      --edge-strong: #24272A;
+      --text: #F5F5F6;
+      --text-2: #A6A9AE;
+      --text-3: #8A8E93;
+      --text-4: #7D8186;
+      --green: #15DA93;
+      --green-hover: #3BE6A7;
+      --on-green: #062016;
+      /* Menu bar colours, from the app's own renderer. */
+      --bar-ink: rgba(255, 255, 255, 0.95);
+      --bar-dim: rgba(255, 255, 255, 0.26);
+      --pill-on-pace: #1F9D57;
+      --on-pace: #5BD68A;
+      --meeting: #F2B05C;
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --green: #15DA93;
-        --bg: #1A1B1C;
-        --surface: #232425;
-        --text: #F5F5F6;
-        --text-secondary: #9CA3AF;
-        --border: #2F3032;
-      }
+      --display: 'Inter Tight', 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --bar-font: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
     }
 
     *, *::before, *::after { box-sizing: border-box; }
-
-    html { -webkit-text-size-adjust: 100%; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
     body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      font-size: 16px;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 17px;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
 
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 64px 24px;
+    a { color: var(--green); }
+    a:hover { color: var(--green-hover); }
+    img { max-width: 100%; height: auto; }
+    :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 6px; }
+
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 640px) { .wrap { padding: 0 20px; } }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
     }
+    h1, h2, h3 { font-family: var(--display); font-weight: 600; }
+    h2 { margin: 0; font-size: clamp(36px, 5vw, 60px); line-height: 1.04; letter-spacing: -0.035em; }
+    .muted { color: #6E7277; }
 
-    .breadcrumb {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 14px;
-      margin-bottom: 32px;
-      border-bottom: 1px solid transparent;
-      transition: border-color 120ms ease, color 120ms ease;
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      min-height: 48px; padding: 0 24px;
+      border-radius: 12px; font-weight: 600; font-size: 16px;
+      text-decoration: none; white-space: nowrap;
+      transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
     }
+    .btn-primary { background: var(--green); color: var(--on-green); box-shadow: 0 10px 40px -8px rgba(21, 218, 147, 0.55); }
+    .btn-primary:hover { background: var(--green-hover); color: var(--on-green); }
+    .btn-quiet { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 0 0 1px var(--edge-strong); }
+    .btn-quiet:hover { color: var(--text); box-shadow: 0 0 0 1px #3A3E42; }
+    .btn svg { flex-shrink: 0; }
 
-    .breadcrumb:hover {
-      color: var(--text);
-      border-bottom-color: var(--text-secondary);
-    }
+    /* Nav */
+    .nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 22px; padding-bottom: 22px; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 19px; letter-spacing: -0.01em; }
+    .brand:hover { color: var(--text); }
+    .brand img { width: 30px; height: 30px; border-radius: 7px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 4px; padding: 5px; border-radius: 12px; background: var(--surface); box-shadow: 0 0 0 1px var(--edge); font-size: 14px; }
+    .nav-links a { color: #B4B7BC; text-decoration: none; padding: 8px 14px; border-radius: 8px; }
+    .nav-links a:hover { color: var(--text); background: #1A1D1F; }
+    .nav .btn { min-height: 44px; padding: 0 18px; font-size: 15px; background: var(--text); color: var(--bg); box-shadow: none; }
+    .nav .btn:hover { background: #FFFFFF; color: var(--bg); }
+    @media (max-width: 860px) { .nav-links { display: none; } }
 
-    header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 8px;
-    }
-
-    header img {
-      width: 32px;
-      height: 32px;
-      border-radius: 7px;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-
-    .updated {
-      color: var(--text-secondary);
-      font-size: 14px;
-      margin: 0 0 32px;
-    }
-
-    h2 {
-      font-size: 18px;
-      font-weight: 600;
-      margin: 40px 0 12px;
-      letter-spacing: -0.005em;
-    }
-
-    p { margin: 0 0 14px; }
-
-    ul {
-      margin: 0 0 14px;
-      padding-left: 20px;
-    }
-
-    li { margin-bottom: 8px; }
-
-    code {
-      font-family: "SF Mono", Menlo, monospace;
-      font-size: 0.9em;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 5px;
-    }
-
-    strong { font-weight: 600; }
-
-    footer {
-      margin-top: 64px;
-      padding-top: 24px;
-      border-top: 1px solid var(--border);
-      font-size: 13px;
-      color: var(--text-secondary);
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    footer a {
-      color: var(--text-secondary);
-      text-decoration: none;
-      border-bottom: 1px solid transparent;
-      transition: border-color 120ms ease, color 120ms ease;
-    }
-
-    footer a:hover {
-      color: var(--text);
-      border-bottom-color: var(--text-secondary);
-    }
+    /* Legal pages */
+    .page-head { padding-top: 72px; padding-bottom: 48px; border-bottom: 1px solid var(--line); }
+    .page-head .inner { max-width: 760px; }
+    .page-head h1 { margin: 0 0 16px; font-size: clamp(44px, 7vw, 72px); line-height: 1; letter-spacing: -0.045em; }
+    .page-head .updated { margin: 0; font-family: var(--mono); font-size: 13px; color: var(--text-4); }
+    .legal { padding-top: 56px; padding-bottom: 120px; }
+    .prose { max-width: 760px; color: #C9CBCF; }
+    .prose > p:first-child { font-size: 19px; line-height: 1.6; color: var(--text); }
+    .prose h2 { margin: 56px 0 16px; font-size: 28px; line-height: 1.2; letter-spacing: -0.02em; color: var(--text); }
+    .prose p { margin: 0 0 16px; }
+    .prose ul { margin: 0 0 16px; padding-left: 22px; }
+    .prose li { margin: 0 0 12px; padding-left: 4px; }
+    .prose li::marker { color: var(--green); }
+    .prose strong { color: var(--text); font-weight: 600; }
+    .prose code { font-family: var(--mono); font-size: 0.86em; padding: 2px 6px; border-radius: 6px; background: var(--surface); box-shadow: 0 0 0 1px var(--edge); color: var(--text); word-break: break-word; }
+    .prose a { text-decoration-color: rgba(21, 218, 147, 0.45); text-underline-offset: 3px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <a href="/" class="breadcrumb">← Yield</a>
+  <header class="wrap nav">
+    <a class="brand" href="/">
+      <img src="/app-icon.png" alt="" width="30" height="30">
+      Yield
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="/#how">How it works</a>
+      <a href="/#features">Features</a>
+      <a href="/#changelog">Changelog</a>
+      <a href="https://github.com/vigetlabs/yield-app">GitHub</a>
+    </nav>
+    <a class="btn" href="https://github.com/vigetlabs/yield-app/releases/latest">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="M6 11l6 6 6-6"/><path d="M5 20h14"/></svg>
+      Download
+    </a>
+  </header>
 
-    <header>
-      <img src="/app-icon.png" alt="Yield app icon">
-      <h1>Privacy</h1>
-    </header>
-    <p class="updated">Last updated: 17 November 2026</p>
+  <main>
+    <section class="page-head">
+      <div class="wrap">
+        <div class="inner">
+          <p class="eyebrow">Privacy</p>
+          <h1>Privacy</h1>
+          <p class="updated">Last updated: 17 November 2026</p>
+        </div>
+      </div>
+    </section>
 
-    <p>Yield is a macOS menu bar app that compares your Harvest time entries against your Forecast bookings. This page describes every piece of data Yield touches, where it lives, and what (if anything) leaves your machine.</p>
+    <section class="wrap legal">
+      <article class="prose">
+      <p>Yield is a macOS menu bar app that compares your Harvest time entries against your Forecast bookings. This page describes every piece of data Yield touches, where it lives, and what (if anything) leaves your machine.</p>
 
-    <h2>What Yield sends over the network</h2>
-    <p>Yield talks to a small number of third-party services and stores nothing on a server we control:</p>
-    <ul>
-      <li><strong>Harvest API</strong> (<code>api.harvestapp.com</code>) for time entries, timers, projects, tasks, and your account profile.</li>
-      <li><strong>Forecast API</strong> (<code>api.forecastapp.com</code>), via the same Harvest OAuth token, for weekly assignments, projects, clients, and time-off blocks.</li>
-      <li><strong>Google Calendar API</strong> (<code>www.googleapis.com</code>), only if you choose to connect Google Calendar in Settings. Yield requests the <code>calendar.events.readonly</code> scope, which is the narrowest read-only access Google offers. It fetches today's events from your primary calendar, plus those of another day of the current week when you select that day in Yield's week strip. It re-checks them when you open Yield and alongside its own refreshes, at most once every four minutes, so the event picker, meeting-start prompts, menu bar countdown, and day timeline stay current. Yield never writes to your calendar, never reads other calendars, and never reads events outside the current week. The Google sign-in flow also fetches your account email once so the Settings card can show which account you connected.</li>
-    </ul>
-    <p>All requests use HTTPS. Yield does not include analytics, telemetry, crash reporters, advertising SDKs, or any other "phone home" channel.</p>
+      <h2>What Yield sends over the network</h2>
+      <p>Yield talks to a small number of third-party services and stores nothing on a server we control:</p>
+      <ul>
+        <li><strong>Harvest API</strong> (<code>api.harvestapp.com</code>) for time entries, timers, projects, tasks, and your account profile.</li>
+        <li><strong>Forecast API</strong> (<code>api.forecastapp.com</code>), via the same Harvest OAuth token, for weekly assignments, projects, clients, and time-off blocks.</li>
+        <li><strong>Google Calendar API</strong> (<code>www.googleapis.com</code>), only if you choose to connect Google Calendar in Settings. Yield requests the <code>calendar.events.readonly</code> scope, which is the narrowest read-only access Google offers. It fetches today's events from your primary calendar, plus those of another day of the current week when you select that day in Yield's week strip. It re-checks them when you open Yield and alongside its own refreshes, at most once every four minutes, so the event picker, meeting-start prompts, menu bar countdown, and day timeline stay current. Yield never writes to your calendar, never reads other calendars, and never reads events outside the current week. The Google sign-in flow also fetches your account email once so the Settings card can show which account you connected.</li>
+      </ul>
+      <p>All requests use HTTPS. Yield does not include analytics, telemetry, crash reporters, advertising SDKs, or any other "phone home" channel.</p>
 
-    <h2>What Yield stores locally on your Mac</h2>
-    <ul>
-      <li><strong>OAuth access and refresh tokens</strong> for Harvest and (if connected) Google are stored in the macOS Keychain. They never leave your machine except to authenticate requests to those services.</li>
-      <li><strong>Preferences and favorites</strong> (appearance, theme, menu bar style and text, meeting countdown settings, idle and notification settings, weekly hours target, favorited project/task pairs, muted meeting titles, connected Google account email) live in macOS UserDefaults under the <code>com.yield</code> bundle identifier.</li>
-      <li><strong>Meeting-title memory</strong> — when you log time after picking a Google Calendar event, Yield remembers the meeting title → project/task pairing locally so the next event with that title pre-fills the same project/task. Only the title and the Harvest IDs are stored. Settings &rarr; Troubleshooting &rarr; <strong>Forget Remembered Meetings</strong> clears them.</li>
-      <li><strong>The meeting a timer was started from</strong> — while a timer started from a calendar event runs, Yield keeps that event's ID, title, start and end times, and the Harvest entry it's timing, so the link survives a relaunch and the post-meeting reminder still works. It's removed when the timer stops or switches, and ignored after 12 hours. No other event details are persisted.</li>
-      <li><strong>Cached data</strong> (the current week's projects, time entries, and Forecast assignments) is held in memory during the app's session and not persisted to disk. Calendar events are held the same way — in memory only, never written to disk.</li>
-      <li><strong>Error logs</strong> are written to <code>~/Library/Logs/Yield/yield.log</code> and rotated when they reach 256 KB. Nothing in the log leaves your machine unless you attach it to a bug report yourself.</li>
-    </ul>
+      <h2>What Yield stores locally on your Mac</h2>
+      <ul>
+        <li><strong>OAuth access and refresh tokens</strong> for Harvest and (if connected) Google are stored in the macOS Keychain. They never leave your machine except to authenticate requests to those services.</li>
+        <li><strong>Preferences and favorites</strong> (appearance, theme, menu bar style and text, meeting countdown settings, idle and notification settings, weekly hours target, favorited project/task pairs, muted meeting titles, connected Google account email) live in macOS UserDefaults under the <code>com.yield</code> bundle identifier.</li>
+        <li><strong>Meeting-title memory</strong> — when you log time after picking a Google Calendar event, Yield remembers the meeting title → project/task pairing locally so the next event with that title pre-fills the same project/task. Only the title and the Harvest IDs are stored. Settings &rarr; Troubleshooting &rarr; <strong>Forget Remembered Meetings</strong> clears them.</li>
+        <li><strong>The meeting a timer was started from</strong> — while a timer started from a calendar event runs, Yield keeps that event's ID, title, start and end times, and the Harvest entry it's timing, so the link survives a relaunch and the post-meeting reminder still works. It's removed when the timer stops or switches, and ignored after 12 hours. No other event details are persisted.</li>
+        <li><strong>Cached data</strong> (the current week's projects, time entries, and Forecast assignments) is held in memory during the app's session and not persisted to disk. Calendar events are held the same way — in memory only, never written to disk.</li>
+        <li><strong>Error logs</strong> are written to <code>~/Library/Logs/Yield/yield.log</code> and rotated when they reach 256 KB. Nothing in the log leaves your machine unless you attach it to a bug report yourself.</li>
+      </ul>
 
-    <h2>What Yield never collects</h2>
-    <ul>
-      <li>Personally identifiable information beyond what Harvest and Forecast already have about you.</li>
-      <li>Usage analytics, click tracking, or session recording.</li>
-      <li>Crash reports — when Yield crashes, the report stays in the standard macOS <code>~/Library/Logs/DiagnosticReports/</code> location and is not transmitted anywhere.</li>
-    </ul>
+      <h2>What Yield never collects</h2>
+      <ul>
+        <li>Personally identifiable information beyond what Harvest and Forecast already have about you.</li>
+        <li>Usage analytics, click tracking, or session recording.</li>
+        <li>Crash reports — when Yield crashes, the report stays in the standard macOS <code>~/Library/Logs/DiagnosticReports/</code> location and is not transmitted anywhere.</li>
+      </ul>
 
-    <h2>Third-party services</h2>
-    <p>Yield depends on:</p>
-    <ul>
-      <li><strong>Harvest and Forecast</strong> by Getharvest, Inc., for the time tracking and forecasting APIs. Their privacy practices are described at <a href="https://www.getharvest.com/privacy-policy">getharvest.com/privacy-policy</a>.</li>
-      <li><strong>Google Calendar</strong> (optional) — only when you connect it in Settings. Google's handling of your calendar data is described at <a href="https://policies.google.com/privacy">policies.google.com/privacy</a>. You can revoke Yield's access at any time from your <a href="https://myaccount.google.com/permissions">Google account permissions page</a>.</li>
-      <li><strong>Sparkle</strong>, an open source updater framework, which periodically fetches an appcast file from GitHub to check whether a newer version of Yield is available. The request goes directly from your Mac to GitHub; we do not receive or log it.</li>
-    </ul>
+      <h2>Third-party services</h2>
+      <p>Yield depends on:</p>
+      <ul>
+        <li><strong>Harvest and Forecast</strong> by Getharvest, Inc., for the time tracking and forecasting APIs. Their privacy practices are described at <a href="https://www.getharvest.com/privacy-policy">getharvest.com/privacy-policy</a>.</li>
+        <li><strong>Google Calendar</strong> (optional) — only when you connect it in Settings. Google's handling of your calendar data is described at <a href="https://policies.google.com/privacy">policies.google.com/privacy</a>. You can revoke Yield's access at any time from your <a href="https://myaccount.google.com/permissions">Google account permissions page</a>.</li>
+        <li><strong>Sparkle</strong>, an open source updater framework, which periodically fetches an appcast file from GitHub to check whether a newer version of Yield is available. The request goes directly from your Mac to GitHub; we do not receive or log it.</li>
+      </ul>
 
-    <h2>Disconnecting and deleting your data</h2>
-    <p>To disconnect Yield from your Harvest/Forecast account, open Settings inside the app and click <strong>Sign Out</strong>. This clears the OAuth tokens from your Keychain and the cached account identifiers from UserDefaults.</p>
-    <p>To disconnect Yield from Google Calendar, open Settings and click <strong>Disconnect</strong> on the Calendar card. This clears the Google OAuth tokens from your Keychain. To also revoke Yield's permission on Google's side, visit your <a href="https://myaccount.google.com/permissions">Google account permissions page</a>.</p>
-    <p>Settings &rarr; Troubleshooting also has <strong>Reset Preferences</strong>, which puts every setting back to its default while keeping your sign-ins, favorites, and muted meetings.</p>
-    <p>To remove every trace of Yield from your Mac (preferences, favorites, logs, etc.), see the uninstall instructions in the <a href="https://github.com/vigetlabs/yield-app">repository README</a>.</p>
+      <h2>Disconnecting and deleting your data</h2>
+      <p>To disconnect Yield from your Harvest/Forecast account, open Settings inside the app and click <strong>Sign Out</strong>. This clears the OAuth tokens from your Keychain and the cached account identifiers from UserDefaults.</p>
+      <p>To disconnect Yield from Google Calendar, open Settings and click <strong>Disconnect</strong> on the Calendar card. This clears the Google OAuth tokens from your Keychain. To also revoke Yield's permission on Google's side, visit your <a href="https://myaccount.google.com/permissions">Google account permissions page</a>.</p>
+      <p>Settings &rarr; Troubleshooting also has <strong>Reset Preferences</strong>, which puts every setting back to its default while keeping your sign-ins, favorites, and muted meetings.</p>
+      <p>To remove every trace of Yield from your Mac (preferences, favorites, logs, etc.), see the uninstall instructions in the <a href="https://github.com/vigetlabs/yield-app">repository README</a>.</p>
 
-    <h2>Changes to this policy</h2>
-    <p>If the way Yield handles data ever changes, this page will be updated and the "Last updated" date at the top will move accordingly. Material changes will also be mentioned in the release notes.</p>
+      <h2>Changes to this policy</h2>
+      <p>If the way Yield handles data ever changes, this page will be updated and the "Last updated" date at the top will move accordingly. Material changes will also be mentioned in the release notes.</p>
 
-    <h2>Contact</h2>
-    <p>Open an issue at <a href="https://github.com/vigetlabs/yield-app/issues">github.com/vigetlabs/yield-app/issues</a> with any questions.</p>
+      <h2>Contact</h2>
+      <p>Open an issue at <a href="https://github.com/vigetlabs/yield-app/issues">github.com/vigetlabs/yield-app/issues</a> with any questions.</p>
+      </article>
+    </section>
+  </main>
 
-    <footer>
-      <span>© Viget Labs</span>
-      <span>
-        <a href="/">Home</a>
-        &nbsp;·&nbsp;
-        <a href="/terms">Terms</a>
-        &nbsp;·&nbsp;
-        <a href="https://github.com/vigetlabs/yield-app">GitHub</a>
-      </span>
-    </footer>
-  </div>
+  <footer>
+    <div class="wrap foot">
+      <div class="foot-brand">
+        <a class="brand" href="/"><img src="/app-icon.png" alt="" width="24" height="24">Yield</a>
+        <span>Made by Viget.</span>
+      </div>
+      <div class="foot-cols">
+        <div class="foot-col">
+          <b>Product</b>
+          <a href="https://github.com/vigetlabs/yield-app/releases/latest">Download</a>
+          <a href="https://github.com/vigetlabs/yield-app/releases">Changelog</a>
+        </div>
+        <div class="foot-col">
+          <b>Source</b>
+          <a href="https://github.com/vigetlabs/yield-app">GitHub</a>
+          <a href="https://github.com/vigetlabs/yield-app/issues">Report an issue</a>
+        </div>
+        <div class="foot-col">
+          <b>Legal</b>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
